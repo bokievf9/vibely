@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once on the same server.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next typegen
+      - run: npm run typecheck
+      - run: npm run lint
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      # Secrets (Settings → Secrets and variables → Actions): VPS_HOST, VPS_USER, VPS_SSH_KEY.
+      # Runtime env lives only on the server in /var/www/vibely/.env.production (never in git).
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            cd /var/www/vibely
+            test -f .env.production || { echo "Missing /var/www/vibely/.env.production"; exit 1; }
+            git fetch --depth 1 origin main
+            git reset --hard origin/main
+            npm ci --no-audit --no-fund
+            NODE_OPTIONS=--max-old-space-size=1536 npm run build
+            pm2 restart vibely --update-env || pm2 start ecosystem.config.cjs
+            pm2 save

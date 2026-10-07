@@ -1,0 +1,22 @@
+insert into public.tags (slug, label) values
+  ('sport', 'Спорт'),
+  ('fitness', 'Фитнес'),
+  ('travel', 'Путешествия'),
+  ('movies', 'Кино'),
+  ('series', 'Сериалы'),
+  ('music', 'Музыка'),
+  ('concerts', 'Концерты'),
+  ('books', 'Книги'),
+  ('gaming', 'Игры'),
+  ('anime', 'Аниме'),
+  ('cooking', 'Готовка'),
+  ('coffee', 'Кофе'),
+  ('art', 'Искусство'),
+  ('photography', 'Фотография'),
+  ('tech', 'Технологии'),
+  ('startups', 'Стартапы'),
+  ('nature', 'Природа'),
+  ('pets', 'Животные'),
+  ('dancing', 'Танцы'),
+  ('psychology', 'Психология')
+on conflict (slug) do nothing;

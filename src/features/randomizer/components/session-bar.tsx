@@ -1,0 +1,85 @@
+'use client'
+
+import { useState } from 'react'
+import { Flag, LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
+import { fmt } from '@/i18n/config'
+import { useI18n } from '@/i18n/client'
+import { ReportDialog } from '@/features/safety/components/report-dialog'
+import type { RandomSession } from '../types'
+import { RevealPanel } from './reveal-panel'
+
+type Props = {
+  session: RandomSession
+  active: boolean
+  pending: boolean
+  onReveal: () => void
+  onEnd: () => Promise<void>
+}
+
+// Who you're talking to, shared interests, reveal consent, report and end.
+export function SessionBar({ session, active, pending, onReveal, onEnd }: Props) {
+  const { dict } = useI18n()
+  const [dialog, setDialog] = useState<'end' | 'report' | null>(null)
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">{session.partner?.name ?? dict.random.connected}</p>
+        <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label={dict.safety.report}
+            onClick={() => setDialog('report')}
+          >
+            <Flag className="size-5" />
+          </Button>
+          {active && (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={dict.random.end}
+              onClick={() => setDialog('end')}
+            >
+              <LogOut className="size-5" />
+            </Button>
+          )}
+        </div>
+      </div>
+      {session.commonTags.length > 0 && !session.partner && (
+        <p className="text-muted text-xs">
+          {fmt(dict.random.commonTags, {
+            tags: session.commonTags.map((t) => dict.tags[t] ?? t).join(', '),
+          })}
+        </p>
+      )}
+      {active && <RevealPanel session={session} pending={pending} onReveal={onReveal} />}
+      <Modal open={dialog === 'end'} onClose={() => setDialog(null)} title={dict.random.end}>
+        <div className="flex flex-col gap-4">
+          <p>{dict.random.endConfirm}</p>
+          <Button
+            variant="danger"
+            fullWidth
+            loading={pending}
+            onClick={async () => {
+              await onEnd()
+              setDialog(null)
+            }}
+          >
+            {dict.random.end}
+          </Button>
+        </div>
+      </Modal>
+      {dialog === 'report' && (
+        <ReportDialog
+          open
+          onClose={() => setDialog(null)}
+          targetType="random_session"
+          targetId={session.id}
+        />
+      )}
+    </>
+  )
+}

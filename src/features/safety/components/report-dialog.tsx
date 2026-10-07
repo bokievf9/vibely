@@ -1,0 +1,74 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { CheckCircle2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
+import { FormError } from '@/components/ui/field'
+import { Textarea } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
+import { useErrorText, useI18n } from '@/i18n/client'
+import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { report } from '../actions'
+import { REPORT_REASONS, type ReportInput } from '../schemas'
+
+type Props = {
+  open: boolean
+  onClose: () => void
+  targetType: ReportInput['targetType']
+  targetId: string
+}
+
+// Reusable for profiles, chats, posts, comments and random chats.
+export function ReportDialog({ open, onClose, targetType, targetId }: Props) {
+  const { dict } = useI18n()
+  const errorText = useErrorText()
+  const [reason, setReason] = useState<ReportInput['reason']>()
+  const [details, setDetails] = useState('')
+  const [error, setError] = useState<ErrorKey>()
+  const [sent, setSent] = useState(false)
+  const [pending, startTransition] = useTransition()
+
+  const submit = () =>
+    startTransition(async () => {
+      if (!reason) return
+      const result = await report({ targetType, targetId, reason, details })
+      if (result.ok) setSent(true)
+      else setError(result.error)
+    })
+
+  return (
+    <Modal open={open} onClose={onClose} title={dict.safety.reportTitle}>
+      {sent ? (
+        <div className="flex flex-col items-center gap-4 text-center">
+          <CheckCircle2 className="size-14 text-emerald-400" aria-hidden />
+          <p>{dict.safety.reportSent}</p>
+          <Button fullWidth onClick={onClose}>
+            {dict.common.close}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
+            {REPORT_REASONS.map((r) => (
+              <Chip key={r} selected={reason === r} onClick={() => setReason(r)}>
+                {dict.safety.reasons[r]}
+              </Chip>
+            ))}
+          </div>
+          <Textarea
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+            maxLength={500}
+            placeholder={dict.safety.details}
+            aria-label={dict.safety.details}
+          />
+          <FormError message={errorText(error)} />
+          <Button variant="danger" fullWidth disabled={!reason} loading={pending} onClick={submit}>
+            {dict.safety.report}
+          </Button>
+        </div>
+      )}
+    </Modal>
+  )
+}
