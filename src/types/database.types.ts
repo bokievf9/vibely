@@ -1,9 +1,16 @@
-// Generated from supabase/migrations. Regenerate with `npm run db:types` once a Supabase stack is available.
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '13'
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -40,18 +47,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'blocks_blocked_id_fkey'
-            columns: ['blocked_id']
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'blocks_blocker_id_fkey'
-            columns: ['blocker_id']
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -85,18 +92,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'comments_author_id_fkey'
-            columns: ['author_id']
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'comments_post_id_fkey'
-            columns: ['post_id']
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: 'posts'
-            referencedColumns: ['id']
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -104,38 +118,38 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          source: Database['public']['Enums']['match_source']
+          source: Database["public"]["Enums"]["match_source"]
           user_a: string
           user_b: string
         }
         Insert: {
           created_at?: string
           id?: string
-          source: Database['public']['Enums']['match_source']
+          source: Database["public"]["Enums"]["match_source"]
           user_a: string
           user_b: string
         }
         Update: {
           created_at?: string
           id?: string
-          source?: Database['public']['Enums']['match_source']
+          source?: Database["public"]["Enums"]["match_source"]
           user_a?: string
           user_b?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'matches_user_a_fkey'
-            columns: ['user_a']
+            foreignKeyName: "matches_user_a_fkey"
+            columns: ["user_a"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'matches_user_b_fkey'
-            columns: ['user_b']
+            foreignKeyName: "matches_user_b_fkey"
+            columns: ["user_b"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -166,18 +180,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'messages_match_id_fkey'
-            columns: ['match_id']
+            foreignKeyName: "messages_match_id_fkey"
+            columns: ["match_id"]
             isOneToOne: false
-            referencedRelation: 'matches'
-            referencedColumns: ['id']
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'messages_sender_id_fkey'
-            columns: ['sender_id']
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -229,18 +243,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'post_aliases_post_id_fkey'
-            columns: ['post_id']
+            foreignKeyName: "post_aliases_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: 'posts'
-            referencedColumns: ['id']
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'post_aliases_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "post_aliases_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_aliases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -262,18 +283,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'post_likes_post_id_fkey'
-            columns: ['post_id']
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: 'posts'
-            referencedColumns: ['id']
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'post_likes_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -307,11 +335,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'posts_author_id_fkey'
-            columns: ['author_id']
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -345,11 +373,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'profile_photos_profile_id_fkey'
-            columns: ['profile_id']
+            foreignKeyName: "profile_photos_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -368,18 +396,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'profile_tags_profile_id_fkey'
-            columns: ['profile_id']
+            foreignKeyName: "profile_tags_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'profile_tags_tag_id_fkey'
-            columns: ['tag_id']
+            foreignKeyName: "profile_tags_tag_id_fkey"
+            columns: ["tag_id"]
             isOneToOne: false
-            referencedRelation: 'tags'
-            referencedColumns: ['id']
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -392,14 +420,14 @@ export type Database = {
           city: string | null
           created_at: string
           display_name: string
-          gender: Database['public']['Enums']['gender']
+          gender: Database["public"]["Enums"]["gender"]
           id: string
-          interested_in: Database['public']['Enums']['gender'][]
+          interested_in: Database["public"]["Enums"]["gender"][]
           is_active: boolean
           last_active_at: string
-          location: unknown | null
+          location: unknown
           updated_at: string
-          verification_status: Database['public']['Enums']['verification_status']
+          verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
           ban_reason?: string | null
@@ -409,14 +437,14 @@ export type Database = {
           city?: string | null
           created_at?: string
           display_name: string
-          gender: Database['public']['Enums']['gender']
+          gender: Database["public"]["Enums"]["gender"]
           id?: string
-          interested_in: Database['public']['Enums']['gender'][]
+          interested_in: Database["public"]["Enums"]["gender"][]
           is_active?: boolean
           last_active_at?: string
-          location?: unknown | null
+          location?: unknown
           updated_at?: string
-          verification_status?: Database['public']['Enums']['verification_status']
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
           ban_reason?: string | null
@@ -426,14 +454,14 @@ export type Database = {
           city?: string | null
           created_at?: string
           display_name?: string
-          gender?: Database['public']['Enums']['gender']
+          gender?: Database["public"]["Enums"]["gender"]
           id?: string
-          interested_in?: Database['public']['Enums']['gender'][]
+          interested_in?: Database["public"]["Enums"]["gender"][]
           is_active?: boolean
           last_active_at?: string
-          location?: unknown | null
+          location?: unknown
           updated_at?: string
-          verification_status?: Database['public']['Enums']['verification_status']
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Relationships: []
       }
@@ -461,18 +489,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'random_chat_messages_sender_id_fkey'
-            columns: ['sender_id']
+            foreignKeyName: "random_chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'random_chat_messages_session_id_fkey'
-            columns: ['session_id']
+            foreignKeyName: "random_chat_messages_session_id_fkey"
+            columns: ["session_id"]
             isOneToOne: false
-            referencedRelation: 'random_chat_sessions'
-            referencedColumns: ['id']
+            referencedRelation: "random_chat_sessions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -483,7 +511,7 @@ export type Database = {
           max_age: number
           min_age: number
           user_id: string
-          want_genders: Database['public']['Enums']['gender'][]
+          want_genders: Database["public"]["Enums"]["gender"][]
           want_tags: number[]
         }
         Insert: {
@@ -492,7 +520,7 @@ export type Database = {
           max_age: number
           min_age: number
           user_id: string
-          want_genders: Database['public']['Enums']['gender'][]
+          want_genders: Database["public"]["Enums"]["gender"][]
           want_tags?: number[]
         }
         Update: {
@@ -501,16 +529,16 @@ export type Database = {
           max_age?: number
           min_age?: number
           user_id?: string
-          want_genders?: Database['public']['Enums']['gender'][]
+          want_genders?: Database["public"]["Enums"]["gender"][]
           want_tags?: number[]
         }
         Relationships: [
           {
-            foreignKeyName: 'random_chat_queue_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            foreignKeyName: "random_chat_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -523,7 +551,7 @@ export type Database = {
           match_id: string | null
           revealed_at: string | null
           started_at: string
-          status: Database['public']['Enums']['random_session_status']
+          status: Database["public"]["Enums"]["random_session_status"]
           user_a: string
           user_b: string
         }
@@ -535,7 +563,7 @@ export type Database = {
           match_id?: string | null
           revealed_at?: string | null
           started_at?: string
-          status?: Database['public']['Enums']['random_session_status']
+          status?: Database["public"]["Enums"]["random_session_status"]
           user_a: string
           user_b: string
         }
@@ -547,31 +575,31 @@ export type Database = {
           match_id?: string | null
           revealed_at?: string | null
           started_at?: string
-          status?: Database['public']['Enums']['random_session_status']
+          status?: Database["public"]["Enums"]["random_session_status"]
           user_a?: string
           user_b?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'random_chat_sessions_match_id_fkey'
-            columns: ['match_id']
+            foreignKeyName: "random_chat_sessions_match_id_fkey"
+            columns: ["match_id"]
             isOneToOne: false
-            referencedRelation: 'matches'
-            referencedColumns: ['id']
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'random_chat_sessions_user_a_fkey'
-            columns: ['user_a']
+            foreignKeyName: "random_chat_sessions_user_a_fkey"
+            columns: ["user_a"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'random_chat_sessions_user_b_fkey'
-            columns: ['user_b']
+            foreignKeyName: "random_chat_sessions_user_b_fkey"
+            columns: ["user_b"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -585,7 +613,7 @@ export type Database = {
           resolved_at: string | null
           resolved_by: string | null
           target_id: string
-          target_type: Database['public']['Enums']['report_target']
+          target_type: Database["public"]["Enums"]["report_target"]
         }
         Insert: {
           created_at?: string
@@ -596,7 +624,7 @@ export type Database = {
           resolved_at?: string | null
           resolved_by?: string | null
           target_id: string
-          target_type: Database['public']['Enums']['report_target']
+          target_type: Database["public"]["Enums"]["report_target"]
         }
         Update: {
           created_at?: string
@@ -607,51 +635,51 @@ export type Database = {
           resolved_at?: string | null
           resolved_by?: string | null
           target_id?: string
-          target_type?: Database['public']['Enums']['report_target']
+          target_type?: Database["public"]["Enums"]["report_target"]
         }
         Relationships: [
           {
-            foreignKeyName: 'reports_reporter_id_fkey'
-            columns: ['reporter_id']
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
       swipes: {
         Row: {
           created_at: string
-          direction: Database['public']['Enums']['swipe_direction']
+          direction: Database["public"]["Enums"]["swipe_direction"]
           swiped_id: string
           swiper_id: string
         }
         Insert: {
           created_at?: string
-          direction: Database['public']['Enums']['swipe_direction']
+          direction: Database["public"]["Enums"]["swipe_direction"]
           swiped_id: string
           swiper_id?: string
         }
         Update: {
           created_at?: string
-          direction?: Database['public']['Enums']['swipe_direction']
+          direction?: Database["public"]["Enums"]["swipe_direction"]
           swiped_id?: string
           swiper_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'swipes_swiped_id_fkey'
-            columns: ['swiped_id']
+            foreignKeyName: "swipes_swiped_id_fkey"
+            columns: ["swiped_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'swipes_swiper_id_fkey'
-            columns: ['swiper_id']
+            foreignKeyName: "swipes_swiper_id_fkey"
+            columns: ["swiper_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -682,7 +710,7 @@ export type Database = {
           reviewed_at: string | null
           reviewer_id: string | null
           selfie_path: string
-          status: Database['public']['Enums']['verification_status']
+          status: Database["public"]["Enums"]["verification_status"]
           user_id: string
         }
         Insert: {
@@ -693,7 +721,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewer_id?: string | null
           selfie_path: string
-          status?: Database['public']['Enums']['verification_status']
+          status?: Database["public"]["Enums"]["verification_status"]
           user_id?: string
         }
         Update: {
@@ -704,16 +732,16 @@ export type Database = {
           reviewed_at?: string | null
           reviewer_id?: string | null
           selfie_path?: string
-          status?: Database['public']['Enums']['verification_status']
+          status?: Database["public"]["Enums"]["verification_status"]
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'verification_requests_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "verification_requests_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -729,6 +757,24 @@ export type Database = {
           is_mine: boolean | null
           likes_count: number | null
         }
+        Insert: {
+          body?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          id?: string | null
+          is_liked_by_me?: never
+          is_mine?: never
+          likes_count?: number | null
+        }
+        Update: {
+          body?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          id?: string | null
+          is_liked_by_me?: never
+          is_mine?: never
+          likes_count?: number | null
+        }
         Relationships: []
       }
       post_comments: {
@@ -741,256 +787,179 @@ export type Database = {
           is_op: boolean | null
           post_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
       admin_find_users: {
-        Args: {
-          p_admin: string
-          p_query?: string
-          p_limit?: number
-        }
+        Args: { p_admin: string; p_limit?: number; p_query?: string }
         Returns: {
-          id: string
-          display_name: string
-          phone: string
-          verification_status: Database['public']['Enums']['verification_status']
           banned_at: string
           created_at: string
+          display_name: string
+          id: string
           open_reports: number
+          phone: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
         }[]
       }
       admin_resolve_reports: {
         Args: {
           p_admin: string
-          p_type: Database['public']['Enums']['report_target']
-          p_target: string
           p_resolution: string
+          p_target: string
+          p_type: Database["public"]["Enums"]["report_target"]
         }
         Returns: number
       }
       admin_review_verification: {
         Args: {
           p_admin: string
-          p_request: string
           p_approve: boolean
           p_reason?: string
+          p_request: string
         }
         Returns: undefined
       }
       admin_revoke_verification: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reason: string
-        }
+        Args: { p_admin: string; p_reason: string; p_user: string }
         Returns: undefined
       }
       admin_set_ban: {
         Args: {
           p_admin: string
-          p_user: string
           p_banned: boolean
           p_reason?: string
+          p_user: string
         }
         Returns: undefined
       }
       admin_set_content_hidden: {
         Args: {
           p_admin: string
-          p_type: Database['public']['Enums']['report_target']
-          p_id: string
           p_hidden: boolean
+          p_id: string
           p_reason?: string
+          p_type: Database["public"]["Enums"]["report_target"]
         }
         Returns: undefined
       }
-      age_in_years: {
-        Args: {
-          birth_date: string
-        }
-        Returns: number
-      }
-      assert_admin: {
-        Args: {
-          p_admin: string
-        }
-        Returns: undefined
-      }
-      can_view_profile: {
-        Args: {
-          target: string
-        }
-        Returns: boolean
-      }
+      age_in_years: { Args: { birth_date: string }; Returns: number }
+      assert_admin: { Args: { p_admin: string }; Returns: undefined }
+      can_view_profile: { Args: { target: string }; Returns: boolean }
       create_comment: {
-        Args: {
-          p_post_id: string
-          p_body: string
-        }
+        Args: { p_body: string; p_post_id: string }
         Returns: string
       }
-      create_post: {
-        Args: {
-          p_body: string
-        }
-        Returns: string
-      }
-      delete_comment: {
-        Args: {
-          p_comment_id: string
-        }
-        Returns: undefined
-      }
-      delete_post: {
-        Args: {
-          p_post_id: string
-        }
-        Returns: undefined
-      }
+      create_post: { Args: { p_body: string }; Returns: string }
+      delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
+      delete_post: { Args: { p_post_id: string }; Returns: undefined }
       ensure_match: {
         Args: {
           a: string
           b: string
-          src: Database['public']['Enums']['match_source']
+          src: Database["public"]["Enums"]["match_source"]
         }
         Returns: string
       }
       get_random_messages: {
-        Args: {
-          p_session_id: string
-          p_before?: string
-          p_limit?: number
-        }
+        Args: { p_before?: string; p_limit?: number; p_session_id: string }
         Returns: {
-          id: string
           body: string
-          is_mine: boolean
           created_at: string
+          id: string
+          is_mine: boolean
         }[]
       }
       get_random_session: {
         Args: never
         Returns: {
-          id: string
-          my_side: string
-          my_revealed: boolean
-          partner_revealed: boolean
           common_tags: string[]
-          partner: Json
+          id: string
           match_id: string
+          my_revealed: boolean
+          my_side: string
+          partner: Json
+          partner_revealed: boolean
           started_at: string
         }[]
       }
       get_swipe_candidates: {
         Args: {
-          p_genders: Database['public']['Enums']['gender'][]
-          p_min_age?: number
+          p_genders: Database["public"]["Enums"]["gender"][]
+          p_limit?: number
           p_max_age?: number
           p_max_km?: number
-          p_limit?: number
+          p_min_age?: number
         }
         Returns: {
-          id: string
-          display_name: string
           age: number
           bio: string
           city: string
+          display_name: string
           distance_km: number
-          tags: string[]
+          id: string
           photos: Json
+          tags: string[]
         }[]
       }
-      is_blocked_between: {
-        Args: {
-          a: string
-          b: string
-        }
-        Returns: boolean
-      }
-      is_malaysian_mobile: {
-        Args: {
-          phone: string
-        }
-        Returns: boolean
-      }
-      is_match_participant: {
-        Args: {
-          m: string
-        }
-        Returns: boolean
-      }
-      is_verified: {
-        Args: never
-        Returns: boolean
-      }
+      hook_before_user_created: { Args: { event: Json }; Returns: Json }
+      is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
+      is_malaysian_mobile: { Args: { phone: string }; Returns: boolean }
+      is_match_participant: { Args: { m: string }; Returns: boolean }
+      is_verified: { Args: never; Returns: boolean }
       log_moderation: {
         Args: {
-          p_admin: string
           p_action: string
-          p_type: string
-          p_target: string
+          p_admin: string
           p_reason: string
+          p_target: string
+          p_type: string
         }
         Returns: undefined
       }
-      random_session_side: {
-        Args: {
-          s: string
-        }
-        Returns: string
-      }
-      randomizer_end: {
-        Args: {
-          p_session_id: string
-        }
-        Returns: undefined
-      }
+      random_session_side: { Args: { s: string }; Returns: string }
+      randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
       randomizer_join: {
         Args: {
-          p_genders: Database['public']['Enums']['gender'][]
-          p_min_age: number
+          p_genders: Database["public"]["Enums"]["gender"][]
           p_max_age: number
+          p_min_age: number
           p_tags?: number[]
         }
         Returns: string
       }
-      randomizer_leave: {
-        Args: never
-        Returns: undefined
-      }
-      randomizer_ping: {
-        Args: never
-        Returns: undefined
-      }
-      randomizer_reveal: {
-        Args: {
-          p_session_id: string
-        }
-        Returns: boolean
-      }
+      randomizer_leave: { Args: never; Returns: undefined }
+      randomizer_ping: { Args: never; Returns: undefined }
+      randomizer_reveal: { Args: { p_session_id: string }; Returns: boolean }
       randomizer_send: {
-        Args: {
-          p_session_id: string
-          p_body: string
-        }
+        Args: { p_body: string; p_session_id: string }
         Returns: string
       }
-      toggle_post_like: {
-        Args: {
-          p_post_id: string
-        }
-        Returns: boolean
-      }
+      toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
     }
     Enums: {
-      gender: 'male' | 'female' | 'other'
-      match_source: 'swipe' | 'randomizer'
-      random_session_status: 'active' | 'ended'
-      report_target: 'user' | 'post' | 'comment' | 'random_session'
-      swipe_direction: 'like' | 'pass'
-      verification_status: 'unverified' | 'pending' | 'approved' | 'rejected'
+      gender: "male" | "female" | "other"
+      match_source: "swipe" | "randomizer"
+      random_session_status: "active" | "ended"
+      report_target: "user" | "post" | "comment" | "random_session"
+      swipe_direction: "like" | "pass"
+      verification_status: "unverified" | "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -998,25 +967,132 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database['public']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type Tables<T extends keyof PublicSchema['Tables']> = PublicSchema['Tables'][T]['Row']
-export type TablesInsert<T extends keyof PublicSchema['Tables']> =
-  PublicSchema['Tables'][T]['Insert']
-export type TablesUpdate<T extends keyof PublicSchema['Tables']> =
-  PublicSchema['Tables'][T]['Update']
-export type Views<T extends keyof PublicSchema['Views']> = PublicSchema['Views'][T]['Row']
-export type Enums<T extends keyof PublicSchema['Enums']> = PublicSchema['Enums'][T]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
     Enums: {
-      gender: ['male', 'female', 'other'],
-      match_source: ['swipe', 'randomizer'],
-      random_session_status: ['active', 'ended'],
-      report_target: ['user', 'post', 'comment', 'random_session'],
-      swipe_direction: ['like', 'pass'],
-      verification_status: ['unverified', 'pending', 'approved', 'rejected'],
+      gender: ["male", "female", "other"],
+      match_source: ["swipe", "randomizer"],
+      random_session_status: ["active", "ended"],
+      report_target: ["user", "post", "comment", "random_session"],
+      swipe_direction: ["like", "pass"],
+      verification_status: ["unverified", "pending", "approved", "rejected"],
     },
   },
 } as const

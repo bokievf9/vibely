@@ -1,5 +1,6 @@
 import 'server-only'
 import { cookies } from 'next/headers'
+import { connection } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { publicEnv } from '@/lib/env'
 import type { Database } from '@/types/database.types'
@@ -8,6 +9,9 @@ import { authCookieOptions } from './config'
 // Per-request client for Server Components, Server Actions and Route Handlers.
 // With Cache Components on, call it only inside a <Suspense> boundary (it reads cookies).
 export async function createClient() {
+  // The auth client reads the clock (session expiry) as soon as it is created; mark the render as
+  // request-time first, or Cache Components flags Date.now() during prerendering.
+  await connection()
   const cookieStore = await cookies()
 
   return createServerClient<Database>(

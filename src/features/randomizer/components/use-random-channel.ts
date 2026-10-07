@@ -13,8 +13,9 @@ type Handlers = {
   onEnded: () => void
 }
 
-// Private broadcast channel of one random-chat session. Only participants can join (RLS on
-// realtime.messages); clients may only send "typing", everything else comes from the database.
+// Private broadcast channels of one random-chat session; only participants can join (RLS on
+// realtime.messages). random:<id> is read-only (the database broadcasts messages, reveal, end);
+// typing goes over random-typing:<id>, the only topic clients may write to.
 export function useRandomChannel(sessionId: string | null, handlers: Handlers) {
   const ref = useRef(handlers)
   const channelRef = useRef<RealtimeChannel | null>(null)
@@ -39,10 +40,15 @@ export function useRandomChannel(sessionId: string | null, handlers: Handlers) {
       .on('broadcast', { event: 'revealed' }, () => ref.current.onRevealed())
       .on('broadcast', { event: 'ended' }, () => ref.current.onEnded())
       .subscribe()
-    channelRef.current = channel
+    const typing = client
+      .channel(`random-typing:${sessionId}`, { config: { private: true } })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => ref.current.onTyping((payload as { from: Side }).from))
+      .subscribe()
+    channelRef.current = typing
     return () => {
       channelRef.current = null
       void client.removeChannel(channel)
+      void client.removeChannel(typing)
     }
   }, [sessionId])
 

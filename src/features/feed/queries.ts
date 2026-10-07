@@ -1,12 +1,12 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
-import type { Views } from '@/types/database.types'
+import type { Tables } from '@/types/database.types'
 import type { FeedComment, FeedPage, FeedPost } from './types'
 
 export const PAGE_SIZE = 20
 
 // View columns are nullable in generated types; rows from the view always have them.
-function toPost(r: Views<'feed_posts'>): FeedPost | null {
+function toPost(r: Tables<'feed_posts'>): FeedPost | null {
   if (!r.id || !r.created_at) return null
   return {
     id: r.id,

@@ -59,3 +59,20 @@ export async function unmatch(matchId: string): Promise<UserResult> {
   const { error } = await supabase.from('matches').delete().eq('id', id.data)
   return error ? fail('generic') : ok(undefined)
 }
+
+// Fills gaps the live subscription can miss: right after joining (Realtime needs a moment to
+// attach postgres_changes) and after reconnects. RLS limits rows to the caller's own matches.
+export async function loadMessagesAfter(matchId: string, after: string | null): Promise<ChatMessage[]> {
+  const id = z.uuid().safeParse(matchId)
+  if (!id.success) return []
+  const supabase = await createClient()
+  let query = supabase
+    .from('messages')
+    .select('id, body, sender_id, created_at')
+    .eq('match_id', id.data)
+    .order('created_at')
+    .limit(200)
+  if (after && z.iso.datetime({ offset: true }).safeParse(after).success) query = query.gt('created_at', after)
+  const { data } = await query
+  return (data ?? []).map((m) => ({ id: m.id, body: m.body, senderId: m.sender_id, createdAt: m.created_at }))
+}

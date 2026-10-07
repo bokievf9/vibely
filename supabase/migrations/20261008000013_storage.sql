@@ -2,7 +2,12 @@
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('profile-photos', 'profile-photos', false, 5242880, array['image/jpeg', 'image/png', 'image/webp']),
-  ('selfies', 'selfies', false, 5242880, array['image/jpeg', 'image/png', 'image/webp']);
+  ('selfies', 'selfies', false, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+-- `selfies` may already exist from the draft setup: enforce our settings.
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
 
 -- Profile photos: owners manage their folder; anyone allowed to view the profile can read
 -- (needed to create signed URLs with the user's own client).
