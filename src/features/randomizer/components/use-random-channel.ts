@@ -42,7 +42,9 @@ export function useRandomChannel(sessionId: string | null, handlers: Handlers) {
       .subscribe()
     const typing = client
       .channel(`random-typing:${sessionId}`, { config: { private: true } })
-      .on('broadcast', { event: 'typing' }, ({ payload }) => ref.current.onTyping((payload as { from: Side }).from))
+      .on('broadcast', { event: 'typing' }, ({ payload }) =>
+        ref.current.onTyping((payload as { from: Side }).from),
+      )
       .subscribe()
     channelRef.current = typing
     return () => {
