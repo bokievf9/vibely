@@ -30,7 +30,8 @@ jobs:
     environment: production
     steps:
       # Secrets (Settings → Secrets and variables → Actions): VPS_HOST, VPS_USER, VPS_SSH_KEY.
-      # Runtime env lives only on the server in /var/www/vibely/.env.production (never in git).
+      # Runtime env lives only on the server in /var/www/vibely/.env.production (or .env.local / .env).
+      # Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY. Admin panel also needs SUPABASE_SECRET_KEY.
       - uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -40,7 +41,8 @@ jobs:
           script: |
             set -euo pipefail
             cd /var/www/vibely
-            test -f .env.production || { echo "Missing /var/www/vibely/.env.production"; exit 1; }
+            # Fail before touching the running app if no env file exists (Next reads any of these).
+            ls .env.production .env.local .env >/dev/null 2>&1 || { echo "No .env.production/.env.local/.env in /var/www/vibely"; exit 1; }
             git fetch --depth 1 origin main
             git reset --hard origin/main
             npm ci --no-audit --no-fund
