@@ -42,7 +42,7 @@ jobs:
             set -euo pipefail
             cd /var/www/vibely
             # Fail before touching the running app if no env file exists (Next reads any of these).
-            ls .env.production .env.local .env >/dev/null 2>&1 || { echo "No .env.production/.env.local/.env in /var/www/vibely"; exit 1; }
+            [ -f .env.production ] || [ -f .env.local ] || [ -f .env ] || { echo "No .env.production/.env.local/.env in /var/www/vibely"; exit 1; }
             git fetch --depth 1 origin main
             git reset --hard origin/main
             npm ci --no-audit --no-fund
