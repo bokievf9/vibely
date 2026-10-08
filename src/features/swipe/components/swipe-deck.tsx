@@ -159,7 +159,8 @@ export function SwipeDeck({ defaultFilters, headerActions, aboveDeck, plansAvail
         )}
         {(top || settling) && (
           <>
-            <div className="relative min-h-[420px] flex-1">
+            {/* 360px (was 420px) so a compact strip above the deck still fits on a phone. */}
+            <div className="relative min-h-[360px] flex-1">
               <AnimatePresence onExitComplete={() => setSettling(false)}>
                 {[next, top].map(
                   (c) =>

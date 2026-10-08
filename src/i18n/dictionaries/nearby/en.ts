@@ -18,6 +18,18 @@ export const crossedEn = {
     many: 'Crossed paths {count} times yesterday {place}',
     other: 'Crossed paths {count} times yesterday {place}',
   },
+  todayShort: {
+    one: 'Today {place}',
+    few: '{count} times today {place}',
+    many: '{count} times today {place}',
+    other: '{count} times today {place}',
+  },
+  yesterdayShort: {
+    one: 'Yesterday {place}',
+    few: '{count} times yesterday {place}',
+    many: '{count} times yesterday {place}',
+    other: '{count} times yesterday {place}',
+  },
   near: 'near {area}',
   nearby: 'nearby',
   promoTitle: 'Crossed paths',

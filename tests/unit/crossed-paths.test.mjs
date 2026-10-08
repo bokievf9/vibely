@@ -17,6 +17,12 @@ test('crossed paths line: count, day and area (en)', () => {
   assert.equal(crossedLine(crossedEn, 'en', person(2, true, null, null)), 'Crossed paths 2 times today nearby')
 })
 
+test('crossed paths line: short form under the strip title', () => {
+  assert.equal(crossedLine(crossedEn, 'en', person(2, true), true), '2 times today near Bangsar')
+  assert.equal(crossedLine(crossedEn, 'en', person(1, false), true), 'Yesterday near Bangsar')
+  assert.equal(crossedLine(crossedRu, 'ru', person(5, true), true), '5 раз сегодня в районе Bangsar')
+})
+
 test('crossed paths line: Russian plural forms', () => {
   assert.equal(crossedLine(crossedRu, 'ru', person(2, true)), 'Пересеклись 2 раза сегодня в районе Bangsar')
   assert.equal(crossedLine(crossedRu, 'ru', person(5, false)), 'Пересеклись 5 раз вчера в районе Bangsar')
@@ -28,7 +34,7 @@ test('crossed paths copy: no em or en dashes, never a time', () => {
     assert.doesNotMatch(JSON.stringify(dict), /[–—]/)
   }
   for (const dict of [crossedEn, crossedMs, crossedRu]) {
-    assert.doesNotMatch(JSON.stringify([dict.today, dict.yesterday]), /\{(time|hour|minute)\}/)
+    assert.doesNotMatch(JSON.stringify([dict.today, dict.yesterday, dict.todayShort, dict.yesterdayShort]), /\{(time|hour|minute)\}/)
   }
 })
 

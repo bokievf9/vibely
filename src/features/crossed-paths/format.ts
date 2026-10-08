@@ -2,15 +2,30 @@
 // No path aliases here: tests/unit imports this file directly.
 
 type Forms = { one: string; few: string; many: string; other: string }
-export type CrossedLineText = { today: Forms; yesterday: Forms; near: string; nearby: string }
+export type CrossedLineText = {
+  today: Forms
+  yesterday: Forms
+  todayShort: Forms
+  yesterdayShort: Forms
+  near: string
+  nearby: string
+}
 
 export function crossedLine(
   t: CrossedLineText,
   locale: string,
   person: { crossings: number; today: boolean; area: string | null; city: string | null },
+  // Under a "You crossed paths" title: "2 times today near Bangsar".
+  short = false,
 ) {
   const count = Math.max(1, person.crossings)
-  const forms = person.today ? t.today : t.yesterday
+  const forms = short
+    ? person.today
+      ? t.todayShort
+      : t.yesterdayShort
+    : person.today
+      ? t.today
+      : t.yesterday
   const category = new Intl.PluralRules(locale).select(count)
   const template = count === 1 ? forms.one : (forms[category as keyof Forms] ?? forms.other)
   const area = person.area ?? person.city

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { EyeOff, Footprints, UserRound, X } from 'lucide-react'
 import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 import { hideCrossedPath, loadCrossedPaths, type CrossedPathsState } from '../actions'
 import { crossedLine } from '../format'
 import type { CrossedPerson } from '../types'
@@ -87,69 +88,70 @@ export function CrossedPathsStrip() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto', transition: { duration: 0.28, ease: EASE_OUT } }}
             exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease: EASE_OUT } }}
-            className="-mx-4 overflow-hidden"
+            className="-mx-4 shrink-0 overflow-hidden"
           >
             {state.enabled ? (
-              <div className="flex flex-col gap-2 pt-1">
-                <div className="flex items-center justify-between px-4">
-                  <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-                    <Footprints className="text-accent size-4" aria-hidden />
-                    {t.title}
-                  </h2>
-                  <DismissButton label={t.dismiss} onClick={dismiss} />
-                </div>
-                <ul className="flex snap-x snap-mandatory scroll-px-4 [scrollbar-width:none] gap-2 overflow-x-auto overscroll-x-contain px-4 pb-1 [&::-webkit-scrollbar]:hidden">
-                  <AnimatePresence initial={false}>
-                    {state.people.map((person) => (
-                      <motion.li
-                        key={person.id}
-                        layout
-                        exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
-                        className="relative w-60 shrink-0 snap-start"
+              // One compact row: a title tile, then people. Kept short so the deck keeps its room.
+              <ul className="flex snap-x snap-mandatory scroll-px-4 [scrollbar-width:none] gap-2 overflow-x-auto overscroll-x-contain px-4 [&::-webkit-scrollbar]:hidden">
+                <li className="bg-accent/10 text-accent relative flex w-24 shrink-0 snap-start flex-col justify-between rounded-2xl p-2.5">
+                  <Footprints className="size-4" aria-hidden />
+                  <h2 className="pr-1 text-xs leading-tight font-semibold">{t.title}</h2>
+                  <DismissButton
+                    label={t.dismiss}
+                    onClick={dismiss}
+                    className="top-0.5 right-0.5"
+                  />
+                </li>
+                <AnimatePresence initial={false}>
+                  {state.people.map((person) => (
+                    <motion.li
+                      key={person.id}
+                      layout
+                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
+                      className="relative w-56 shrink-0 snap-start"
+                    >
+                      <LocaleLink
+                        href={`/profile/${person.id}?from=discover`}
+                        aria-label={`${fmt(t.open, { name: person.name })}. ${crossedLine(t, locale, person)}`}
+                        className="bg-surface border-border active:bg-border flex h-full items-center gap-2.5 rounded-2xl border p-2 transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
                       >
-                        <LocaleLink
-                          href={`/profile/${person.id}?from=discover`}
-                          aria-label={fmt(t.open, { name: person.name })}
-                          className="bg-surface border-border active:bg-border flex h-full items-center gap-3 rounded-2xl border p-2.5 pr-10 transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
-                        >
-                          <Avatar person={person} />
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate text-sm font-semibold">
-                              {person.name}, <span className="font-normal">{person.age}</span>
-                            </span>
-                            <span className="text-muted line-clamp-2 text-xs leading-snug">
-                              {crossedLine(t, locale, person)}
-                            </span>
+                        <Avatar person={person} />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate pr-6 text-sm font-semibold">
+                            {person.name}, <span className="font-normal">{person.age}</span>
                           </span>
-                        </LocaleLink>
-                        <button
-                          type="button"
-                          onClick={() => hidePerson(person.id)}
-                          aria-label={fmt(t.hideLabel, { name: person.name })}
-                          title={t.hide}
-                          className="text-muted active:bg-border/70 absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
-                        >
-                          <EyeOff className="size-4" aria-hidden />
-                        </button>
-                      </motion.li>
-                    ))}
-                  </AnimatePresence>
-                </ul>
-              </div>
+                          <span className="text-muted line-clamp-2 text-xs leading-snug">
+                            {crossedLine(t, locale, person, true)}
+                          </span>
+                        </span>
+                      </LocaleLink>
+                      <button
+                        type="button"
+                        onClick={() => hidePerson(person.id)}
+                        aria-label={fmt(t.hideLabel, { name: person.name })}
+                        title={t.hide}
+                        className="text-muted active:bg-border/70 absolute top-0.5 right-0.5 flex size-8 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
+                      >
+                        <EyeOff className="size-3.5" aria-hidden />
+                      </button>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ul>
             ) : (
-              <div className="px-4 pt-1">
-                <div className="bg-surface border-border flex items-center gap-3 rounded-2xl border p-3">
-                  <span className="bg-accent/15 text-accent flex size-9 shrink-0 items-center justify-center rounded-full">
-                    <Footprints className="size-5" aria-hidden />
+              <div className="px-4">
+                <div className="bg-surface border-border flex items-center gap-2.5 rounded-2xl border py-2 pr-1 pl-2.5">
+                  <span className="bg-accent/15 text-accent flex size-8 shrink-0 items-center justify-center rounded-full">
+                    <Footprints className="size-4" aria-hidden />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-sm font-semibold">{t.promoTitle}</span>
-                    <span className="text-muted text-xs leading-snug">{t.promoText}</span>
+                    <span className="text-sm leading-tight font-semibold">{t.promoTitle}</span>
+                    <span className="text-muted truncate text-xs">{t.promoText}</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setSheet(true)}
-                    className="text-accent active:bg-accent/10 relative h-9 shrink-0 rounded-full px-3 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-1 active:scale-[0.96]"
+                    className="text-accent active:bg-accent/10 relative h-9 shrink-0 rounded-full px-2.5 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-1 active:scale-[0.96]"
                   >
                     {t.promoAction}
                   </button>
@@ -169,13 +171,24 @@ export function CrossedPathsStrip() {
   )
 }
 
-function DismissButton({ label, onClick }: { label: string; onClick: () => void }) {
+function DismissButton({
+  label,
+  onClick,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  className?: string
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="text-muted active:bg-border/70 -mr-2 flex size-9 shrink-0 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
+      className={cn(
+        'text-muted active:bg-border/70 flex size-8 shrink-0 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]',
+        className && `absolute ${className}`,
+      )}
     >
       <X className="size-4" aria-hidden />
     </button>
@@ -185,8 +198,8 @@ function DismissButton({ label, onClick }: { label: string; onClick: () => void 
 function Avatar({ person }: { person: CrossedPerson }) {
   if (!person.photo) {
     return (
-      <span className="bg-border/60 text-muted flex size-12 shrink-0 items-center justify-center rounded-full">
-        <UserRound className="size-6" aria-hidden />
+      <span className="bg-border/60 text-muted flex size-11 shrink-0 items-center justify-center rounded-full">
+        <UserRound className="size-5" aria-hidden />
       </span>
     )
   }
@@ -194,10 +207,10 @@ function Avatar({ person }: { person: CrossedPerson }) {
     <Image
       src={person.photo.url}
       alt=""
-      width={96}
-      height={96}
-      sizes="48px"
-      className="size-12 shrink-0 rounded-full object-cover"
+      width={88}
+      height={88}
+      sizes="44px"
+      className="size-11 shrink-0 rounded-full object-cover"
     />
   )
 }

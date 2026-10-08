@@ -18,6 +18,18 @@ export const crossedRu: CrossedDictionary = {
     many: 'Пересеклись {count} раз вчера {place}',
     other: 'Пересеклись {count} раза вчера {place}',
   },
+  todayShort: {
+    one: 'Сегодня {place}',
+    few: '{count} раза сегодня {place}',
+    many: '{count} раз сегодня {place}',
+    other: '{count} раза сегодня {place}',
+  },
+  yesterdayShort: {
+    one: 'Вчера {place}',
+    few: '{count} раза вчера {place}',
+    many: '{count} раз вчера {place}',
+    other: '{count} раза вчера {place}',
+  },
   near: 'в районе {area}',
   nearby: 'неподалёку',
   promoTitle: 'Пересечения',

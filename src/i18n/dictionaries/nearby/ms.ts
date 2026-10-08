@@ -18,6 +18,18 @@ export const crossedMs: CrossedDictionary = {
     many: 'Berselisih jalan {count} kali semalam {place}',
     other: 'Berselisih jalan {count} kali semalam {place}',
   },
+  todayShort: {
+    one: 'Hari ini {place}',
+    few: '{count} kali hari ini {place}',
+    many: '{count} kali hari ini {place}',
+    other: '{count} kali hari ini {place}',
+  },
+  yesterdayShort: {
+    one: 'Semalam {place}',
+    few: '{count} kali semalam {place}',
+    many: '{count} kali semalam {place}',
+    other: '{count} kali semalam {place}',
+  },
   near: 'berhampiran {area}',
   nearby: 'berdekatan',
   promoTitle: 'Selisih jalan',
