@@ -3,6 +3,7 @@ import { BottomNav } from '@/components/layout/bottom-nav'
 import { PageSpinner } from '@/components/ui/spinner'
 import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer, nextStepFor } from '@/features/auth/session'
+import { InstallPrompt } from '@/features/pwa/components/install-prompt'
 
 // Every (main) route requires a verified user. RLS enforces the same rule in the database.
 export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
@@ -13,6 +14,7 @@ export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
           <VerifiedGate>{children}</VerifiedGate>
         </Suspense>
       </main>
+      <InstallPrompt />
       <BottomNav />
     </>
   )

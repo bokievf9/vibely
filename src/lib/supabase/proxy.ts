@@ -7,6 +7,8 @@ import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
 
 const AUTH_ROUTES = ['/login', '/verify-otp']
+// Open to everyone: the service worker precaches the offline page whether or not anyone is signed in.
+const PUBLIC_ROUTES = ['/~offline']
 
 function matches(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
@@ -53,6 +55,7 @@ export async function updateSession(request: NextRequest) {
   const isSignedIn = Boolean(data?.claims)
   const lang = locale ?? preferredLocale(request)
 
+  if (matches(rest, PUBLIC_ROUTES)) return response
   if (!isSignedIn && !matches(rest, AUTH_ROUTES)) {
     return redirectWithCookies(request, response, localePath(lang, '/login'))
   }

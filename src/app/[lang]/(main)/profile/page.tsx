@@ -9,6 +9,7 @@ import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { getOwnPhotos } from '@/features/profile/queries'
+import { PushToggle } from '@/features/push/components/push-toggle'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 
@@ -48,6 +49,7 @@ async function OwnProfile() {
         <h2 className="text-muted text-sm font-medium">{dict.profile.photos}</h2>
         <PhotoUploader userId={viewer.id} photos={photos} />
       </section>
+      <PushToggle />
       <section className="flex flex-col gap-3">
         <h2 className="text-muted text-sm font-medium">{dict.profile.language}</h2>
         <LanguageSwitcher />

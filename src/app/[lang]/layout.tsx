@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { publicEnv } from '@/lib/env'
 import { LOCALES } from '@/i18n/config'
 import { I18nProvider } from '@/i18n/client'
+import { ServiceWorkerRegister } from '@/features/pwa/components/service-worker'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { geistSans } from '../fonts'
 import '../globals.css'
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<'/[lang]'>) {
         <I18nProvider locale={locale} dict={dict}>
           {children}
         </I18nProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   )

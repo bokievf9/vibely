@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
+import { notifyNewMatch } from '@/features/push/send'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
 
 const storedPhotos = z.array(z.object({ path: z.string(), width: z.number(), height: z.number() }))
@@ -70,5 +71,7 @@ export async function swipe(input: z.input<typeof swipeSchema>): Promise<UserRes
     .eq('user_a', a ?? '')
     .eq('user_b', b ?? '')
     .maybeSingle()
+  // Only the like that just created the match notifies (not a repeated 23505 insert).
+  if (match && !error) notifyNewMatch(targetId, viewer.profile?.displayName ?? '', match.id)
   return ok({ matchId: match?.id ?? null })
 }

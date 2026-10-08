@@ -20,3 +20,24 @@ export function getServerEnv(): ServerEnv {
   cached = parsed.data
   return cached
 }
+
+const pushEnvSchema = z.object({
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1),
+  VAPID_PRIVATE_KEY: z.string().min(1),
+  VAPID_SUBJECT: z.string().regex(/^(mailto:|https:\/\/)/),
+})
+
+export type PushEnv = z.infer<typeof pushEnvSchema>
+let pushCached: PushEnv | null | undefined
+
+// Web Push is optional: returns null (feature off) unless all three VAPID values are set.
+export function getPushEnv(): PushEnv | null {
+  if (pushCached !== undefined) return pushCached
+  const parsed = pushEnvSchema.safeParse({
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+  })
+  pushCached = parsed.success ? parsed.data : null
+  return pushCached
+}

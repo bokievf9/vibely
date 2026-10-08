@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import { signPhotoPaths } from '@/features/profile/queries'
+import { notifyRandomReveal } from '@/features/push/send'
 import { joinSchema, partnerSchema, type JoinFilters } from './schemas'
 import type { RandomMessage, RandomSession, RevealedPartner } from './types'
 
@@ -106,8 +107,18 @@ export async function sendRandom(
 export async function revealRandom(sessionId: string): Promise<UserResult<RandomSession | null>> {
   if (!uuid.safeParse(sessionId).success) return fail('invalidInput')
   const supabase = await createClient()
-  const { error } = await supabase.rpc('randomizer_reveal', { p_session_id: sessionId })
-  return error ? fail('generic') : ok(await getRandomSession())
+  // Repeated taps also return true: only the consent that completes the reveal notifies.
+  const { data: before } = await supabase.rpc('get_random_session')
+  const current = before?.[0]
+  const alreadyRevealed = current?.id === sessionId ? current.my_revealed : true
+  const { data: mutual, error } = await supabase.rpc('randomizer_reveal', {
+    p_session_id: sessionId,
+  })
+  if (error) return fail('generic')
+  const session = await getRandomSession()
+  if (mutual === true && !alreadyRevealed && session?.partner)
+    notifyRandomReveal(session.partner.id, session.matchId)
+  return ok(session)
 }
 
 export async function endRandom(sessionId: string): Promise<void> {

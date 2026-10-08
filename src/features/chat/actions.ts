@@ -6,6 +6,7 @@ import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { getViewer } from '@/features/auth/session'
+import { notifyNewMessage } from '@/features/push/send'
 import type { ChatMessage } from './types'
 
 const messageSchema = z.object({
@@ -36,6 +37,7 @@ export async function sendMessage(input: {
     .select('id, body, sender_id, created_at')
     .single()
   if (error) return fail('generic')
+  notifyNewMessage(parsed.data.matchId, data.sender_id)
   return ok({ id: data.id, body: data.body, senderId: data.sender_id, createdAt: data.created_at })
 }
 
