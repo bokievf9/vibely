@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
-import { fail, ok, type UserResult } from '@/i18n/errors'
+import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { joinSchema, partnerSchema, type JoinFilters } from './schemas'
 import type { RandomMessage, RandomSession, RevealedPartner } from './types'
@@ -99,7 +99,7 @@ export async function sendRandom(
     p_session_id: sessionId,
     p_body: body,
   })
-  if (error) return fail('generic')
+  if (error) return fail(rateLimitedOr(error.code, 'generic'))
   return ok({ id: data, body, mine: true, createdAt: new Date().toISOString() })
 }
 

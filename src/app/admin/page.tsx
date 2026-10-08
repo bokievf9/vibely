@@ -18,11 +18,12 @@ async function Stats() {
     { label: 'Открытые жалобы', value: s.openReports, href: '/admin/reports' },
     { label: 'Заблокировано', value: s.bannedUsers, href: '/admin/users' },
     { label: 'Скрытые посты', value: s.hiddenPosts, href: '/admin/content?hidden=1' },
+    { label: 'Новые фото за 24 ч', value: s.newPhotos, href: '/admin/photos?days=1' },
   ]
   return (
     <>
       <h1 className="text-2xl font-bold">Обзор</h1>
-      <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {tiles.map((t) => (
           <li key={t.label}>
             <Link href={t.href} className="bg-surface flex flex-col gap-1 rounded-2xl p-4">

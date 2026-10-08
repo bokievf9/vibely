@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Flag, History, LayoutDashboard, ScanFace, Users } from 'lucide-react'
+import { FileText, Flag, History, Images, LayoutDashboard, ScanFace, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const LINKS = [
   { href: '/admin', label: 'Обзор', icon: LayoutDashboard },
   { href: '/admin/verification', label: 'Верификация', icon: ScanFace },
   { href: '/admin/reports', label: 'Жалобы', icon: Flag },
+  { href: '/admin/photos', label: 'Фото', icon: Images },
   { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/content', label: 'Контент', icon: FileText },
   { href: '/admin/log', label: 'Журнал', icon: History },

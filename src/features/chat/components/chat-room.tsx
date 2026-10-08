@@ -7,6 +7,7 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { formatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
+import { RiskWarning } from '@/features/safety/components/risk-warning'
 import { sendMessage } from '../actions'
 import type { ChatMessage } from '../types'
 import { useChatMessages } from './use-chat-messages'
@@ -61,6 +62,7 @@ export function ChatRoom({ matchId, viewerId, initialMessages }: Props) {
               <time className="text-muted px-1 text-[10px]" dateTime={m.createdAt}>
                 {formatTime(m.createdAt, locale)}
               </time>
+              {!mine && <RiskWarning text={m.body} />}
             </li>
           )
         })}

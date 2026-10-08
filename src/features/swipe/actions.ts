@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { fail, ok, type UserResult } from '@/i18n/errors'
+import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
@@ -54,7 +54,7 @@ export async function swipe(input: z.input<typeof swipeSchema>): Promise<UserRes
   const supabase = await createClient()
   const { error } = await supabase.from('swipes').insert({ swiped_id: targetId, direction })
   // 23505: already swiped (double tap, second device). Treat as success.
-  if (error && error.code !== '23505') return fail('generic')
+  if (error && error.code !== '23505') return fail(rateLimitedOr(error.code, 'generic'))
 
   await supabase
     .from('profiles')

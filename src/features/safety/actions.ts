@@ -2,8 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
-import { fail, ok, type UserResult } from '@/i18n/errors'
+import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { notifyReportCreated } from '@/features/moderation-notify/telegram'
 import { blockSchema, reportSchema, type ReportInput } from './schemas'
 
 // Reports land in the admin panel (/admin/reports). The reason code is stored in English
@@ -19,7 +20,9 @@ export async function report(input: ReportInput): Promise<UserResult> {
   const { error } = await supabase
     .from('reports')
     .insert({ target_type: targetType, target_id: targetId, reason: text })
-  if (error) return fail(error.code === '23505' ? 'alreadyReported' : 'generic')
+  if (error)
+    return fail(error.code === '23505' ? 'alreadyReported' : rateLimitedOr(error.code, 'generic'))
+  notifyReportCreated(targetType, reason)
   return ok(undefined)
 }
 

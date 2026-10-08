@@ -6,42 +6,22 @@ import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
 import { resolveReports } from '../actions'
 import type { ReportGroup } from '../queries/reports'
+import { BAN_CODES } from '@/features/safety/reason-codes'
+import { BAN_LABELS, TARGET_LABELS, presetsOf, readableReportReason } from '../labels'
 import { formatDate } from './badges'
-import { ReasonDialog } from './reason-dialog'
+import { ReasonDialog, textPresets } from './reason-dialog'
 import { ReportContextView } from './report-context-view'
 import { useModeration } from './use-moderation'
 
-const TARGET_LABELS: Record<ReportGroup['targetType'], string> = {
-  user: 'Профиль',
-  post: 'Пост',
-  comment: 'Комментарий',
-  random_session: 'Рандом-чат',
-}
-
-// Users submit a reason code ("fake: optional details"); show it in Russian for moderators.
-const REASON_CODES: Record<string, string> = {
-  fake: 'Фейковый профиль',
-  harassment: 'Оскорбления',
-  spam: 'Спам или реклама',
-  sexual: 'Сексуальный контент',
-  scam: 'Мошенничество',
-  underage: 'Младше 18 лет',
-}
-
-function readableReason(reason: string) {
-  const [code = '', ...rest] = reason.split(': ')
-  const label = REASON_CODES[code]
-  return label ? [label, rest.join(': ')].filter(Boolean).join(': ') : reason
-}
-
-const PRESETS = [
+// Hiding is anonymous (the author isn't told why), so its reason is free text.
+const HIDE_PRESETS = textPresets([
   'Оскорбления',
   'Спам или реклама',
   'Сексуальный контент',
   'Мошенничество',
-  'Фейковый профиль',
   'Угрозы',
-]
+])
+const BAN_PRESETS = presetsOf(BAN_CODES, BAN_LABELS)
 
 export function ReportCard({ group }: { group: ReportGroup }) {
   const { pending, error, run } = useModeration()
@@ -83,7 +63,7 @@ export function ReportCard({ group }: { group: ReportGroup }) {
         {group.reasons.map((r) => (
           <li key={r.reporterId}>
             <span className="text-muted">{r.reporterName}: </span>
-            {readableReason(r.reason)}
+            {readableReportReason(r.reason)}
           </li>
         ))}
       </ul>
@@ -120,7 +100,8 @@ export function ReportCard({ group }: { group: ReportGroup }) {
           dialog === 'ban' ? `Заблокировать ${context?.offender?.name ?? ''}` : 'Скрыть контент'
         }
         confirmLabel={dialog === 'ban' ? 'Заблокировать' : 'Скрыть'}
-        presets={PRESETS}
+        presets={dialog === 'ban' ? BAN_PRESETS : HIDE_PRESETS}
+        coded={dialog === 'ban'}
         danger={dialog === 'ban'}
         pending={pending}
         error={error}

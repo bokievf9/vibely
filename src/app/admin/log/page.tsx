@@ -17,6 +17,8 @@ const ACTIONS: Record<string, string> = {
   'comment.hide': 'Скрыл комментарий',
   'comment.unhide': 'Вернул комментарий',
   'reports.resolve': 'Закрыл жалобы',
+  'photo.delete': 'Удалил фото',
+  'auto.hide': 'Автоскрытие: 3+ жалобы',
 }
 
 export default function LogPage() {

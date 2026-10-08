@@ -5,6 +5,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer } from '@/features/auth/session'
+import { BAN_CODES, localizeReason } from '@/features/safety/reason-codes'
 import { fmt } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
 import { StepHeader } from '../step-header'
@@ -30,7 +31,12 @@ async function BanDetails() {
   if (!reason) return localeRedirect('/')
   return (
     <>
-      <StepHeader title={dict.banned.title} subtitle={fmt(dict.banned.reason, { reason })} />
+      <StepHeader
+        title={dict.banned.title}
+        subtitle={fmt(dict.banned.reason, {
+          reason: localizeReason(reason, BAN_CODES, dict.moderation.ban),
+        })}
+      />
       <SignOutButton />
     </>
   )

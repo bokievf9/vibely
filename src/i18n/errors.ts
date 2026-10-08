@@ -14,6 +14,11 @@ export function zodErrorKey(error: z.ZodError, fallback: ErrorKey = 'invalidInpu
   return message && isErrorKey(message) ? message : fallback
 }
 
+// SQLSTATE P0429 is raised by the database rate limits (swipes, messages, reports, posts).
+export function rateLimitedOr(code: string | undefined, fallback: ErrorKey): ErrorKey {
+  return code === 'P0429' ? 'rateLimited' : fallback
+}
+
 export function fail(error: ErrorKey): { ok: false; error: ErrorKey } {
   return { ok: false, error }
 }

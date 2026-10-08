@@ -8,6 +8,7 @@ import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer, nextStepFor } from '@/features/auth/session'
 import { SelfieCapture } from '@/features/verification/components/selfie-capture'
 import { getLatestRejection } from '@/features/verification/queries'
+import { REJECTION_CODES, localizeReason } from '@/features/safety/reason-codes'
 import { fmt } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
 import { StepHeader } from '../step-header'
@@ -50,7 +51,11 @@ async function VerificationStep() {
       <StepHeader title={dict.verification.title} subtitle={dict.verification.subtitle} />
       {rejection && (
         <div className="mb-5">
-          <FormError message={fmt(dict.verification.rejected, { reason: rejection })} />
+          <FormError
+            message={fmt(dict.verification.rejected, {
+              reason: localizeReason(rejection, REJECTION_CODES, dict.moderation.rejection),
+            })}
+          />
         </div>
       )}
       <SelfieCapture userId={viewer.id} />

@@ -33,7 +33,11 @@ export async function getModerationLog(limit = 200): Promise<LogEntry[]> {
     targetType: d.target_type,
     targetId: d.target_id,
     reason: d.reason,
-    adminName: d.admin_id ? (names.get(d.admin_id) ?? d.admin_id.slice(0, 8)) : 'удалён',
+    adminName: d.admin_id
+      ? (names.get(d.admin_id) ?? d.admin_id.slice(0, 8))
+      : d.action.startsWith('auto.')
+        ? 'Система'
+        : 'удалён',
     createdAt: d.created_at,
   }))
 }

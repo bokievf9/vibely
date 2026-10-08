@@ -800,6 +800,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_photo: {
+        Args: { p_admin: string; p_photo: string; p_reason: string }
+        Returns: string
+      }
       admin_find_users: {
         Args: { p_admin: string; p_limit?: number; p_query?: string }
         Returns: {

@@ -153,6 +153,72 @@ export async function run(db) {
   ok('revoke forces re-verification', (await su(`select verification_status v from profiles where id=$1`, [U[2]])).rows[0].v === 'unverified')
   ok('find users by phone', (await svc(`select * from admin_find_users($1,'+60 12345 6783')`, [A])).rows.map(r => r.id).join() === U[3])
   ok('audit log: 6 actions', (await su(`select string_agg(action, ',' order by created_at, action) a, count(*)::int c from moderation_actions`)).rows[0].c === 6, JSON.stringify((await su(`select array_agg(action) a from moderation_actions`)).rows[0]))
+  // rate limits (P0429): bulk rows are inserted with the trigger disabled, then the user's own
+  // inserts hit the limit; backdating the bulk rows frees the window again.
+  const code = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+  const bulk = async (table, trigger, sql, p) => {
+    await su(`alter table ${table} disable trigger ${trigger}`)
+    try { await su(sql, p) } finally { await su(`alter table ${table} enable trigger ${trigger}`) }
+  }
+  await su(`insert into auth.users (id, phone) select ('00000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    '6011' || lpad(i::text, 8, '0') from generate_series(1, 300) i`)
+  await su(`insert into profiles (id, display_name, birth_date, gender, interested_in)
+    select id, 'Bot', '1990-01-01', 'female', '{male}' from auth.users where id::text like '00000000-%'`)
+  await bulk('swipes', 'swipes_rate_limit', `insert into swipes (swiper_id, swiped_id, direction)
+    select $1, id, 'pass' from profiles where id::text like '00000000-%' order by id limit 299`, [U[3]])
+  ok('swipe #300 allowed', !(await code(() => as(U[3], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [U[0]]))))
+  const lastBot = '00000000-0000-0000-0000-000000000300'
+  await su(`update profiles set verification_status = 'approved' where id = $1`, [lastBot])
+  ok('swipe #301 rate limited', (await code(() => as(U[3], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [lastBot]))) === 'P0429')
+  await su(`update swipes set created_at = now() - interval '25 hours' where swiper_id = $1`, [U[3]])
+  ok('swipe limit resets after 24h', !(await code(() => as(U[3], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [lastBot]))))
+  await su(`delete from messages`)
+  await bulk('messages', 'messages_rate_limit', `insert into messages (match_id, sender_id, body)
+    select $1, $2, 'm' || i from generate_series(1, 29) i`, [m.id, U[0]])
+  ok('message #30 allowed', !(await code(() => as(U[0], `insert into messages (match_id, body) values ($1,'30')`, [m.id]))))
+  ok('message #31 rate limited', (await code(() => as(U[0], `insert into messages (match_id, body) values ($1,'31')`, [m.id]))) === 'P0429')
+  await su(`update messages set created_at = now() - interval '2 minutes'`)
+  ok('message limit resets after a minute', !(await code(() => as(U[0], `insert into messages (match_id, body) values ($1,'again')`, [m.id]))))
+  const rsid = (await su(`insert into random_chat_sessions (user_a, user_b) values ($1,$2) returning id`, [U[0], U[3]])).rows[0].id
+  await bulk('random_chat_messages', 'random_chat_messages_rate_limit', `insert into random_chat_messages (session_id, sender_id, body)
+    select $1, $2, 'r' || i from generate_series(1, 29) i`, [rsid, U[0]])
+  ok('random message #30 allowed', !(await code(() => as(U[0], `select randomizer_send($1,'30')`, [rsid]))))
+  ok('random message #31 rate limited', (await code(() => as(U[0], `select randomizer_send($1,'31')`, [rsid]))) === 'P0429')
+  ok('other sender unaffected', !(await code(() => as(U[3], `select randomizer_send($1,'hi')`, [rsid]))))
+  // auto-hide: 3 distinct open reports hide a post/comment and log 'auto.hide' without an admin
+  const pA = (await as(U[0], `select create_post('пост для автоскрытия') id`)).rows[0].id
+  const cA = (await as(U[3], `select create_comment($1,'плохой коммент') id`, [pA])).rows[0].id
+  const rep = (u, type, id) => as(u, `insert into reports (target_type, target_id, reason) values ($1,$2,'spam')`, [type, id])
+  await rep(U[1], 'post', pA); await rep(U[2], 'post', pA)
+  ok('2 reports: post still visible', (await su(`select is_hidden h from posts where id=$1`, [pA])).rows[0].h === false)
+  await rep(U[3], 'post', pA)
+  ok('3 reports: post auto-hidden', (await su(`select is_hidden h from posts where id=$1`, [pA])).rows[0].h === true)
+  await rep(U[0], 'comment', cA); await rep(U[1], 'comment', cA); await rep(U[2], 'comment', cA)
+  ok('3 reports: comment auto-hidden', (await su(`select is_hidden h from comments where id=$1`, [cA])).rows[0].h === true)
+  const auto = (await su(`select count(*)::int c, bool_and(admin_id is null) n from moderation_actions where action='auto.hide'`)).rows[0]
+  ok('auto-hide logged without admin', auto.c === 2 && auto.n === true, JSON.stringify(auto))
+  await svc(`select admin_set_content_hidden($1,'post',$2,false,'ок')`, [A, pA])
+  await rep(U[0], 'post', pA)
+  ok('moderator unhide is respected', (await su(`select is_hidden h from posts where id=$1`, [pA])).rows[0].h === false)
+  ok('user reports never auto-hide', (await su(`select count(*)::int c from moderation_actions where action='auto.hide'`)).rows[0].c === 2)
+  // report limit: 20 per 24h
+  const mine = (await su(`select count(*)::int c from reports where reporter_id=$1 and created_at > now() - interval '24 hours'`, [U[0]])).rows[0].c
+  await bulk('reports', 'reports_rate_limit', `insert into reports (reporter_id, target_type, target_id, reason)
+    select $1, 'user', gen_random_uuid(), 'spam' from generate_series(1, $2::int)`, [U[0], 19 - mine])
+  ok('report #20 allowed', !(await code(() => rep(U[0], 'user', U[3]))))
+  ok('report #21 rate limited', (await code(() => rep(U[0], 'user', U[2]))) === 'P0429')
+  // admin photo deletion
+  const ph = (await su(`insert into profile_photos (profile_id, storage_path, width, height, position)
+    values ($1, $2, 600, 800, 5) returning id`, [U[3], `${U[3]}/bad.jpg`])).rows[0].id
+  ok('photo delete: non-admin rejected', !!(await fails(() => svc(`select admin_delete_photo($1,$2,'фейк')`, [U[1], ph]))))
+  ok('photo delete: not callable by users', !!(await fails(() => as(A, `select admin_delete_photo($1,$2,'фейк')`, [A, ph]))))
+  ok('photo delete: reason required', !!(await fails(() => svc(`select admin_delete_photo($1,$2,' ')`, [A, ph]))))
+  const path = (await svc(`select admin_delete_photo($1,$2,'чужое фото') p`, [A, ph])).rows[0].p
+  ok('photo delete returns storage path', path === `${U[3]}/bad.jpg`)
+  ok('photo row removed', (await su(`select count(*)::int c from profile_photos where id=$1`, [ph])).rows[0].c === 0)
+  const plog = (await su(`select target_type, target_id, reason from moderation_actions where action='photo.delete'`)).rows
+  ok('photo delete logged against user', plog.length === 1 && plog[0].target_id === U[3] && plog[0].reason === 'чужое фото', JSON.stringify(plog))
+  ok('photo delete: missing photo errors', !!(await fails(() => svc(`select admin_delete_photo($1,$2,'x')`, [A, ph]))))
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
