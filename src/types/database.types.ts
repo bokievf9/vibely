@@ -12,25 +12,25 @@ export type Database = {
         Row: {
           added_by: string | null
           created_at: string
+          role: Database['public']['Enums']['admin_role']
           telegram_linked_at: string | null
           telegram_user_id: number | null
-          role: Database['public']['Enums']['admin_role']
           user_id: string
         }
         Insert: {
           added_by?: string | null
           created_at?: string
+          role?: Database['public']['Enums']['admin_role']
           telegram_linked_at?: string | null
           telegram_user_id?: number | null
-          role?: Database['public']['Enums']['admin_role']
           user_id: string
         }
         Update: {
           added_by?: string | null
           created_at?: string
+          role?: Database['public']['Enums']['admin_role']
           telegram_linked_at?: string | null
           telegram_user_id?: number | null
-          role?: Database['public']['Enums']['admin_role']
           user_id?: string
         }
         Relationships: []
@@ -641,6 +641,33 @@ export type Database = {
           },
         ]
       }
+      phone_blocklist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          phone: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          phone: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          phone?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       photo_reviews: {
         Row: {
           decision: string
@@ -669,33 +696,6 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
-      }
-      phone_blocklist: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          phone: string
-          reason: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          phone: string
-          reason?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          phone?: string
-          reason?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
       }
       post_aliases: {
         Row: {
@@ -1468,7 +1468,7 @@ export type Database = {
           {
             foreignKeyName: 'telegram_link_codes_admin_id_fkey'
             columns: ['admin_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'admins'
             referencedColumns: ['user_id']
           },
@@ -1737,6 +1737,11 @@ export type Database = {
     }
     Functions: {
       accept_calls_notice: { Args: never; Returns: string }
+      acknowledge_warning: { Args: { p_id: string }; Returns: undefined }
+      admin_add_note: {
+        Args: { p_admin: string; p_body: string; p_user: string }
+        Returns: string
+      }
       admin_add_risk_keyword: {
         Args: { p_admin: string; p_keyword: string; p_weight?: number }
         Returns: string
@@ -1744,6 +1749,24 @@ export type Database = {
       admin_approve_photos: {
         Args: { p_admin: string; p_photos: string[] }
         Returns: number
+      }
+      admin_ban_user: {
+        Args: {
+          p_admin: string
+          p_days?: number
+          p_reason: string
+          p_user: string
+        }
+        Returns: string[]
+      }
+      admin_block_phone: {
+        Args: {
+          p_admin: string
+          p_phone: string
+          p_reason?: string
+          p_user?: string
+        }
+        Returns: string
       }
       admin_bulk_dismiss: {
         Args: { p_admin: string; p_reason?: string; p_targets: Json }
@@ -1757,52 +1780,17 @@ export type Database = {
         }
         Returns: string
       }
-      acknowledge_warning: {
-        Args: {
-          p_id: string
-        }
-        Returns: undefined
-      }
-      admin_add_note: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_body: string
-        }
-        Returns: string
-      }
-      admin_ban_user: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reason: string
-          p_days?: number
-        }
-        Returns: string[]
-      }
-      admin_block_phone: {
-        Args: {
-          p_admin: string
-          p_phone: string
-          p_user?: string
-          p_reason?: string
-        }
-        Returns: string
-      }
       admin_decide_appeal: {
         Args: {
+          p_accept: boolean
           p_admin: string
           p_appeal: string
-          p_accept: boolean
           p_note?: string
         }
         Returns: undefined
       }
       admin_delete_note: {
-        Args: {
-          p_admin: string
-          p_note: string
-        }
+        Args: { p_admin: string; p_note: string }
         Returns: undefined
       }
       admin_delete_photo: {
@@ -1814,11 +1802,7 @@ export type Database = {
         Returns: string[]
       }
       admin_export_user: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reference: string
-        }
+        Args: { p_admin: string; p_reference: string; p_user: string }
         Returns: Json
       }
       admin_find_users: {
@@ -1835,7 +1819,12 @@ export type Database = {
         }[]
       }
       admin_flagged_users: {
-        Args: { p_admin: string; p_limit?: number; p_min_score?: number; p_offset?: number }
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_min_score?: number
+          p_offset?: number
+        }
         Returns: {
           banned: boolean
           conversations: number
@@ -1851,33 +1840,28 @@ export type Database = {
         }[]
       }
       admin_get_phone: {
-        Args: {
-          p_admin: string
-          p_user: string
-        }
+        Args: { p_admin: string; p_user: string }
         Returns: string
       }
       admin_list_team: {
-        Args: {
-          p_admin: string
-        }
+        Args: { p_admin: string }
         Returns: {
-          user_id: string
-          role: Database['public']['Enums']['admin_role']
-          display_name: string
-          username: string
-          phone: string
           added_by: string
           created_at: string
+          display_name: string
+          phone: string
+          role: Database['public']['Enums']['admin_role']
+          user_id: string
+          username: string
         }[]
       }
       admin_log_access: {
         Args: {
-          p_admin: string
           p_action: string
-          p_type: string
-          p_targets: string[]
+          p_admin: string
           p_reason?: string
+          p_targets: string[]
+          p_type: string
         }
         Returns: undefined
       }
@@ -1951,6 +1935,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_remove_member: {
+        Args: { p_admin: string; p_reason?: string; p_user: string }
+        Returns: undefined
+      }
       admin_remove_risk_keyword: {
         Args: { p_admin: string; p_id: string }
         Returns: undefined
@@ -2016,14 +2004,6 @@ export type Database = {
         }
         Returns: Json
       }
-      admin_remove_member: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reason?: string
-        }
-        Returns: undefined
-      }
       admin_resolve_reports: {
         Args: {
           p_admin: string
@@ -2034,10 +2014,7 @@ export type Database = {
         Returns: number
       }
       admin_resolve_user: {
-        Args: {
-          p_admin: string
-          p_query: string
-        }
+        Args: { p_admin: string; p_query: string }
         Returns: string
       }
       admin_review_verification: {
@@ -2054,12 +2031,12 @@ export type Database = {
         Returns: undefined
       }
       admin_revoke_warning: {
-        Args: {
-          p_admin: string
-          p_warning: string
-          p_reason?: string
-        }
+        Args: { p_admin: string; p_reason?: string; p_warning: string }
         Returns: undefined
+      }
+      admin_role_of: {
+        Args: { p_user: string }
+        Returns: Database['public']['Enums']['admin_role']
       }
       admin_set_ban: {
         Args: {
@@ -2080,94 +2057,79 @@ export type Database = {
         }
         Returns: undefined
       }
-      age_in_years: { Args: { birth_date: string }; Returns: number }
-      admin_telegram_issue_code: {
-        Args: {
-          p_admin: string
-          p_code: string
-        }
-        Returns: string
-      }
-      admin_telegram_unlink: {
-        Args: {
-          p_admin: string
-        }
-        Returns: undefined
-      }
       admin_set_evidence_hold: {
         Args: {
           p_admin: string
-          p_user: string
           p_on: boolean
           p_reason?: string
+          p_user: string
         }
         Returns: undefined
       }
       admin_set_member_role: {
         Args: {
           p_admin: string
-          p_user: string
           p_role: Database['public']['Enums']['admin_role']
+          p_user: string
         }
         Returns: undefined
       }
       admin_set_mute: {
         Args: {
           p_admin: string
-          p_user: string
           p_hours: number
           p_reason?: string
+          p_user: string
         }
         Returns: undefined
       }
       admin_set_shadow_ban: {
         Args: {
           p_admin: string
-          p_user: string
           p_on: boolean
           p_reason?: string
+          p_user: string
         }
         Returns: undefined
       }
-      admin_stats: {
-        Args: {
-          p_admin: string
-          p_days?: number
-        }
-        Returns: Json
+      admin_stats: { Args: { p_admin: string; p_days?: number }; Returns: Json }
+      admin_telegram_issue_code: {
+        Args: { p_admin: string; p_code: string }
+        Returns: string
       }
+      admin_telegram_unlink: { Args: { p_admin: string }; Returns: undefined }
       admin_unban_user: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reason?: string
-        }
+        Args: { p_admin: string; p_reason?: string; p_user: string }
         Returns: undefined
       }
       admin_unblock_phone: {
-        Args: {
-          p_admin: string
-          p_id: string
-          p_reason?: string
-        }
+        Args: { p_admin: string; p_id: string; p_reason?: string }
         Returns: undefined
       }
       admin_warn_user: {
         Args: {
           p_admin: string
-          p_user: string
-          p_reason: string
-          p_note?: string
           p_days?: number
+          p_note?: string
+          p_reason: string
+          p_user: string
         }
         Returns: string
       }
+      age_in_years: { Args: { birth_date: string }; Returns: number }
       answer_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
       array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
+      assert_admin_role: {
+        Args: {
+          p_admin: string
+          p_min: Database['public']['Enums']['admin_role']
+        }
+        Returns: undefined
+      }
       call_notify: {
         Args: {
           p_call: Database['public']['Tables']['calls']['Row']
@@ -2232,6 +2194,7 @@ export type Database = {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
+      end_user_activity: { Args: { p_user: string }; Returns: string[] }
       ensure_match: {
         Args: {
           a: string
@@ -2374,11 +2337,9 @@ export type Database = {
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       is_malaysian_mobile: { Args: { phone: string }; Returns: boolean }
       is_match_participant: { Args: { m: string }; Returns: boolean }
+      is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
       is_verified: { Args: never; Returns: boolean }
-      lift_expired_sanctions: {
-        Args: never
-        Returns: number
-      }
+      lift_expired_sanctions: { Args: never; Returns: number }
       log_moderation: {
         Args: {
           p_action: string
@@ -2394,28 +2355,26 @@ export type Database = {
         Returns: number
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      match_under_evidence_hold: { Args: { p_match: string }; Returns: boolean }
       match_under_open_report: { Args: { p_match: string }; Returns: boolean }
       my_appeal: {
         Args: never
         Returns: {
-          id: string
-          status: string
           created_at: string
           decided_at: string
+          id: string
+          status: string
         }[]
       }
       my_ban_status: {
         Args: never
         Returns: {
-          banned_at: string
           ban_reason: string
+          banned_at: string
           banned_until: string
         }[]
       }
-      my_sanctions: {
-        Args: never
-        Returns: Json
-      }
+      my_sanctions: { Args: never; Returns: Json }
       my_username: {
         Args: never
         Returns: {
@@ -2430,12 +2389,10 @@ export type Database = {
         Returns: string[]
       }
       normalize_username: { Args: { u: string }; Returns: string }
+      phone_e164: { Args: { p_phone: string }; Returns: string }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
-      purge_old_message_flags: {
-        Args: never
-        Returns: number
-      }
+      purge_old_message_flags: { Args: never; Returns: number }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
@@ -2456,27 +2413,15 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
-      refresh_user_risk: {
-        Args: { p_user: string }
-        Returns: number
-      }
+      refresh_user_risk: { Args: { p_user: string }; Returns: number }
       reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
-      report_claim_ttl: {
-        Args: never
-        Returns: unknown
-      }
+      report_claim_ttl: { Args: never; Returns: string }
       report_is_personal: {
         Args: { t: Database['public']['Enums']['report_target'] }
         Returns: boolean
       }
-      report_reason_code: {
-        Args: { p_reason: string }
-        Returns: string
-      }
-      report_reason_tier: {
-        Args: { p_reason: string }
-        Returns: number
-      }
+      report_reason_code: { Args: { p_reason: string }; Returns: string }
+      report_reason_tier: { Args: { p_reason: string }; Returns: number }
       retention_chat_media: {
         Args: { p_limit?: number }
         Returns: {
@@ -2504,18 +2449,9 @@ export type Database = {
         Returns: string[]
       }
       retention_selfies: { Args: { p_limit?: number }; Returns: string[] }
-      risk_kind_weight: {
-        Args: { p_kind: string }
-        Returns: number
-      }
-      risk_normalize: {
-        Args: { p_text: string }
-        Returns: string
-      }
-      risk_score_threshold: {
-        Args: never
-        Returns: number
-      }
+      risk_kind_weight: { Args: { p_kind: string }; Returns: number }
+      risk_normalize: { Args: { p_text: string }; Returns: string }
+      risk_score_threshold: { Args: never; Returns: number }
       search_profiles_by_username: {
         Args: { lim?: number; q: string }
         Returns: {
@@ -2553,13 +2489,8 @@ export type Database = {
         }
         Returns: string
       }
+      submit_appeal: { Args: { p_body: string }; Returns: string }
       suggest_username: { Args: { p_name: string }; Returns: string }
-      submit_appeal: {
-        Args: {
-          p_body: string
-        }
-        Returns: string
-      }
       swipe_candidate_pool: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -2573,81 +2504,63 @@ export type Database = {
           second_chance: boolean
         }[]
       }
-      toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
-      touch_last_active: { Args: never; Returns: undefined }
-      unread_message_count: { Args: never; Returns: number }
-      username_base: { Args: { p_name: string }; Returns: string }
-      username_error: { Args: { u: string }; Returns: string }
-      username_status: { Args: { p_username: string }; Returns: string }
-      telegram_code_hash: {
-        Args: {
-          p_code: string
-        }
-        Returns: string
-      }
+      telegram_code_hash: { Args: { p_code: string }; Returns: string }
       telegram_link_admin: {
-        Args: {
-          p_code: string
-          p_telegram_user_id: number
-        }
+        Args: { p_code: string; p_telegram_user_id: number }
         Returns: {
-          result: string
           linked_admin: string
+          result: string
         }[]
       }
       telegram_mark_photos_deleted: {
-        Args: {
-          p_id: string
-          p_cause: string
-        }
+        Args: { p_cause: string; p_id: string }
         Returns: boolean
       }
       telegram_photos_to_delete: {
-        Args: {
-          p_max_age: unknown
-          p_limit?: number
-        }
+        Args: { p_limit?: number; p_max_age: string }
         Returns: {
-          id: string
           chat_id: number
-          photo_message_ids: number[]
           control_message_id: number
-          ref_id: string
-          expired: boolean
           created_at: string
+          expired: boolean
+          id: string
+          photo_message_ids: number[]
+          ref_id: string
         }[]
       }
       telegram_record_message: {
         Args: {
-          p_kind: string
-          p_ref_type: string
-          p_ref_id: string
           p_chat: number
-          p_photos: number[]
           p_control: number
+          p_kind: string
+          p_photos: number[]
+          p_ref_id: string
+          p_ref_type: string
         }
         Returns: string
       }
       telegram_report_summary: {
         Args: {
-          p_type: Database['public']['Enums']['report_target']
           p_target: string
+          p_type: Database['public']['Enums']['report_target']
         }
         Returns: {
-          open_reports: number
-          offender_id: string
-          offender_reports_1h: number
-          underage: boolean
           auto_hidden: boolean
           latest_reason: string
+          offender_id: string
+          offender_reports_1h: number
+          open_reports: number
+          underage: boolean
         }[]
       }
-      telegram_stats: {
-        Args: {
-          p_since: string
-        }
-        Returns: Json
-      }
+      telegram_stats: { Args: { p_since: string }; Returns: Json }
+      toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
+      touch_last_active: { Args: never; Returns: undefined }
+      under_evidence_hold: { Args: { p_user: string }; Returns: boolean }
+      unread_message_count: { Args: never; Returns: number }
+      username_base: { Args: { p_name: string }; Returns: string }
+      username_error: { Args: { u: string }; Returns: string }
+      username_status: { Args: { p_username: string }; Returns: string }
     }
     Enums: {
       admin_role: 'viewer' | 'moderator' | 'admin' | 'owner'
