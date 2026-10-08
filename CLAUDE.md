@@ -6,13 +6,27 @@
 - **Web Server**: Nginx (Reverse Proxy with Certbot SSL enabled)
 - **Process Manager**: PM2
 - **Tech Stack**: Next.js (App Router), Supabase (Auth, Database, Storage), Tailwind CSS
-- **Deployment Strategy**: Automated via GitHub Actions on push to `main` branch.
+- **Deployment Strategy**: Automated via GitHub Actions on push to `main` branch (details: `docs/deploy.md`).
 
-## Deployment Commands
-- App Directory on VPS: `/var/www/vibely`
-- Build Command: `npm run build`
-- PM2 Service Name: `vibely`
-- PM2 Restart Command: `pm2 restart vibely`
+## Deployment
+- Pipeline: checks (typecheck, lint, `npm run test:sql`, `npm run test:unit`) → `npm run build` in CI
+  (`output: 'standalone'`) → release uploaded to the VPS → `activate.sh` switches the `current`
+  symlink, restarts PM2, health-checks `/api/health` and rolls back automatically on failure.
+  The VPS never builds.
+- App Directory on VPS: `/var/www/vibely` (user `deploy`, not root)
+  - `current` → live release, `releases/<timestamp>-<sha>/` (last 5 kept)
+  - `shared/.env.production` → server-only secrets (never inside a release, never in git)
+- PM2 Service Name: `vibely` (config: `ecosystem.config.cjs`, runs `current/server.js` on 127.0.0.1:3000)
+- Manual rollback: `ln -sfn /var/www/vibely/releases/<id> /var/www/vibely/current && pm2 restart vibely`
+- Build-time public values come from GitHub Actions **variables** (`NEXT_PUBLIC_*`);
+  SSH access from **secrets** `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`.
+- Database changes: add a migration in `supabase/migrations/`, cover it in `tests/sql/behavior.test.mjs`,
+  apply with `supabase db push`.
+
+## Safety rules for production data
+- Never run tests or scripts that create, modify or delete accounts against the production Supabase
+  project unless they verify first that every account they touch was created by that same run.
+- Fake test accounts are tagged `app_metadata.seed = 'fake'`: `npm run fake:seed` / `npm run fake:delete`.
 
 ## Guidelines for Claude Code
 - Keep code mobile-first (PWA targeting Malaysian market).
