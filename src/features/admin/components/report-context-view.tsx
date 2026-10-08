@@ -1,7 +1,15 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { ReportContext } from '../queries/report-context'
 import { Badge, BannedBadge, formatDate } from './badges'
 import { CallRecordings } from './call-recordings'
+
+const MESSAGE_KINDS: Record<string, string> = {
+  text: 'Текстовое сообщение',
+  image: 'Фото в чате',
+  voice: 'Голосовое сообщение',
+  video: 'Видеосообщение',
+}
 
 // Read-only view of the reported thing: content, profile or chat transcript.
 export function ReportContextView({ context }: { context: ReportContext | null }) {
@@ -37,6 +45,50 @@ export function ReportContextView({ context }: { context: ReportContext | null }
           {context.hidden && (
             <Badge className="self-start bg-red-500/15 text-red-400">Уже скрыт</Badge>
           )}
+        </div>
+      )
+    case 'message':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <p className="text-muted text-sm">
+            {MESSAGE_KINDS[context.mediaKind ?? 'text'] ?? 'Сообщение'}
+            {context.sentAt && ` · отправлено ${formatDate(context.sentAt)}`}
+            {context.deleted && ' · удалено отправителем'}
+          </p>
+          <p className="text-muted text-xs">
+            Текст сообщения виден в переписке ниже (открытие фиксируется в журнале).
+          </p>
+          <CallRecordings calls={context.calls} reportTarget={context.offender.id} />
+        </div>
+      )
+    case 'photo':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          {context.url ? (
+            <Image
+              src={context.url}
+              alt={`Фото: ${context.offender.name}`}
+              width={context.width}
+              height={context.height}
+              sizes="240px"
+              className="aspect-[3/4] w-40 rounded-xl object-cover"
+            />
+          ) : (
+            <p className="text-muted text-sm">Файл фото недоступен</p>
+          )}
+        </div>
+      )
+    case 'call':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <CallRecordings
+            calls={context.call ? [context.call, ...context.calls] : context.calls}
+            reportTarget={context.offender.id}
+            open
+          />
         </div>
       )
     case 'random_session':

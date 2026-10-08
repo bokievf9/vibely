@@ -1,7 +1,8 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Enums } from '@/types/database.types'
-import { getCallsBetween, type ReportCall } from './call-recordings'
+import { getCallsBetween, getCallsByIds, type ReportCall } from './call-recordings'
+import { signUrls } from './storage'
 
 type Target = {
   targetType: Enums<'report_target'>
@@ -20,6 +21,17 @@ export type ReportContext =
       offender: Person | null
       transcript: { from: string; body: string; at: string }[]
     }
+  // The message text itself is shown only in the logged transcript viewer (evidence-actions).
+  | {
+      kind: 'message'
+      offender: Person
+      mediaKind: string | null
+      sentAt: string
+      deleted: boolean
+      calls: ReportCall[]
+    }
+  | { kind: 'photo'; offender: Person; url: string | null; width: number; height: number }
+  | { kind: 'call'; offender: Person; call: ReportCall | null; calls: ReportCall[] }
 
 const ids = (targets: Target[], type: Target['targetType']) =>
   targets.filter((t) => t.targetType === type).map((t) => t.targetId)
@@ -32,21 +44,35 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     name: p?.display_name ?? '—',
   })
 
-  const [users, posts, comments, sessions] = await Promise.all([
-    db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
-    db
-      .from('posts')
-      .select('id, body, is_hidden, author_id, profiles(display_name)')
-      .in('id', ids(targets, 'post')),
-    db
-      .from('comments')
-      .select('id, body, is_hidden, post_id, author_id, profiles(display_name)')
-      .in('id', ids(targets, 'comment')),
-    db
-      .from('random_chat_sessions')
-      .select('id, user_a, user_b')
-      .in('id', ids(targets, 'random_session')),
-  ])
+  const [users, posts, comments, sessions, messages, archived, photos, callRows] =
+    await Promise.all([
+      db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
+      db
+        .from('posts')
+        .select('id, body, is_hidden, author_id, profiles(display_name)')
+        .in('id', ids(targets, 'post')),
+      db
+        .from('comments')
+        .select('id, body, is_hidden, post_id, author_id, profiles(display_name)')
+        .in('id', ids(targets, 'comment')),
+      db
+        .from('random_chat_sessions')
+        .select('id, user_a, user_b')
+        .in('id', ids(targets, 'random_session')),
+      db
+        .from('messages')
+        .select('id, sender_id, media_kind, created_at, deleted_at')
+        .in('id', ids(targets, 'message')),
+      db
+        .from('message_deletions')
+        .select('message_id, sender_id, media_kind, sent_at')
+        .in('message_id', ids(targets, 'message')),
+      db
+        .from('profile_photos')
+        .select('id, profile_id, storage_path, width, height, profiles(display_name)')
+        .in('id', ids(targets, 'photo')),
+      getCallsByIds(ids(targets, 'call')),
+    ])
 
   // Calls between the reported user and the reporters (recordings: see call-recordings.ts).
   const userCalls = await Promise.all(
@@ -81,6 +107,66 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       hidden: c.is_hidden,
     }),
   )
+
+  // Messages, photos and calls: the reported person is the case subject.
+  const subjectIds = new Set<string>()
+  messages.data?.forEach((m) => subjectIds.add(m.sender_id))
+  archived.data?.forEach((m) => subjectIds.add(m.sender_id))
+  callRows.forEach((c) => c.parties.forEach((p) => subjectIds.add(p)))
+  const { data: subjectProfiles } = subjectIds.size
+    ? await db
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', [...subjectIds])
+    : { data: [] }
+  const nameOf = (id: string) => ({
+    id,
+    name: subjectProfiles?.find((p) => p.id === id)?.display_name ?? '—',
+  })
+  const reportersOf = (type: Target['targetType'], id: string) =>
+    targets
+      .find((t) => t.targetType === type && t.targetId === id)
+      ?.reasons.map((r) => r.reporterId) ?? []
+
+  for (const id of ids(targets, 'message')) {
+    const live = messages.data?.find((m) => m.id === id)
+    const gone = archived.data?.find((m) => m.message_id === id)
+    const senderId = live?.sender_id ?? gone?.sender_id
+    if (!senderId) continue
+    out.set(`message:${id}`, {
+      kind: 'message',
+      offender: nameOf(senderId),
+      mediaKind: gone?.media_kind ?? live?.media_kind ?? null,
+      sentAt: live?.created_at ?? gone?.sent_at ?? '',
+      deleted: Boolean(live?.deleted_at) || (!live && !!gone),
+      calls: await getCallsBetween(senderId, reportersOf('message', id)),
+    })
+  }
+
+  const photoUrls = await signUrls('profile-photos', photos.data?.map((p) => p.storage_path) ?? [])
+  photos.data?.forEach((p) =>
+    out.set(`photo:${p.id}`, {
+      kind: 'photo',
+      offender: person(p.profile_id, p.profiles),
+      url: photoUrls.get(p.storage_path) ?? null,
+      width: p.width,
+      height: p.height,
+    }),
+  )
+
+  for (const id of ids(targets, 'call')) {
+    const call = callRows.find((c) => c.call.id === id)
+    if (!call) continue
+    const reporters = reportersOf('call', id)
+    const offenderId = call.parties.find((p) => !reporters.includes(p))
+    if (!offenderId) continue
+    out.set(`call:${id}`, {
+      kind: 'call',
+      offender: nameOf(offenderId),
+      call: call.call,
+      calls: (await getCallsBetween(offenderId, reporters)).filter((c) => c.id !== id),
+    })
+  }
 
   for (const s of sessions.data ?? []) {
     const target = targets.find((t) => t.targetId === s.id)
