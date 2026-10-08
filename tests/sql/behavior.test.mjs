@@ -913,6 +913,127 @@ export async function run(db) {
   ok('call_history: row kept when the match is removed', (await su(`select match_id from calls where id=$1`, [c5])).rows[0]?.match_id === null)
   ok('call_unmatched: participants keep seeing their call', (await as(K[0], `select count(*)::int c from calls where id=$1`, [c5])).rows[0].c === 1)
   ok('call_unmatched: settings gone', (await as(K[0], `select count(*)::int c from call_permissions where match_id=$1`, [km])).rows[0].c === 0)
+  // usernames (20261009000140): own scope so names don't clash with the blocks above
+  await (async () => {
+    const N = ['7a000000-0000-4000-8000-000000000001', '7a000000-0000-4000-8000-000000000002',
+               '7a000000-0000-4000-8000-000000000003', '7a000000-0000-4000-8000-000000000004',
+               '7a000000-0000-4000-8000-000000000005', '7a000000-0000-4000-8000-000000000006']
+    const names = ['Siti Nur', 'Алишер Навоий', 'Admin', 'Zoë', 'Siti Nur', 'Kuching Kid']
+    for (const [i, u] of N.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    const mk = (i, username) => as(N[i], `insert into profiles (display_name, birth_date, gender, interested_in, city, location${username === undefined ? '' : ', username'})
+       values ($1,'1996-06-06',$2,$3,'Kuching','SRID=4326;POINT(110.35 1.55)'${username === undefined ? '' : ', $4'})`,
+       [names[i], i % 2 ? 'male' : 'female', i % 2 ? '{female}' : '{male}', ...(username === undefined ? [] : [username])])
+    for (const i of [0, 1, 2, 3, 4]) await mk(i)
+    const un = async (i) => (await su(`select username u from profiles where id=$1`, [N[i]])).rows[0].u
+    const [u0, u1, u2, u3, u4] = [await un(0), await un(1), await un(2), await un(3), await un(4)]
+    ok('username: generated from display name', u0 === 'siti.nur', u0)
+    ok('username: cyrillic transliterated', u1 === 'alisher.navoiy', u1)
+    ok('username: reserved base falls back to user + digits', /^user\d+$/.test(u2), u2)
+    ok('username: accents dropped', u3 === 'zoe', u3)
+    ok('username: duplicate base gets a numeric suffix', /^siti\.nur\d{2}$/.test(u4), u4)
+    ok('username: every profile has one', (await su(`select count(*)::int c from profiles where username is null`)).rows[0].c === 0)
+    ok('username: column is not null', (await su(`select is_nullable n from information_schema.columns where table_name='profiles' and column_name='username'`)).rows[0].n === 'NO')
+    const base = (await su(`select username_base('  --Jo..') a, username_base('Ахмад-Шох Ўрол') b, username_base('😀😀') c`)).rows[0]
+    ok('username: base helper', [base.a, base.b, base.c].join() === 'user,akhmad.shokh.o,user', JSON.stringify(base))
+    // chosen at insert: normalised, validated
+    await mk(5, '  @Kuching_Kid ')
+    ok('username: chosen at insert is normalised', (await un(5)) === 'kuching_kid')
+    await su(`delete from profiles where id=$1`, [N[5]])
+    ok('username: taken at insert fails (23505)', (await fails(() => mk(5, 'SITI.NUR')))?.includes('profiles_username_key'))
+    ok('username: invalid at insert fails', (await fails(() => mk(5, 'a..b')))?.includes('username_invalid'))
+    ok('username: reserved at insert fails', (await fails(() => mk(5, 'Vibely_Team')))?.includes('username_reserved'))
+    ok('username: blank at insert is generated', !(await fails(() => mk(5, ' '))) && (await un(5)) === 'kuching.kid')
+    // format
+    for (const bad of ['ab', 'a'.repeat(21), '.abc', 'abc.', 'a..bc', 'ab-c', 'ab c', 'абв'])
+      ok(`username: format rejects "${bad}"`, (await as(N[0], `select username_status($1) s`, [bad])).rows[0].s === 'invalid')
+    for (const good of ['abc', 'a_b.c', 'x'.repeat(20), 'ali99'])
+      ok(`username: format accepts "${good}"`, (await as(N[0], `select username_status($1) s`, [good])).rows[0].s === 'ok')
+    for (const r of ['admin', 'Support', 'null', 'undefined', 'mod', 'settings', 'vibelyfan', 'moderator_1'])
+      ok(`username: reserved "${r}"`, (await as(N[0], `select username_status($1) s`, [r])).rows[0].s === 'reserved')
+    ok('username: status taken / current', (await as(N[0], `select username_status('@Alisher.Navoiy') s`)).rows[0].s === 'taken' &&
+       (await as(N[0], `select username_status('siti.nur') s`)).rows[0].s === 'current')
+    ok('username: status needs a session', !!(await fails(() => as('', `select username_status('abc')`))))
+    const sugg = (await as(N[2], `select suggest_username('Siti Nur') s`)).rows[0].s
+    ok('username: suggest returns a free one', /^siti\.nur\d+$/.test(sugg), sugg)
+    // no direct writes
+    ok('username: no direct update', !!(await fails(() => as(N[0], `update profiles set username='hacker' where id=$1`, [N[0]]))))
+    ok('username: changed_at not readable by clients', !!(await fails(() => as(N[0], `select username_changed_at from profiles where id=$1`, [N[0]]))))
+    ok('username: generator not callable by clients', !!(await fails(() => as(N[0], `select generate_username('x')`))))
+    // set_username: first change free, then a 30-day cooldown
+    const setU = (i, v) => as(N[i], `select set_username($1) u`, [v])
+    ok('set_username: first change free', (await setU(0, ' @Siti_Ok ')).rows[0].u === 'siti_ok' && (await un(0)) === 'siti_ok')
+    ok('set_username: next change date reported', (await as(N[0], `select * from my_username()`)).rows[0].next_change_at !== null)
+    ok('set_username: same value is a no-op', (await setU(0, 'SITI_OK')).rows[0].u === 'siti_ok')
+    ok('set_username: cooldown', (await fails(() => setU(0, 'siti_new')))?.includes('username_cooldown'))
+    await su(`update profiles set username_changed_at = now() - interval '31 days' where id=$1`, [N[0]])
+    ok('set_username: allowed after 30 days', (await setU(0, 'siti_new')).rows[0].u === 'siti_new')
+    ok('set_username: taken', (await fails(() => setU(1, 'Siti_New')))?.includes('username_taken'))
+    ok('set_username: invalid', (await fails(() => setU(1, 'x')))?.includes('username_invalid'))
+    ok('set_username: reserved', (await fails(() => setU(1, 'admin')))?.includes('username_reserved'))
+    ok('set_username: old name is free again', (await as(N[1], `select username_status('siti_ok') s`)).rows[0].s === 'ok')
+    ok('set_username: failed attempts do not start a cooldown', (await as(N[1], `select * from my_username()`)).rows[0].changed_at === null)
+    ok('set_username: needs a profile', (await fails(() => as('55555555-5555-5555-5555-555555555555', `select set_username('abcdef')`)))?.includes('profile_required'))
+    // search
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [N])
+    const search = async (i, q, lim = 20) => (await as(N[i], `select * from search_profiles_by_username($1, $2)`, [q, lim])).rows
+    const ids = (rows) => rows.map((r) => r.id)
+    ok('search: unverified caller refused', !!(await fails(() => as('55555555-5555-5555-5555-555555555555', `select * from search_profiles_by_username('si')`))))
+    const sr = await search(1, 'SITI')
+    ok('search: prefix match on username', ids(sr).includes(N[0]) && ids(sr).includes(N[4]), JSON.stringify(sr))
+    ok('search: card fields only', !!sr[0] && JSON.stringify(Object.keys(sr[0]).sort()) === '["age","city","display_name","id","photo","username"]' && sr[0].age >= 18 && sr[0].city === 'Kuching', JSON.stringify(sr[0]))
+    ok('search: leading @ ignored', ids(await search(1, '@siti_new')).includes(N[0]))
+    ok('search: exact match first', (await search(1, 'siti_new'))[0]?.id === N[0])
+    ok('search: substring from 3 chars', ids(await search(0, 'navo')).includes(N[1]))
+    ok('search: display name prefix', ids(await search(0, 'алишер')).includes(N[1]))
+    ok('search: minimum 2 characters', (await search(0, 'a')).length === 0 && (await search(0, ' @ ')).length === 0)
+    ok('search: excludes self', !ids(await search(0, 'siti')).includes(N[0]))
+    ok('search: LIKE wildcards are literal', (await search(0, '%%')).length === 0 && !ids(await search(0, 's_ti')).includes(N[4]))
+    ok('search: limit', (await search(1, 'siti', 1)).length === 1)
+    await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 10, 20, 1), ($1, $3, 30, 40, 0)`,
+      [N[4], `${N[4]}/b.jpg`, `${N[4]}/a.jpg`])
+    const withPhoto = (await search(1, u4)).find((x) => x.id === N[4])
+    ok('search: photo is the first one', withPhoto?.photo?.path === `${N[4]}/a.jpg` && withPhoto.photo.width === 30, JSON.stringify(withPhoto))
+    await as(N[0], `update profiles set searchable_by_username=false where id=$1`, [N[0]])
+    ok('search: "find me by username" off hides', !ids(await search(1, 'siti_new')).includes(N[0]))
+    await as(N[1], `update profiles set searchable_by_username=false where id=$1`, [N[4]])
+    ok('search: cannot change someone else\'s flag', (await su(`select searchable_by_username s from profiles where id=$1`, [N[4]])).rows[0].s === true)
+    ok('search: my_username reports the flag', (await as(N[0], `select searchable from my_username()`)).rows[0].searchable === false)
+    await as(N[0], `update profiles set searchable_by_username=true where id=$1`, [N[0]])
+    await as(N[0], `update profiles set discoverable=false where id=$1`, [N[0]])
+    ok('search: paused profile hidden', !ids(await search(1, 'siti_new')).includes(N[0]))
+    await as(N[0], `update profiles set discoverable=true where id=$1`, [N[0]])
+    await as(N[0], `insert into blocks (blocked_id) values ($1)`, [N[1]])
+    ok('search: blocked hidden both ways', !ids(await search(1, 'siti_new')).includes(N[0]) && !ids(await search(0, 'alisher')).includes(N[1]))
+    await as(N[0], `delete from blocks where blocked_id=$1`, [N[1]])
+    ok('search: unblocked visible again', ids(await search(1, 'siti_new')).includes(N[0]))
+    await su(`update profiles set banned_at=now(), ban_reason='x' where id=$1`, [N[4]])
+    ok('search: banned hidden', !ids(await search(1, 'siti')).includes(N[4]))
+    await su(`update profiles set banned_at=null, ban_reason=null, is_active=true where id=$1`, [N[4]])
+    await su(`update profiles set verification_status='pending' where id=$1`, [N[3]])
+    ok('search: unverified target hidden', !ids(await search(1, 'zoe')).includes(N[3]))
+    await su(`update profiles set verification_status='approved' where id=$1`, [N[3]])
+    ok('search: verified target found', ids(await search(1, 'zoe')).includes(N[3]))
+    ok('search: index on username', (await su(`select count(*)::int c from pg_indexes where tablename='profiles' and indexdef like '%username text_pattern_ops%'`)).rows[0].c === 1)
+    // feed: username only on visible "As me" rows, never on anonymous ones
+    const anonPost = (await as(N[0], `select create_post('un anon', false) id`)).rows[0].id
+    const namedPost = (await as(N[0], `select create_post('un named', true) id`)).rows[0].id
+    const fRow = async (i, id) => (await as(N[i], `select * from feed_posts where id=$1`, [id])).rows[0]
+    ok('feed: named post shows author_username', (await fRow(1, namedPost)).author_username === 'siti_new')
+    ok('feed: anonymous post never has author_username', (await fRow(1, anonPost)).author_username === null && (await fRow(0, anonPost)).author_username === null)
+    await as(N[1], `select create_comment($1, 'anon c', false)`, [anonPost])
+    await as(N[1], `select create_comment($1, 'named c', true)`, [anonPost])
+    const cm = (await as(N[2], `select body, author_username from post_comments where post_id=$1 order by created_at`, [anonPost])).rows
+    ok('feed: comment usernames only when named', cm.length === 2 && cm[0].author_username === null && cm[1].author_username === 'alisher.navoiy', JSON.stringify(cm))
+    await as(N[1], `insert into blocks (blocked_id) values ($1)`, [N[0]])
+    ok('feed: blocked author loses username', (await fRow(1, namedPost))?.author_username == null)
+    await as(N[1], `delete from blocks where blocked_id=$1`, [N[0]])
+    // admin search by username
+    await su(`insert into admins values ($1)`, [N[5]])
+    const af = async (q) => (await su(`select * from admin_find_users($1, $2, 50)`, [N[5], q])).rows
+    ok('admin: finds by username with @', (await af('@alisher.nav')).some((r) => r.id === N[1] && r.username === 'alisher.navoiy'))
+    ok('admin: still finds by name and phone', (await af('Zoë')).some((r) => r.id === N[3]) && (await af('60137770002')).some((r) => r.id === N[2]))
+    ok('admin: not callable by users', !!(await fails(() => as(N[5], `select * from admin_find_users($1, 'x', 5)`, [N[5]]))))
+  })()
   void ko
   console.log(`${pass} passed, ${fail} failed`)
   return fail
