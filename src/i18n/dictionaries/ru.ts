@@ -22,6 +22,10 @@ export const ru: Dictionary = {
     loading: 'Загрузка',
     send: 'Отправить',
     back: 'Назад',
+    moreOptions: 'Ещё',
+    previous: 'Назад',
+    next: 'Далее',
+    retry: 'Повторить',
   },
   errors: {
     ...callErrorsRu,
@@ -162,6 +166,7 @@ export const ru: Dictionary = {
     randomizer: 'Рандом',
     profile: 'Профиль',
     unread: 'Непрочитанных: {count}',
+    label: 'Основная навигация',
   },
   swipe: {
     title: 'Знакомства',
@@ -180,6 +185,8 @@ export const ru: Dictionary = {
     sendMessage: 'Написать',
     keepSwiping: 'Смотреть дальше',
     refresh: 'Обновить',
+    minAge: 'Минимальный возраст',
+    maxAge: 'Максимальный возраст',
   },
   chats: {
     title: 'Чаты',
@@ -283,6 +290,8 @@ export const ru: Dictionary = {
     skip: 'Следующий',
     skipConfirm: 'Завершить этот чат и найти нового собеседника?',
     changeFilters: 'Изменить фильтры',
+    minAge: 'Минимальный возраст',
+    maxAge: 'Максимальный возраст',
   },
   legal: {
     privacy: 'Политика конфиденциальности',

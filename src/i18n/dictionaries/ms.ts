@@ -22,6 +22,10 @@ export const ms: Dictionary = {
     loading: 'Memuatkan',
     send: 'Hantar',
     back: 'Kembali',
+    moreOptions: 'Lagi pilihan',
+    previous: 'Sebelumnya',
+    next: 'Seterusnya',
+    retry: 'Cuba lagi',
   },
   errors: {
     ...callErrorsMs,
@@ -163,6 +167,7 @@ export const ms: Dictionary = {
     randomizer: 'Rawak',
     profile: 'Profil',
     unread: 'Belum dibaca: {count}',
+    label: 'Navigasi utama',
   },
   swipe: {
     title: 'Teroka',
@@ -181,6 +186,8 @@ export const ms: Dictionary = {
     sendMessage: 'Hantar mesej',
     keepSwiping: 'Teruskan swipe',
     refresh: 'Muat semula',
+    minAge: 'Umur minimum',
+    maxAge: 'Umur maksimum',
   },
   chats: {
     title: 'Sembang',
@@ -286,6 +293,8 @@ export const ms: Dictionary = {
     skip: 'Seterusnya',
     skipConfirm: 'Tamatkan sembang ini dan cari orang baharu?',
     changeFilters: 'Tukar penapis',
+    minAge: 'Umur minimum',
+    maxAge: 'Umur maksimum',
   },
   legal: {
     privacy: 'Dasar Privasi',

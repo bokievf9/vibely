@@ -21,6 +21,10 @@ export const en = {
     loading: 'Loading',
     send: 'Send',
     back: 'Back',
+    moreOptions: 'More options',
+    previous: 'Previous',
+    next: 'Next',
+    retry: 'Try again',
   },
   errors: {
     ...callErrorsEn,
@@ -160,6 +164,7 @@ export const en = {
     randomizer: 'Random',
     profile: 'Profile',
     unread: 'Unread: {count}',
+    label: 'Main navigation',
   },
   swipe: {
     title: 'Discover',
@@ -178,6 +183,8 @@ export const en = {
     sendMessage: 'Send a message',
     keepSwiping: 'Keep swiping',
     refresh: 'Refresh',
+    minAge: 'Minimum age',
+    maxAge: 'Maximum age',
   },
   chats: {
     title: 'Chats',
@@ -281,6 +288,8 @@ export const en = {
     skip: 'Next',
     skipConfirm: 'End this chat and find someone new?',
     changeFilters: 'Change filters',
+    minAge: 'Minimum age',
+    maxAge: 'Maximum age',
   },
   legal: {
     privacy: 'Privacy Policy',
