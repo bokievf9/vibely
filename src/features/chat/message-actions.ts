@@ -1,12 +1,10 @@
 'use server'
 
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, rateLimitedOr, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { editSchema, reactSchema } from './schemas'
-import { CHAT_MEDIA_BUCKET } from './types'
 
 // Own text, within 15 minutes (enforced by edit_message()). Returns the new edited_at.
 export async function editMessage(input: z.input<typeof editSchema>): Promise<UserResult<string>> {
@@ -22,20 +20,14 @@ export async function editMessage(input: z.input<typeof editSchema>): Promise<Us
   return error ? fail('messageNotEditable') : ok(data)
 }
 
-// Delete for everyone. The photo object goes too: delete_message() only authorizes the caller
-// and returns the path, and users have no delete right on chat-media.
+// Delete for everyone: the message disappears for both people at once. Per the safety protocol
+// its content is archived for moderators and purged after 90 days (20261008000131).
 export async function deleteMessage(messageId: string): Promise<UserResult> {
   const id = z.uuid().safeParse(messageId)
   if (!id.success) return fail('invalidInput')
   const supabase = await createClient()
-  const { data: path, error } = await supabase.rpc('delete_message', { p_id: id.data })
+  const { error } = await supabase.rpc('delete_message', { p_id: id.data })
   if (error) return fail('generic')
-  if (path) {
-    const { error: removeError } = await createAdminClient()
-      .storage.from(CHAT_MEDIA_BUCKET)
-      .remove([path])
-    if (removeError) console.error('[chat] could not remove photo', removeError.message)
-  }
   return ok(undefined)
 }
 

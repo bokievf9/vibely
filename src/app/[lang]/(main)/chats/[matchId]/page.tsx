@@ -4,7 +4,11 @@ import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { PageSpinner } from '@/components/ui/spinner'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { getViewer } from '@/features/auth/session'
+import { ChatCallButton } from '@/features/calls/components/chat-call-button'
+import { getCallHistory, getCallSettings } from '@/features/calls/queries'
+import { callsEnabled } from '@/features/calls/server/env'
 import { unmatch } from '@/features/chat/actions'
 import { ChatRoom } from '@/features/chat/components/chat-room'
 import { getChatRoom } from '@/features/chat/queries'
@@ -37,6 +41,9 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
     viewer && /^[0-9a-f-]{36}$/.test(matchId) ? await getChatRoom(matchId, viewer.id) : null
   if (!viewer || !room) notFound()
   const { partner } = room
+  const [callSettings, calls] = callsEnabled()
+    ? await Promise.all([getCallSettings(matchId), getCallHistory(matchId, viewer.id)])
+    : [null, []]
 
   return (
     <>
@@ -51,10 +58,16 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         >
           <Avatar photo={partner.photo} alt={partner.name} size={36} />
           <span className="flex min-w-0 flex-col">
-            <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+            <span className="flex min-w-0 items-center gap-1">
+              <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+              <VerifiedBadge size={16} />
+            </span>
             <PartnerStatus matchId={matchId} />
           </span>
         </Link>
+        {callSettings && (
+          <ChatCallButton matchId={matchId} partnerName={partner.name} initial={callSettings} />
+        )}
         <SafetyMenu
           userId={partner.id}
           name={partner.name}
@@ -69,6 +82,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         initialMessages={room.messages}
         initialReactions={room.reactions}
         initialHasMore={room.hasMore}
+        initialCalls={calls}
       />
     </>
   )

@@ -6,7 +6,7 @@ import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
-import { notifyNewMatch } from '@/features/push/send'
+import { notifyNewLike, notifyNewMatch } from '@/features/push/send'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
 
 const storedPhotos = z.array(z.object({ path: z.string(), width: z.number(), height: z.number() }))
@@ -42,6 +42,7 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
       }),
       about: aboutFromRow(c),
       prompts: parsePrompts(c.prompts),
+      secondChance: c.second_chance,
     })),
   )
 }
@@ -73,5 +74,6 @@ export async function swipe(input: z.input<typeof swipeSchema>): Promise<UserRes
     .maybeSingle()
   // Only the like that just created the match notifies (not a repeated 23505 insert).
   if (match && !error) notifyNewMatch(targetId, viewer.profile?.displayName ?? '', match.id)
+  else if (!error) notifyNewLike(targetId, viewer.id)
   return ok({ matchId: match?.id ?? null })
 }

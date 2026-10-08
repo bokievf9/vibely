@@ -1,3 +1,4 @@
+import { callsLegal } from './calls'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -17,7 +18,7 @@ export const en: LegalContent = {
           'Photos you upload to your profile.',
           'Approximate location: if you allow it, your device location is used to calculate how far you are from other users. Your exact location is never shown to anyone. Others only see a rounded distance, such as "5 km away".',
           'Verification selfie: a photo of you doing a gesture, used only to confirm that you match your profile photos (see section 3).',
-          'Activity in the app: likes and passes, matches, chat messages, posts, comments and likes in the feed, random chat messages, blocks and reports.',
+          'Activity in the app: likes and passes, matches, chat messages (text, photos, voice messages and video messages), audio and video calls (recorded, see section 3), posts, comments and likes in the feed, random chat messages, blocks and reports.',
           'Technical data: cookies that keep you signed in and remember your language. We do not use advertising trackers.',
         ],
       },
@@ -29,23 +30,29 @@ export const en: LegalContent = {
         ],
       },
       {
-        heading: '3. Selfie verification',
+        heading: '3. Safety recording and selfie verification',
         paragraphs: [
-          'Every profile must pass a selfie check. Your selfie is reviewed by a human moderator only. It is never published or shown to other users, and the photo file is deleted after the review. We keep only the result (approved or rejected, and the reason for a rejection).',
+          'To keep people safe, everything that happens in Vibely is recorded and stored: chat messages, photos, voice and video messages, random chats, feed content and all audio and video calls (calls are recorded on our servers, and you always see a "This call is recorded" notice during a call). We never record anything without telling you.',
+          'These recordings are kept for up to 90 days and then deleted automatically. Material connected to an open report or moderation case is kept until that case is resolved. Recordings are stored privately and are never shown to other users. Only our moderators can open them, only while handling a report, and every access is logged.',
+          'Every profile must pass a selfie check. Your selfie is reviewed by a human moderator only and is never published or shown to other users. The selfie file is kept for up to 90 days (so moderators can check it if the account is reported) and then deleted automatically; we keep the result (approved or rejected, and the reason for a rejection).',
         ],
       },
       {
-        heading: '4. Anonymous feed',
+        heading: '4. Feed',
         paragraphs: [
-          'Other users never see who wrote a post or a comment in the feed. We do store the author internally, so that you can delete your own posts and so that moderators can act on reports (for example, block an account that posts abuse).',
+          'Each post and comment in the feed is anonymous unless you choose "As me". Anonymous content shows only a random nickname for that thread (for example "Purple Durian"); other users never see who wrote it. With "As me", other verified users see your name, age, main photo and verification badge, and can open a short read-only profile card (never your location). Others may see that a post comes from their city, but never which city.',
+          'We store the author of every post and comment internally, so that you can delete your own content and so that moderators can act on reports (for example, block an account that posts abuse). Feed posts and comments are deleted automatically after 90 days, unless they are part of an open report.',
         ],
       },
       {
         heading: '5. Random chat',
         paragraphs: [
-          'Random chats are anonymous until both people agree to reveal their profiles. Random chat messages are kept for 30 days and then deleted automatically. If a chat is reported, it is kept for as long as moderators need it to handle the report.',
+          'Random chats are anonymous until both people agree to reveal their profiles. Random chat messages are kept for 90 days and then deleted automatically. If a chat is reported, it is kept until the report is resolved.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.en.privacy,
+      // --- end calls ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -56,7 +63,7 @@ export const en: LegalContent = {
       {
         heading: '7. Who can see your data',
         paragraphs: [
-          'Other verified users can see your profile, photos, age and approximate distance. Moderators can see what they need to review verifications and reports.',
+          'Other verified users can see your profile, photos, age and approximate distance. Moderators can see what they need to review verifications and reports; recorded messages, media and calls only while handling a report (see section 3).',
           'We use trusted service providers who process data only on our instructions:',
         ],
         list: [
@@ -73,7 +80,7 @@ export const en: LegalContent = {
       {
         heading: '9. How long we keep data',
         paragraphs: [
-          'We keep your data while your account exists. Verification selfies are deleted after review and random chat messages after 30 days (unless reported).',
+          'We keep your data while your account exists, except for safety recordings: photos, voice and video messages sent in chats, call recordings, verification selfies and random chat messages are deleted automatically after 90 days, unless they are part of an open report. A chat photo, voice or video message that has expired is shown as "expired".',
           'When you delete your account, we immediately delete your profile, photos, selfies, matches, messages, posts, comments, likes, blocks and the reports you made. Reports other people made about you and moderation records may be kept to prevent abuse, for example to stop a banned person from returning. Backups are overwritten within a limited period.',
         ],
       },
@@ -153,10 +160,14 @@ export const en: LegalContent = {
           'Selfie checks reduce fake profiles, but we cannot guarantee who someone is or how they will behave. Meet new people in public places, tell a friend where you are going and never send money to someone you met online. Use Report and Block whenever something feels wrong.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.en.terms,
+      // --- end calls ---
       {
         heading: '6. Moderation',
         paragraphs: [
           'Reports are reviewed by people. We may hide content, limit features or ban accounts that break these Terms or put others at risk, with or without notice. If you think we made a mistake, contact us.',
+          "For everyone's safety, messages, photos, voice and video messages and audio and video calls are recorded and stored for up to 90 days (longer only while a report about them is open). Only moderators handling a report can access them. See the Privacy Policy, section 3.",
         ],
       },
       {

@@ -6,20 +6,28 @@ import { Modal } from '@/components/ui/modal'
 import { fmt } from '@/i18n/config'
 import { useI18n, useLocaleRouter } from '@/i18n/client'
 import { PushSoftPrompt } from '@/features/push/components/push-soft-prompt'
+import { IcebreakerList } from '@/features/icebreakers/components/icebreaker-list'
+import { stashIcebreaker } from '@/features/icebreakers/stash'
 
 type Props = { match: { id: string; name: string } | null; onClose: () => void }
 
 export function MatchModal({ match, onClose }: Props) {
   const { dict } = useI18n()
   const router = useLocaleRouter()
+  const openChat = (text?: string) => {
+    if (!match) return
+    if (text) stashIcebreaker(match.id, text)
+    router.push(`/chats/${match.id}`)
+  }
   return (
     <Modal open={match !== null} onClose={onClose} title={dict.swipe.matchTitle}>
       <div className="flex flex-col items-center gap-5 text-center">
         <Heart className="fill-accent text-accent size-16 animate-pulse" aria-hidden />
         <p className="text-lg">{match && fmt(dict.swipe.matchSubtitle, { name: match.name })}</p>
+        {match && <IcebreakerList key={match.id} matchId={match.id} onPick={openChat} />}
         <PushSoftPrompt />
         <div className="flex w-full flex-col gap-2">
-          <Button fullWidth onClick={() => match && router.push(`/chats/${match.id}`)}>
+          <Button fullWidth onClick={() => openChat()}>
             {dict.swipe.sendMessage}
           </Button>
           <Button variant="ghost" fullWidth onClick={onClose}>

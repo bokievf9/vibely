@@ -1,0 +1,36 @@
+name: Retention
+
+# Daily purge of chat media and verification selfies older than 90 days (CLAUDE.md "Safety
+# recording & data retention"). The work happens in the app: POST /api/cron/retention, authorized
+# with the CRON_SECRET repo secret (the same value as CRON_SECRET in shared/.env.production).
+on:
+  schedule:
+    # 03:41 Malaysia time (19:41 UTC), after the pg_cron random-chat purge at 19:17 UTC.
+    - cron: '41 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retention
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RETENTION_URL: https://vibelydate.com/api/cron/retention
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: POST /api/cron/retention
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Repository secret CRON_SECRET is not set"
+            exit 1
+          fi
+          status=$(curl -sS -o body.txt -w '%{http_code}' --max-time 280 -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" "$RETENTION_URL") || status=000
+          echo "HTTP $status $(head -c 300 body.txt 2>/dev/null)"
+          [ "$status" = "200" ]

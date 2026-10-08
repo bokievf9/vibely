@@ -1,5 +1,11 @@
+import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
+import { discoverEn } from './discover/en'
+import { feedEn } from './feed/en'
+import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
+import { likesEn, settingsEn } from './settings/en'
+import { mediaEn } from './media/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 
 export const en = {
@@ -16,6 +22,7 @@ export const en = {
     back: 'Back',
   },
   errors: {
+    ...callErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -63,6 +70,9 @@ export const en = {
     captchaFailed: 'Security check failed. Please try again.',
     photoSendFailed: 'Could not send the photo. Try again.',
     messageNotEditable: 'This message can no longer be edited',
+    mediaSendFailed: 'Could not send. Try again.',
+    micDenied: 'No microphone access. Allow it in your browser settings.',
+    recordingUnsupported: 'Recording is not supported in this browser.',
   },
   gender: { male: 'Man', female: 'Woman', other: 'Other' },
   auth: {
@@ -235,26 +245,7 @@ export const en = {
     block: 'Block',
     blockConfirm: 'Block {name}? You will no longer see each other and your match will be removed.',
   },
-  feed: {
-    title: 'Feed',
-    anonymousNote: 'Posts are anonymous. Nobody sees who wrote them.',
-    placeholder: 'Share something anonymously…',
-    publish: 'Post',
-    newPosts: 'New posts',
-    empty: 'No posts yet',
-    emptyHint: 'Be the first to share something.',
-    loadMore: 'Show more',
-    comments: 'Comments',
-    noComments: 'No comments yet',
-    commentPlaceholder: 'Comment anonymously…',
-    author: 'Author',
-    anonymous: 'Anonymous #{n}',
-    you: 'you',
-    delete: 'Delete',
-    deleteConfirm: 'Delete this? It cannot be undone.',
-    like: 'Like',
-    post: 'Post',
-  },
+  feed: feedEn,
   random: {
     title: 'Random chat',
     intro:
@@ -296,6 +287,8 @@ export const en = {
     lastUpdated: 'Last updated: {date}',
     contact: 'Questions or requests about your data? Email us at',
     consent: 'I am 18 or older and agree to the {terms} and the {privacy}',
+    consentRecording:
+      'For everyone’s safety, messages, photos, voice and video messages and calls are recorded and stored for up to 90 days. Only moderators handling a report can access them.',
     consentTerms: 'Terms of Use',
     consentPrivacy: 'Privacy Policy',
     home: 'Back to Vibely',
@@ -310,6 +303,11 @@ export const en = {
     deleteConfirm: 'Delete forever',
   },
   about: aboutEn,
+  settings: settingsEn,
+  likes: likesEn,
+  discover: discoverEn,
+  media: mediaEn,
+  calls: callsEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',
@@ -348,6 +346,7 @@ export const en = {
   },
   tags: tagsEn,
   tagCategories: tagCategoriesEn,
+  avatar: avatarEn,
 }
 
 export type Dictionary = typeof en

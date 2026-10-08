@@ -7,12 +7,13 @@ import { formatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { RiskWarning } from '@/features/safety/components/risk-warning'
 import type { ChatMessage, Reaction, ReactionEmoji, ReplyPreview } from '../types'
+import { MessageMedia } from './message-media'
 import { MessageQuote } from './message-quote'
 import { MessageReactions } from './message-reactions'
 import { usePressGestures } from './use-press-gestures'
 
 export type BubbleAction =
-  | { type: 'reply' | 'menu' | 'openImage' | 'imageError' }
+  | { type: 'reply' | 'menu' | 'openMedia' | 'mediaError' }
   | { type: 'react'; emoji: ReactionEmoji }
   | { type: 'jump'; id: string }
 
@@ -30,20 +31,19 @@ type Props = {
 }
 
 const SWIPE_REPLY_PX = 56
-const IMAGE_MAX_PX = 240
 
 export function MessageBubble(props: Props) {
   const { message: m, mine, quote, tail, onAction } = props
   const { dict, locale } = useI18n()
   const deleted = !!m.deletedAt
+  const kind = deleted ? undefined : m.media?.kind
   const x = useMotionValue(0)
   const replyHint = useTransform(x, [0, SWIPE_REPLY_PX], [0, 1])
   const gestures = usePressGestures({
     onLongPress: () => !deleted && onAction({ type: 'menu' }),
     onDoubleTap: () => !deleted && onAction({ type: 'react', emoji: '❤️' }),
-    onTap: m.image ? () => onAction({ type: 'openImage' }) : undefined,
+    onTap: kind === 'image' || kind === 'video' ? () => onAction({ type: 'openMedia' }) : undefined,
   })
-  const imageWidth = m.image ? Math.min(IMAGE_MAX_PX, m.image.width) : 0
 
   return (
     <div className={cn('group flex flex-col gap-0.5', mine ? 'items-end' : 'items-start')}>
@@ -69,9 +69,13 @@ export function MessageBubble(props: Props) {
           {...gestures}
           className={cn(
             'relative z-10 flex min-w-0 flex-col gap-1 overflow-hidden rounded-2xl break-words whitespace-pre-wrap transition-shadow select-none [-webkit-touch-callout:none]',
-            mine ? 'bg-accent text-accent-foreground' : 'bg-surface',
-            tail && (mine ? 'rounded-br-md' : 'rounded-bl-md'),
-            m.image && !deleted ? 'p-1' : 'px-3.5 py-2',
+            kind === 'video'
+              ? 'bg-transparent'
+              : mine
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-surface',
+            tail && kind !== 'video' && (mine ? 'rounded-br-md' : 'rounded-bl-md'),
+            kind === 'image' ? 'p-1' : kind === 'video' ? 'p-0' : 'px-3.5 py-2',
             props.highlighted && 'ring-accent ring-2 ring-offset-2 ring-offset-transparent',
           )}
         >
@@ -89,26 +93,12 @@ export function MessageBubble(props: Props) {
             </span>
           ) : (
             <>
-              {m.image && (
-                <span
-                  className="bg-background/30 block overflow-hidden rounded-xl"
-                  style={{ width: imageWidth, aspectRatio: `${m.image.width} / ${m.image.height}` }}
-                >
-                  {m.image.url && (
-                    // eslint-disable-next-line @next/next/no-img-element -- private signed URL, never via the optimizer
-                    <img
-                      src={m.image.url}
-                      alt={dict.chats.photo}
-                      width={m.image.width}
-                      height={m.image.height}
-                      draggable={false}
-                      onError={() => onAction({ type: 'imageError' })}
-                      className="size-full object-cover"
-                    />
-                  )}
-                </span>
-              )}
-              {m.body && <p className={cn(m.image && 'px-2.5 pb-1')}>{m.body}</p>}
+              <MessageMedia
+                message={m}
+                mine={mine}
+                onError={() => onAction({ type: 'mediaError' })}
+              />
+              {m.body && <p className={cn(kind === 'image' && 'px-2.5 pb-1')}>{m.body}</p>}
             </>
           )}
         </motion.div>

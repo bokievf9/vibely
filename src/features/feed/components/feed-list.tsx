@@ -1,33 +1,38 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ArrowUp, Newspaper } from 'lucide-react'
+import { ArrowUp, MapPin, Newspaper } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
 import { createPost, loadFeedPage } from '../actions'
-import type { FeedPage } from '../types'
+import type { FeedPage, FeedTab } from '../types'
 import { Composer } from './composer'
+import { FeedTabs } from './feed-tabs'
 import { PostCard } from './post-card'
 import { useNewPosts } from './use-new-posts'
 
 export function FeedList({ initial }: { initial: FeedPage }) {
   const { dict } = useI18n()
+  const [tab, setTab] = useState<FeedTab>('new')
   const [page, setPage] = useState(initial)
   const [pending, startTransition] = useTransition()
   const fresh = useNewPosts()
 
-  const reload = () =>
+  const show = (next: FeedTab) =>
     startTransition(async () => {
-      const result = await loadFeedPage(null)
-      if (result.ok) setPage(result.data)
+      const result = await loadFeedPage(next, null)
+      if (result.ok) {
+        setTab(next)
+        setPage(result.data)
+      }
       fresh.reset()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     })
 
   const loadMore = () =>
     startTransition(async () => {
-      const result = await loadFeedPage(page.nextCursor)
+      const result = await loadFeedPage(tab, page.nextCursor)
       if (!result.ok) return
       setPage((p) => {
         const seen = new Set(p.posts.map((x) => x.id))
@@ -49,19 +54,24 @@ export function FeedList({ initial }: { initial: FeedPage }) {
         submitLabel={dict.feed.publish}
         maxLength={1000}
         onSubmit={createPost}
-        onDone={reload}
+        onDone={() => show('new')}
       />
+      <FeedTabs tab={tab} onChange={show} disabled={pending} />
       {fresh.count > 0 && (
         <Button
           size="sm"
           className="sticky top-16 z-20 self-center rounded-full shadow-lg"
-          onClick={reload}
+          onClick={() => show('new')}
         >
           <ArrowUp className="size-4" /> {dict.feed.newPosts} ({fresh.count})
         </Button>
       )}
       {page.posts.length === 0 ? (
-        <EmptyState icon={Newspaper} title={dict.feed.empty} text={dict.feed.emptyHint} />
+        tab === 'city' ? (
+          <EmptyState icon={MapPin} title={dict.feed.cityEmpty} text={dict.feed.cityEmptyHint} />
+        ) : (
+          <EmptyState icon={Newspaper} title={dict.feed.empty} text={dict.feed.emptyHint} />
+        )
       ) : (
         <ul className="flex flex-col gap-3">
           {page.posts.map((post) => (

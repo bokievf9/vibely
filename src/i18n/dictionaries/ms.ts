@@ -1,6 +1,12 @@
+import { avatarMs } from './avatar/ms'
 import { aboutMs } from './about/ms'
+import { discoverMs } from './discover/ms'
+import { feedMs } from './feed/ms'
+import { callErrorsMs, callsMs } from './calls/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
+import { likesMs, settingsMs } from './settings/ms'
+import { mediaMs } from './media/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 
 export const ms: Dictionary = {
@@ -17,6 +23,7 @@ export const ms: Dictionary = {
     back: 'Kembali',
   },
   errors: {
+    ...callErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -64,6 +71,9 @@ export const ms: Dictionary = {
     captchaFailed: 'Semakan keselamatan gagal. Sila cuba lagi.',
     photoSendFailed: 'Tidak dapat menghantar foto. Cuba lagi.',
     messageNotEditable: 'Mesej ini tidak boleh disunting lagi',
+    mediaSendFailed: 'Tidak dapat menghantar. Cuba lagi.',
+    micDenied: 'Tiada akses mikrofon. Benarkan dalam tetapan pelayar anda.',
+    recordingUnsupported: 'Rakaman tidak disokong dalam pelayar ini.',
   },
   gender: { male: 'Lelaki', female: 'Perempuan', other: 'Lain-lain' },
   auth: {
@@ -240,26 +250,7 @@ export const ms: Dictionary = {
     blockConfirm:
       'Sekat {name}? Anda tidak akan melihat satu sama lain lagi dan padanan akan dibuang.',
   },
-  feed: {
-    title: 'Suapan',
-    anonymousNote: 'Siaran adalah tanpa nama. Tiada siapa tahu siapa penulisnya.',
-    placeholder: 'Kongsi sesuatu tanpa nama…',
-    publish: 'Siar',
-    newPosts: 'Siaran baharu',
-    empty: 'Belum ada siaran',
-    emptyHint: 'Jadilah yang pertama berkongsi.',
-    loadMore: 'Tunjuk lagi',
-    comments: 'Komen',
-    noComments: 'Belum ada komen',
-    commentPlaceholder: 'Komen tanpa nama…',
-    author: 'Penulis',
-    anonymous: 'Tanpa Nama #{n}',
-    you: 'anda',
-    delete: 'Padam',
-    deleteConfirm: 'Padam ini? Tindakan ini tidak boleh dibatalkan.',
-    like: 'Suka',
-    post: 'Siaran',
-  },
+  feed: feedMs,
   random: {
     title: 'Sembang rawak',
     intro:
@@ -301,6 +292,8 @@ export const ms: Dictionary = {
     lastUpdated: 'Kemas kini terakhir: {date}',
     contact: 'Ada soalan atau permintaan tentang data anda? E-mel kami di',
     consent: 'Saya berumur 18 tahun ke atas dan bersetuju dengan {terms} dan {privacy}',
+    consentRecording:
+      'Demi keselamatan semua, mesej, foto, mesej suara dan video serta panggilan dirakam dan disimpan sehingga 90 hari. Hanya moderator yang mengendalikan laporan boleh mengaksesnya.',
     consentTerms: 'Terma Penggunaan',
     consentPrivacy: 'Dasar Privasi',
     home: 'Kembali ke Vibely',
@@ -315,6 +308,11 @@ export const ms: Dictionary = {
     deleteConfirm: 'Padam selama-lamanya',
   },
   about: aboutMs,
+  settings: settingsMs,
+  likes: likesMs,
+  discover: discoverMs,
+  media: mediaMs,
+  calls: callsMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',
@@ -353,4 +351,5 @@ export const ms: Dictionary = {
   },
   tags: tagsMs,
   tagCategories: tagCategoriesMs,
+  avatar: avatarMs,
 }

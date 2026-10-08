@@ -1,6 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Enums } from '@/types/database.types'
+import { getCallsBetween, type ReportCall } from './call-recordings'
 
 type Target = {
   targetType: Enums<'report_target'>
@@ -11,7 +12,7 @@ type Person = { id: string; name: string }
 
 // What the moderator needs to judge a report, and whom a ban would hit (`offender`).
 export type ReportContext =
-  | { kind: 'user'; offender: Person; bio: string | null; banned: boolean }
+  | { kind: 'user'; offender: Person; bio: string | null; banned: boolean; calls: ReportCall[] }
   | { kind: 'post'; offender: Person; body: string; hidden: boolean }
   | { kind: 'comment'; offender: Person; body: string; postId: string; hidden: boolean }
   | {
@@ -47,12 +48,20 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       .in('id', ids(targets, 'random_session')),
   ])
 
-  users.data?.forEach((u) =>
+  // Calls between the reported user and the reporters (recordings: see call-recordings.ts).
+  const userCalls = await Promise.all(
+    (users.data ?? []).map((u) => {
+      const target = targets.find((t) => t.targetType === 'user' && t.targetId === u.id)
+      return getCallsBetween(u.id, target?.reasons.map((r) => r.reporterId) ?? [])
+    }),
+  )
+  users.data?.forEach((u, i) =>
     out.set(`user:${u.id}`, {
       kind: 'user',
       offender: person(u.id, u),
       bio: u.bio,
       banned: Boolean(u.banned_at),
+      calls: userCalls[i] ?? [],
     }),
   )
   posts.data?.forEach((p) =>

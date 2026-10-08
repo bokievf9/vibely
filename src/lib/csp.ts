@@ -16,9 +16,22 @@ const ANALYTICS_EXTRA_CONNECT: Record<string, string[]> = {
   'https://cloud.umami.is': ['https://api-gateway.umami.dev'],
 }
 
-type CspInput = { supabaseUrl: string; analyticsSrc?: string; isDev?: boolean }
+type CspInput = { supabaseUrl: string; analyticsSrc?: string; rtcUrl?: string; isDev?: boolean }
 
-export function buildCsp({ supabaseUrl, analyticsSrc, isDev = false }: CspInput): string {
+// LiveKit (calls): signalling WebSocket plus its HTTPS API on the same host, e.g.
+// wss://rtc.vibelydate.com → wss://rtc.vibelydate.com https://rtc.vibelydate.com.
+// Media itself (WebRTC/TURN) is not governed by CSP.
+function rtcOrigins(rtcUrl: string | undefined): string[] {
+  if (!rtcUrl) return []
+  try {
+    const host = new URL(rtcUrl).host
+    return [`wss://${host}`, `https://${host}`]
+  } catch {
+    return []
+  }
+}
+
+export function buildCsp({ supabaseUrl, analyticsSrc, rtcUrl, isDev = false }: CspInput): string {
   const supabase = new URL(supabaseUrl)
   const supabaseWs = `${supabase.protocol === 'https:' ? 'wss:' : 'ws:'}//${supabase.host}`
   const analytics = analyticsSrc ? [new URL(analyticsSrc).origin] : []
@@ -38,8 +51,16 @@ export function buildCsp({ supabaseUrl, analyticsSrc, isDev = false }: CspInput)
     // blob: = selfie preview, data: = image compression; Supabase = signed storage URLs.
     'img-src': ["'self'", 'blob:', 'data:', supabase.origin],
     'font-src': ["'self'"],
-    'connect-src': ["'self'", supabase.origin, supabaseWs, ...analyticsConnect],
-    'media-src': ["'self'", 'blob:'],
+    'connect-src': [
+      "'self'",
+      supabase.origin,
+      supabaseWs,
+      ...analyticsConnect,
+      ...rtcOrigins(rtcUrl),
+    ],
+    // blob: = camera/mic previews while recording; Supabase = signed voice/video message URLs.
+    // Call media streams are MediaStream objects (no URL).
+    'media-src': ["'self'", 'blob:', supabase.origin],
     'frame-src': [TURNSTILE],
     'worker-src': ["'self'", 'blob:'],
     'manifest-src': ["'self'"],

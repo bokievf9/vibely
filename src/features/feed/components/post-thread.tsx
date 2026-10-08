@@ -6,6 +6,7 @@ import { formatChatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { createComment, deleteComment } from '../actions'
 import type { FeedComment, FeedPost } from '../types'
+import { AuthorLine } from './author-line'
 import { Composer } from './composer'
 import { ContentMenu } from './content-menu'
 import { PostCard } from './post-card'
@@ -29,11 +30,20 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
               className={cn('rounded-2xl px-4 py-3', c.isOp ? 'bg-accent/10' : 'bg-surface')}
             >
               <div className="mb-1 flex items-center justify-between gap-2 text-xs">
-                <span className={cn('font-semibold', c.isOp ? 'text-accent' : 'text-foreground')}>
-                  {c.isOp ? dict.feed.author : fmt(dict.feed.anonymous, { n: c.aliasNo })}
-                  {c.isMine && <span className="text-muted font-normal"> · {dict.feed.you}</span>}
-                </span>
-                <span className="text-muted flex items-center gap-3">
+                <AuthorLine
+                  identity={c.identity}
+                  fallbackName={fmt(dict.feed.anonymous, { n: c.aliasNo ?? 0 })}
+                  size={24}
+                  nameClassName={c.isOp ? 'text-accent' : 'text-foreground'}
+                >
+                  {c.isOp && (
+                    <span className="bg-accent/20 text-accent shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                      {dict.feed.author}
+                    </span>
+                  )}
+                  {c.isMine && <span className="text-muted shrink-0"> · {dict.feed.you}</span>}
+                </AuthorLine>
+                <span className="text-muted flex shrink-0 items-center gap-3">
                   <time dateTime={c.createdAt}>{formatChatTime(c.createdAt, locale)}</time>
                   <ContentMenu
                     type="comment"
@@ -52,7 +62,8 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
           placeholder={dict.feed.commentPlaceholder}
           submitLabel={dict.common.send}
           maxLength={500}
-          onSubmit={(body) => createComment(post.id, body)}
+          hint={post.isMine ? dict.feed.opHint : undefined}
+          onSubmit={(body, asMe) => createComment(post.id, body, asMe)}
           onDone={router.refresh}
         />
       </section>

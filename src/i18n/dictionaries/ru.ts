@@ -1,6 +1,12 @@
+import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
+import { discoverRu } from './discover/ru'
+import { feedRu } from './feed/ru'
+import { callErrorsRu, callsRu } from './calls/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
+import { likesRu, settingsRu } from './settings/ru'
+import { mediaRu } from './media/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 
 export const ru: Dictionary = {
@@ -17,6 +23,7 @@ export const ru: Dictionary = {
     back: 'Назад',
   },
   errors: {
+    ...callErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -64,6 +71,9 @@ export const ru: Dictionary = {
     captchaFailed: 'Проверка безопасности не пройдена. Попробуйте ещё раз.',
     photoSendFailed: 'Не удалось отправить фото. Попробуйте ещё раз.',
     messageNotEditable: 'Это сообщение уже нельзя изменить',
+    mediaSendFailed: 'Не удалось отправить. Попробуйте ещё раз.',
+    micDenied: 'Нет доступа к микрофону. Разрешите его в настройках браузера.',
+    recordingUnsupported: 'Запись не поддерживается в этом браузере.',
   },
   gender: { male: 'Мужчина', female: 'Женщина', other: 'Другое' },
   auth: {
@@ -237,26 +247,7 @@ export const ru: Dictionary = {
     block: 'Заблокировать',
     blockConfirm: 'Заблокировать {name}? Вы больше не увидите друг друга, мэтч удалится.',
   },
-  feed: {
-    title: 'Лента',
-    anonymousNote: 'Посты анонимны. Никто не видит, кто их написал.',
-    placeholder: 'Поделитесь чем-нибудь анонимно…',
-    publish: 'Опубликовать',
-    newPosts: 'Новые посты',
-    empty: 'Пока нет постов',
-    emptyHint: 'Будьте первым.',
-    loadMore: 'Показать ещё',
-    comments: 'Комментарии',
-    noComments: 'Пока нет комментариев',
-    commentPlaceholder: 'Анонимный комментарий…',
-    author: 'Автор',
-    anonymous: 'Аноним #{n}',
-    you: 'вы',
-    delete: 'Удалить',
-    deleteConfirm: 'Удалить? Это нельзя отменить.',
-    like: 'Нравится',
-    post: 'Пост',
-  },
+  feed: feedRu,
   random: {
     title: 'Рандом-чат',
     intro:
@@ -298,6 +289,8 @@ export const ru: Dictionary = {
     lastUpdated: 'Обновлено: {date}',
     contact: 'Вопросы или запросы о ваших данных? Пишите на',
     consent: 'Мне есть 18 лет, и я принимаю {terms} и {privacy}',
+    consentRecording:
+      'Ради безопасности всех сообщения, фото, голосовые и видеосообщения и звонки записываются и хранятся до 90 дней. Доступ к ним есть только у модераторов при рассмотрении жалобы.',
     consentTerms: 'Условия использования',
     consentPrivacy: 'Политику конфиденциальности',
     home: 'Вернуться в Vibely',
@@ -312,6 +305,11 @@ export const ru: Dictionary = {
     deleteConfirm: 'Удалить навсегда',
   },
   about: aboutRu,
+  settings: settingsRu,
+  likes: likesRu,
+  discover: discoverRu,
+  media: mediaRu,
+  calls: callsRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',
@@ -351,4 +349,5 @@ export const ru: Dictionary = {
   },
   tags: tagsRu,
   tagCategories: tagCategoriesRu,
+  avatar: avatarRu,
 }

@@ -6,25 +6,28 @@ import { Textarea } from '@/components/ui/input'
 import { useErrorText } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import type { UserResult } from '@/i18n/errors'
+import { IdentityToggle } from './identity-toggle'
 
 type Props = {
   placeholder: string
   submitLabel: string
   maxLength: number
-  onSubmit: (body: string) => Promise<UserResult<string>>
+  hint?: string
+  onSubmit: (body: string, asMe: boolean) => Promise<UserResult<string>>
   onDone: () => void
 }
 
-// Text box shared by new posts and comments.
-export function Composer({ placeholder, submitLabel, maxLength, onSubmit, onDone }: Props) {
+// Text box shared by new posts and comments, with the "Anonymous / As me" choice.
+export function Composer({ placeholder, submitLabel, maxLength, hint, onSubmit, onDone }: Props) {
   const errorText = useErrorText()
   const [body, setBody] = useState('')
+  const [asMe, setAsMe] = useState(false)
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
 
   const submit = () =>
     startTransition(async () => {
-      const result = await onSubmit(body)
+      const result = await onSubmit(body, asMe)
       if (!result.ok) return setError(result.error)
       setError(undefined)
       setBody('')
@@ -39,6 +42,7 @@ export function Composer({ placeholder, submitLabel, maxLength, onSubmit, onDone
       }}
       className="flex flex-col gap-2"
     >
+      <IdentityToggle asMe={asMe} onChange={setAsMe} />
       <Textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -47,6 +51,7 @@ export function Composer({ placeholder, submitLabel, maxLength, onSubmit, onDone
         aria-label={placeholder}
         className="min-h-20"
       />
+      {hint && <p className="text-muted text-xs">{hint}</p>}
       <div className="flex items-center justify-between gap-3">
         <span className="text-muted text-xs tabular-nums">
           {body.length}/{maxLength}

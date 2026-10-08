@@ -6,11 +6,11 @@ const byTime = (a: ChatMessage, b: ChatMessage) => a.createdAt.localeCompare(b.c
 
 // A Realtime row has no signed URL or quoted-message preview: keep the ones already loaded.
 function combine(old: ChatMessage, next: ChatMessage): ChatMessage {
-  const image =
-    next.image && !next.image.url && old.image?.path === next.image.path
-      ? { ...next.image, url: old.image.url }
-      : next.image
-  return { ...next, image, reply: next.reply ?? (next.replyTo ? old.reply : null) }
+  const media =
+    next.media && !next.media.url && old.media?.path === next.media.path
+      ? { ...next.media, url: old.media.url }
+      : next.media
+  return { ...next, media, reply: next.reply ?? (next.replyTo ? old.reply : null) }
 }
 
 // Inserts new messages and updates known ones, oldest first.

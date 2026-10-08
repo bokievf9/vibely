@@ -51,7 +51,7 @@ export async function run(db) {
   const post = (await as(U[0], `select create_post('анонимный пост') id`)).rows[0].id
   ok('posts table closed', !!(await fails(() => as(U[1], `select * from posts`))))
   const fp = (await as(U[1], `select * from feed_posts`)).rows
-  ok('feed view hides author', fp.length === 1 && !('author_id' in fp[0]) && fp[0].is_mine === false)
+  ok('feed view hides author', fp.length === 1 && fp[0].author_id === null && fp[0].author_name === null && fp[0].is_mine === false)
   ok('author sees is_mine', (await as(U[0], `select is_mine from feed_posts`)).rows[0].is_mine === true)
   await as(U[1], `select create_comment($1,'c1')`, [post]); await as(U[2], `select create_comment($1,'c2')`, [post])
   await as(U[1], `select create_comment($1,'c3')`, [post]); await as(U[0], `select create_comment($1,'op')`, [post])
@@ -132,7 +132,8 @@ export async function run(db) {
   ok('banned user hidden', (await as(U[0], `select count(*)::int c from profiles where id=$1`, [U[1]])).rows[0].c === 0)
   ok('banned user loses access', (await as(U[1], `select is_verified() v`)).rows[0].v === false)
   ok('banned user removed from queue', (await su(`select count(*)::int c from random_chat_queue where user_id=$1`, [U[1]])).rows[0].c === 0)
-  await as(U[1], `update profiles set is_active = true where id=$1`, [U[1]])
+  // is_active is server-only since 20261008000085: the update is rejected outright.
+  await fails(() => as(U[1], `update profiles set is_active = true where id=$1`, [U[1]]))
   ok('banned user cannot reactivate', (await su(`select is_active from profiles where id=$1`, [U[1]])).rows[0].is_active === false)
   ok('owner sees own ban', (await as(U[1], `select ban_reason from profiles where id=$1`, [U[1]])).rows[0]?.ban_reason === 'спам')
   await svc(`select admin_set_ban($1,$2,false)`, [A, U[1]])
@@ -191,8 +192,9 @@ export async function run(db) {
   ok('deletion: audit log kept, admin nulled', (await su(`select admin_id from moderation_actions where action='test'`)).rows[0]?.admin_id === null)
   // random chat retention
   const sess = async (age) => (await su(`insert into random_chat_sessions (user_a, user_b, status, started_at, ended_at) values ($1,$2,'ended',now()-$3::interval,now()-$3::interval) returning id`, [U[0], U[2], age])).rows[0].id
-  const oldS = await sess('40 days'), reportedS = await sess('40 days'), newS = await sess('1 day')
-  for (const [s, age] of [[oldS, '40 days'], [reportedS, '40 days'], [newS, '1 day']])
+  // 90 days since 20261008000112 (a 40-day-old chat is now kept)
+  const oldS = await sess('100 days'), reportedS = await sess('100 days'), newS = await sess('40 days')
+  for (const [s, age] of [[oldS, '100 days'], [reportedS, '100 days'], [newS, '40 days']])
     await su(`insert into random_chat_messages (session_id, sender_id, body, created_at) values ($1,$2,'x',now()-$3::interval)`, [s, U[0], age])
   await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'random_session',$2,'оскорбления')`, [U[2], reportedS])
   ok('purge not callable by users', !!(await fails(() => as(U[0], `select purge_old_random_messages()`))))
@@ -450,7 +452,7 @@ export async function run(db) {
   ok('cannot delete partner message', !!(await fails(() => as(C[1], `select delete_message($1)`, [photo]))))
   await react(C[1], photo, '👍')
   const gone = (await as(C[0], `select delete_message($1) p`, [photo])).rows[0].p
-  ok('delete returns photo path', gone === img)
+  ok('delete keeps the photo for moderators (no path returned)', gone === null && (await su(`select media_path from message_deletions where media_path=$1`, [img])).rows.length === 1)
   const del = (await as(C[1], `select body, image_path, deleted_at is not null d from messages where id=$1`, [photo])).rows[0]
   ok('delete clears content', del.body === null && del.image_path === null && del.d === true, JSON.stringify(del))
   ok('delete clears reactions', (await su(`select count(*)::int c from message_reactions where message_id=$1 and emoji is not null`, [photo])).rows[0].c === 0)
@@ -473,6 +475,445 @@ export async function run(db) {
   ok('last_active_at: client cannot write it', !!(await fails(() => as(U[3], `update profiles set last_active_at = now() + interval '1 day' where id=$1`, [U[3]]))))
   ok('last_active_at: touch_last_active() works', !(await fails(() => as(U[3], `select touch_last_active()`))))
   ok("reaction: '' is accepted as remove", !(await fails(() => su(`select 1 where false`))) && (await su(`select pg_get_functiondef('public.set_message_reaction(uuid,text)'::regprocedure) d`)).rows[0].d.includes("nullif(p_emoji, '')"))
+  // photo order: main photo = position 0, atomic reorder, contiguous after delete
+  const avatar_add = async (u, name, pos) => (await su(`insert into profile_photos (profile_id, storage_path, width, height, position)
+    values ($1, $2, 600, 800, $3) returning id`, [u, `${u}/avatar_${name}.webp`, pos])).rows[0].id
+  const avatar_u2 = (await su(`select id from profiles where id <> $1 order by id limit 1`, [U[0]])).rows[0].id
+  await su(`delete from profile_photos where profile_id = any($1)`, [[U[0], avatar_u2]])
+  const [avatar_a, avatar_b, avatar_c] = [await avatar_add(U[0], 'a', 0), await avatar_add(U[0], 'b', 1), await avatar_add(U[0], 'c', 2)]
+  const avatar_other = await avatar_add(avatar_u2, 'x', 0)
+  const avatar_order = async (u) => (await su(`select id from profile_photos where profile_id=$1 order by position`, [u])).rows.map(r => r.id)
+  const avatar_reorder = (u, ids) => as(u, `select reorder_profile_photos($1::uuid[])`, [ids])
+  const avatar_err = await fails(() => avatar_reorder(U[0], [avatar_c, avatar_a, avatar_b]))
+  ok('photo order: reorder rotates positions atomically', !avatar_err && JSON.stringify(await avatar_order(U[0])) === JSON.stringify([avatar_c, avatar_a, avatar_b]), avatar_err)
+  ok('photo order: swap two photos', !(await fails(() => avatar_reorder(U[0], [avatar_a, avatar_c, avatar_b]))) && (await avatar_order(U[0]))[0] === avatar_a)
+  ok('photo order: incomplete list rejected', !!(await fails(() => avatar_reorder(U[0], [avatar_b, avatar_a]))))
+  ok('photo order: duplicates rejected', !!(await fails(() => avatar_reorder(U[0], [avatar_b, avatar_b, avatar_a]))))
+  ok('photo order: foreign photo rejected', !!(await fails(() => avatar_reorder(U[0], [avatar_a, avatar_b, avatar_other]))))
+  ok('photo order: cannot reorder someone else', !!(await fails(() => avatar_reorder(avatar_u2, [avatar_a, avatar_c, avatar_b]))))
+  ok('photo order: anon cannot call', (await su(`select has_function_privilege('anon', 'public.reorder_profile_photos(uuid[])', 'execute') v`)).rows[0].v === false)
+  ok('photo order: other user untouched', JSON.stringify(await avatar_order(avatar_u2)) === JSON.stringify([avatar_other]))
+  await as(U[0], `delete from profile_photos where id=$1`, [avatar_a])
+  const avatar_pos = (await su(`select id, position from profile_photos where profile_id=$1 order by position`, [U[0]])).rows
+  ok('photo order: contiguous after delete', JSON.stringify(avatar_pos) === JSON.stringify([{ id: avatar_c, position: 0 }, { id: avatar_b, position: 1 }]), JSON.stringify(avatar_pos))
+  ok('photo order: unique (profile, position) still enforced', !!(await fails(() => avatar_add(U[0], 'd', 1))))
+  // settings: pause profile, notification prefs, blocked users, "who liked you"
+  // Fresh users in Penang, far from everyone else: S0 (woman) and S1..S3 (men).
+  const S = ['5e000000-0000-4000-8000-000000000001', '5e000000-0000-4000-8000-000000000002',
+             '5e000000-0000-4000-8000-000000000003', '5e000000-0000-4000-8000-000000000004']
+  for (const [i, u] of S.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6017555000' + i])
+    await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, location)
+       values ($1,'1994-03-03',$2,$3,'SRID=4326;POINT(100.33 5.41)')`, ['Pg' + i, i === 0 ? 'female' : 'male', i === 0 ? '{male}' : '{female}'])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [S])
+  const settingsDeck = async (u) => (await as(u, `select id from get_swipe_candidates('{male}', 18, 99, 20)`)).rows.map((r) => r.id)
+  ok('settings: discoverable by default', (await settingsDeck(S[0])).includes(S[1]))
+  ok('settings: is_active not writable by users', !!(await fails(() => as(S[1], `update profiles set is_active=false where id=$1`, [S[1]]))))
+  await as(S[2], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('settings: cannot pause someone else', (await su(`select discoverable d from profiles where id=$1`, [S[1]])).rows[0].d === true)
+  await as(S[1], `select randomizer_join('{female}',18,99)`)
+  await as(S[1], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('settings: paused hidden from Discover', !(await settingsDeck(S[0])).includes(S[1]))
+  ok('settings: pausing leaves the random queue', (await su(`select count(*)::int c from random_chat_queue where user_id=$1`, [S[1]])).rows[0].c === 0)
+  const settingsMatch = (await su(`select ensure_match($1,$2,'swipe') id`, [S[0], S[3]])).rows[0].id
+  await as(S[3], `update profiles set discoverable=false where id=$1`, [S[3]])
+  ok('settings: paused profile still visible to its match', (await as(S[0], `select count(*)::int c from profiles where id=$1`, [S[3]])).rows[0].c === 1)
+  ok('settings: paused user can still chat', !(await fails(() => as(S[3], `insert into messages (match_id, body) values ($1,'still here')`, [settingsMatch]))))
+  await as(S[3], `update profiles set discoverable=true where id=$1`, [S[3]])
+  await su(`delete from matches where id=$1`, [settingsMatch])
+  // notification prefs
+  ok('prefs: owner creates row', !(await fails(() => as(S[0], `insert into notification_prefs (likes, messages) values (false, true)`))))
+  ok('prefs: cannot create for someone else', !!(await fails(() => as(S[1], `insert into notification_prefs (user_id, likes) values ($1, false)`, [S[0]]))))
+  await as(S[0], `update notification_prefs set feed_replies=false`)
+  const settingsPrefs = (await su(`select likes, messages, feed_replies, new_matches from notification_prefs where user_id=$1`, [S[0]])).rows[0]
+  ok('prefs: stored', JSON.stringify(settingsPrefs) === '{"likes":false,"messages":true,"feed_replies":false,"new_matches":true}', JSON.stringify(settingsPrefs))
+  ok('prefs: owner-only read', (await as(S[1], `select count(*)::int c from notification_prefs`)).rows[0].c === 0 &&
+     (await as(S[0], `select count(*)::int c from notification_prefs`)).rows[0].c === 1)
+  await as(S[1], `update notification_prefs set likes=true`)
+  ok('prefs: others cannot update', (await su(`select likes from notification_prefs where user_id=$1`, [S[0]])).rows[0].likes === false)
+  ok('prefs: no anon access', !!(await fails(async () => { await db.exec('reset role; set role anon;'); try { await db.query(`select * from notification_prefs`) } finally { await db.exec('reset role') } })))
+  // blocked users list + unblock
+  await as(S[0], `insert into blocks (blocked_id) values ($1)`, [S[2]])
+  await as(S[2], `insert into blocks (blocked_id) values ($1)`, [S[3]])
+  await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 600, 800, 0)`, [S[2], `${S[2]}/a.webp`])
+  const settingsBlocked = (await as(S[0], `select * from get_blocked_users()`)).rows
+  ok('blocked: lists own blocks with name and photo', settingsBlocked.length === 1 && settingsBlocked[0].display_name === 'Pg2' &&
+     settingsBlocked[0].photo?.path === `${S[2]}/a.webp` && !('location' in settingsBlocked[0]), JSON.stringify(settingsBlocked))
+  ok('blocked: never reveals who blocked you', (await as(S[3], `select count(*)::int c from get_blocked_users()`)).rows[0].c === 0)
+  ok('blocked: no anon access', (await su(`select has_function_privilege('anon', 'public.get_blocked_users()', 'execute') v`)).rows[0].v === false)
+  await as(S[3], `delete from blocks where blocked_id=$1`, [S[3]])
+  ok('blocked: cannot remove someone else\'s block', (await su(`select count(*)::int c from blocks where blocker_id=$1`, [S[2]])).rows[0].c === 1)
+  await as(S[0], `delete from blocks where blocked_id=$1`, [S[2]])
+  ok('blocked: unblock restores visibility', (await as(S[0], `select count(*)::int c from profiles where id=$1`, [S[2]])).rows[0].c === 1)
+  await su(`delete from blocks where blocker_id=$1`, [S[2]])
+  // who liked you
+  const likesOf = async (u) => (await as(u, `select * from get_incoming_likes()`)).rows
+  const likeCount = async (u) => (await as(u, `select count_incoming_likes() n`)).rows[0].n
+  await as(S[1], `update profiles set discoverable=true where id=$1`, [S[1]])
+  await as(S[1], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[0]])
+  await as(S[2], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[0]])
+  await as(S[3], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [S[0]])
+  const settingsIn = await likesOf(S[0])
+  ok('likes: shows people who liked you (not passes)', settingsIn.length === 2 && settingsIn.every((r) => [S[1], S[2]].includes(r.id)) && (await likeCount(S[0])) === 2, JSON.stringify(settingsIn.map((r) => r.id)))
+  ok('likes: card data without location', settingsIn.every((r) => !('location' in r) && r.distance_km !== null && Array.isArray(r.photos)) &&
+     !(await su(`select pg_get_function_result('public.get_incoming_likes(int)'::regprocedure) r`)).rows[0].r.includes('location'))
+  ok('likes: swipes table stays closed', (await as(S[0], `select count(*)::int c from swipes where swiped_id=$1`, [S[0]])).rows[0].c === 0)
+  ok('likes: likers see nothing about it', (await likesOf(S[1])).length === 0)
+  ok('likes: internal helper not callable', !!(await fails(() => as(S[0], `select * from incoming_like_ids()`))))
+  ok('likes: no anon access', (await su(`select has_function_privilege('anon', 'public.get_incoming_likes(int)', 'execute') v`)).rows[0].v === false)
+  await as(S[1], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('likes: paused liker hidden', (await likesOf(S[0])).map((r) => r.id).join() === S[2])
+  await as(S[1], `update profiles set discoverable=true where id=$1`, [S[1]])
+  await as(S[0], `insert into blocks (blocked_id) values ($1)`, [S[1]])
+  ok('likes: blocked liker hidden', (await likeCount(S[0])) === 1)
+  await as(S[0], `delete from blocks where blocked_id=$1`, [S[1]])
+  await su(`update profiles set banned_at=now(), ban_reason='spam' where id=$1`, [S[1]])
+  ok('likes: banned liker hidden', (await likeCount(S[0])) === 1)
+  await su(`update profiles set banned_at=null, ban_reason=null, is_active=true where id=$1`, [S[1]])
+  await as(S[0], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[1]])
+  ok('likes: like back = instant match', (await su(`select count(*)::int c from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [S[0], S[1]])).rows[0].c === 1)
+  await as(S[0], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [S[2]])
+  ok('likes: swiped likers leave the list', (await likeCount(S[0])) === 0)
+  await su(`update profiles set verification_status='pending' where id=$1`, [S[3]])
+  ok('likes: unverified caller rejected', !!(await fails(() => likesOf(S[3]))))
+  await su(`delete from auth.users where id=$1`, [S[0]])
+  ok('prefs: removed with the account', (await su(`select count(*)::int c from notification_prefs`)).rows[0].c === 0)
+  // discover: widening counts, second chance, new-people alerts, referrals (gender 'other' keeps them apart)
+  const DS = [1, 2, 3, 4, 5].map((i) => `d15c0000-0000-0000-0000-00000000000${i}`)
+  const discLon = [101.7, 101.71, 101.72, 103.0, 101.705]
+  const discBirth = ['1995-01-01', '1996-01-01', '1985-01-01', '1998-01-01', '1997-01-01']
+  for (const [i, u] of DS.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, location)
+      values ($1, $2, 'other', '{other}', 'SRID=4326;POINT(${discLon[i]} 3.14)')`, ['Disc' + i, discBirth[i]])
+  }
+  await su(`update profiles set verification_status = 'approved' where id = any($1)`, [DS.slice(0, 4)])
+  const discCount = async (u, minA, maxA, km) => (await as(u, `select count_swipe_candidates('{other}', $1, $2, $3) n`, [minA, maxA, km])).rows[0].n
+  ok('disc: count matches deck filters', (await discCount(DS[0], 18, 35, 50)) === 1)
+  ok('disc: wider age counts more', (await discCount(DS[0], 18, 45, 50)) === 2)
+  ok('disc: wider distance counts more', (await discCount(DS[0], 18, 35, 200)) === 2)
+  ok('disc: count requires verification', !!(await fails(() => discCount(DS[4], 18, 99, 50))))
+  ok('disc: pool not callable by clients', !!(await fails(() => as(DS[0], `select * from swipe_candidate_pool($1, '{other}', 18, 99, 50)`, [DS[0]]))))
+  await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'pass')`, [DS[1]])
+  await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[2]])
+  ok('disc: fresh pass hidden', (await discCount(DS[0], 18, 99, 500)) === 1)
+  await su(`update swipes set created_at = now() - interval '15 days' where swiper_id = $1`, [DS[0]])
+  const discDeck = (await as(DS[0], `select id, second_chance from get_swipe_candidates('{other}', 18, 99, 500)`)).rows
+  ok('disc: old pass comes back as second chance, new people first',
+    JSON.stringify(discDeck) === JSON.stringify([{ id: DS[3], second_chance: false }, { id: DS[1], second_chance: true }]), JSON.stringify(discDeck))
+  ok('disc: likes never come back', !discDeck.some((c) => c.id === DS[2]))
+  ok('disc: candidates never return location', !('location' in ((await as(DS[0], `select * from get_swipe_candidates('{other}', 18, 99, 500)`)).rows[0] ?? {})))
+  const reSwipe = await fails(() => as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[1]]))
+  ok('disc: second-chance card can be swiped again', !reSwipe && (await su(`select direction from swipes where swiper_id = $1 and swiped_id = $2`, [DS[0], DS[1]])).rows[0].direction === 'like', reSwipe)
+  ok('disc: fresh pass cannot be replaced', !!(await fails(async () => {
+    await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'pass')`, [DS[3]])
+    await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[3]])
+  })))
+  // new-people alerts
+  const discSvc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+  ok('disc: alert requires verification', !!(await fails(() => as(DS[4], `select set_new_people_alert(true, '{other}', 18, 99, 50)`))))
+  await as(DS[1], `select set_new_people_alert(true, '{other}', 18, 40, 50)`)
+  await as(DS[2], `select set_new_people_alert(true, '{other}', 18, 99, 50)`)
+  await as(DS[3], `select set_new_people_alert(true, '{other}', 18, 99, 10)`)
+  for (const u of [DS[1], DS[3]]) await su(`insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [u, `https://push.example/${u}`])
+  ok('disc: alert is owner-only', (await as(DS[0], `select count(*)::int c from new_people_alerts`)).rows[0].c === 0 &&
+    (await as(DS[1], `select count(*)::int c from new_people_alerts`)).rows[0].c === 1)
+  ok('disc: alert not writable directly', !!(await fails(() => as(DS[1], `update new_people_alerts set max_km = 500`))))
+  const discRecipients = async (p) => (await discSvc(`select coalesce(array_agg(r), '{}') r from new_people_alert_recipients($1) r`, [p])).rows[0].r
+  ok('disc: recipients not callable by clients', !!(await fails(() => as(DS[0], `select new_people_alert_recipients($1)`, [DS[4]]))))
+  ok('disc: unapproved profile notifies nobody', (await discRecipients(DS[4])).length === 0)
+  await su(`update profiles set verification_status = 'approved' where id = $1`, [DS[4]])
+  const discR = await discRecipients(DS[4])
+  ok('disc: only opted-in, in range, subscribed users', JSON.stringify(discR) === JSON.stringify([DS[1]]), JSON.stringify(discR))
+  ok('disc: at most one alert per 12 hours', (await discRecipients(DS[4])).length === 0)
+  await as(DS[1], `select set_new_people_alert(false)`)
+  ok('disc: alert can be turned off', (await su(`select count(*)::int c from new_people_alerts where user_id = $1`, [DS[1]])).rows[0].c === 0)
+  // referrals
+  const discRef = (await as(DS[0], `select * from get_my_referral()`)).rows[0]
+  ok('disc: referral code created', /^[a-z0-9]{8}$/.test(discRef.code) && discRef.invited === 0, JSON.stringify(discRef))
+  ok('disc: referral code is stable', (await as(DS[0], `select code from get_my_referral()`)).rows[0].code === discRef.code)
+  ok('disc: referral codes owner-only', (await as(DS[1], `select count(*)::int c from referral_codes`)).rows[0].c === 0)
+  ok('disc: own code not claimable', (await as(DS[0], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  ok('disc: new user claims code', (await as(DS[4], `select claim_referral($1) v`, [discRef.code.toUpperCase()])).rows[0].v === true)
+  ok('disc: claim only once', (await as(DS[4], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  await su(`update profiles set created_at = now() - interval '2 days' where id = $1`, [DS[3]])
+  ok('disc: old profile cannot claim', (await as(DS[3], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  ok('disc: invited count', (await as(DS[0], `select invited from get_my_referral()`)).rows[0].invited === 1)
+  ok('disc: referred_by not readable', !!(await fails(() => as(DS[4], `select referred_by from profiles where id = $1`, [DS[4]]))))
+  ok('disc: referred_by not writable', !!(await fails(() => as(DS[4], `update profiles set referred_by = null where id = $1`, [DS[4]]))))
+  // batch-3 integration: paused (discoverable=false) profiles stay out of the Discover pool and counts
+  const integ_viewer = '11111111-1111-1111-1111-111111111111'
+  await su(`update profiles set verification_status='approved', is_active=true, banned_at=null where id=$1`, [integ_viewer])
+  const integ_before = (await as(integ_viewer, `select count_swipe_candidates('{female,male,other}', 18, 99, 300) n`)).rows[0].n
+  const integ_target = (await as(integ_viewer, `select id from get_swipe_candidates('{female,male,other}', 18, 99, 300, 50) limit 1`)).rows[0]?.id
+  ok('integ: viewer has at least one candidate', !!integ_target)
+  await su(`update profiles set discoverable=false where id=$1`, [integ_target])
+  const integ_after = (await as(integ_viewer, `select count_swipe_candidates('{female,male,other}', 18, 99, 300) n`)).rows[0].n
+  const integ_ids = (await as(integ_viewer, `select id from get_swipe_candidates('{female,male,other}', 18, 99, 300, 50)`)).rows.map(r => r.id)
+  ok('integ: paused profile left the deck', !integ_ids.includes(integ_target))
+  ok('integ: paused profile left the count', integ_after === integ_before - 1, `${integ_before} -> ${integ_after}`)
+  await su(`update profiles set discoverable=true where id=$1`, [integ_target])
+  ok('integ: new_people pref column exists', (await su(`select count(*)::int c from information_schema.columns where table_name='notification_prefs' and column_name='new_people'`)).rows[0].c === 1)
+  // feed identity (B + A): named/anonymous posts & comments, pseudonyms, city tab, push throttle, retention
+  const FB = ['fb000000-0000-4000-8000-000000000001', 'fb000000-0000-4000-8000-000000000002',
+              'fb000000-0000-4000-8000-000000000003', 'fb000000-0000-4000-8000-000000000004']
+  const fbCity = ['Kuala Lumpur', ' kuala lumpur ', 'Penang', null]
+  for (const [i, u] of FB.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6012888000' + i])
+    await as(u, `insert into profiles (display_name,birth_date,gender,interested_in,city) values ($1,'1995-01-01','female','{male}',$2)`, ['FeedB' + i, fbCity[i]])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [FB])
+  await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 600, 800, 0)`, [FB[0], `${FB[0]}/feedb.jpg`])
+  const fbPost = async (u, body, named) => (await as(u, `select create_post($1, $2) id`, [body, named])).rows[0].id
+  const fbAnon = await fbPost(FB[0], 'feedb anon', false)
+  const fbNamed = await fbPost(FB[0], 'feedb named', true)
+  const fbLegacy = (await as(FB[3], `select create_post('feedb legacy') id`)).rows[0].id
+  ok('feedb: one-arg create_post still anonymous', (await su(`select is_named from posts where id=$1`, [fbLegacy])).rows[0].is_named === false)
+  const fpRow = async (u, id) => (await as(u, `select * from feed_posts where id=$1`, [id])).rows[0]
+  const a1 = await fpRow(FB[1], fbAnon)
+  ok('feedb: anonymous post exposes no identity', a1.is_named === false && a1.author_id === null && a1.author_name === null &&
+     a1.author_age === null && a1.author_photo_path === null && a1.author_verified === null && Number.isInteger(a1.anon_adj), JSON.stringify(a1))
+  const n1 = await fpRow(FB[1], fbNamed)
+  ok('feedb: named post shows author', n1.is_named === true && n1.author_id === FB[0] && n1.author_name === 'FeedB0' &&
+     n1.author_age >= 30 && n1.author_verified === true && n1.author_photo_path === `${FB[0]}/feedb.jpg` && n1.anon_adj === null, JSON.stringify(n1))
+  ok('feedb: views have no city column', (await su(`select count(*)::int c from information_schema.columns where table_name in ('feed_posts','post_comments') and column_name like '%city' and column_name <> 'same_city'`)).rows[0].c === 0)
+  ok('feedb: same_city for viewer in same city', a1.same_city === true && (await fpRow(FB[2], fbAnon)).same_city === false && (await fpRow(FB[3], fbAnon)).same_city === false)
+  ok('feedb: engagement column', a1.engagement === 0)
+  // banned / blocked authors lose their identity
+  await su(`update profiles set banned_at = now(), ban_reason = 'feedb' where id=$1`, [FB[0]])
+  const nb = await fpRow(FB[1], fbNamed)
+  ok('feedb: banned author shown anonymously', nb.is_named === false && nb.author_id === null && nb.author_name === null && Number.isInteger(nb.anon_adj), JSON.stringify(nb))
+  await su(`update profiles set banned_at = null, ban_reason = null, is_active = true where id=$1`, [FB[0]])
+  await as(FB[2], `insert into blocks (blocked_id) values ($1)`, [FB[0]])
+  ok('feedb: blocked author shown anonymously', (await fpRow(FB[2], fbNamed)).author_id === null && (await fpRow(FB[1], fbNamed)).author_id === FB[0])
+  await as(FB[2], `delete from blocks where blocked_id=$1`, [FB[0]])
+  // comments: pseudonyms
+  const fbComment = (u, post, body, named = false) => as(u, `select create_comment($1,$2,$3)`, [post, body, named])
+  await fbComment(FB[1], fbAnon, 'x1'); await fbComment(FB[2], fbAnon, 'x2'); await fbComment(FB[1], fbAnon, 'x3')
+  await fbComment(FB[0], fbAnon, 'op'); await fbComment(FB[1], fbAnon, 'x4 named', true)
+  const tcRows = (await as(FB[3], `select * from post_comments where post_id=$1`, [fbAnon])).rows
+  const tc = ['x1', 'x2', 'x3', 'op', 'x4 named'].map((b) => tcRows.find((r) => r.body === b))
+  const pn = (r) => `${r.anon_adj}/${r.anon_noun}/${r.anon_color}`
+  ok('feedb: pseudonym stable within a post', pn(tc[0]) === pn(tc[2]) && pn(tc[0]) !== pn(tc[1]), JSON.stringify(tc.map(pn)))
+  ok('feedb: OP comment uses the post pseudonym', tc[3].is_op === true && pn(tc[3]) === pn(a1))
+  ok('feedb: anonymous comments expose no author', tc.slice(0, 4).every((c) => c.author_id === null && c.author_name === null && c.is_named === false))
+  ok('feedb: named comment shows author, hides alias', tc[4].is_named === true && tc[4].author_id === FB[1] && tc[4].author_name === 'FeedB1' &&
+     tc[4].alias_no === null && tc[4].anon_adj === null && tc[4].is_op === false, JSON.stringify(tc[4]))
+  const others = []
+  for (let i = 0; i < 3; i++) {
+    const p = await fbPost(FB[3], 'feedb other ' + i, false)
+    await fbComment(FB[1], p, 'y')
+    others.push(pn((await as(FB[2], `select * from post_comments where post_id=$1`, [p])).rows[0]))
+  }
+  ok('feedb: pseudonym differs across posts', new Set([pn(tc[0]), ...others]).size > 1, JSON.stringify(others))
+  await fbComment(FB[0], fbNamed, 'op anon on named')
+  await fbComment(FB[0], fbNamed, 'op named on named', true)
+  const ncRows = (await as(FB[1], `select * from post_comments where post_id=$1`, [fbNamed])).rows
+  const nc = ['op anon on named', 'op named on named'].map((b) => ncRows.find((r) => r.body === b))
+  ok('feedb: OP marker on named post', nc[0].is_op === true && nc[1].is_op === true && nc[1].author_id === FB[0])
+  ok('feedb: no raw author on anonymous rows', (await as(FB[1], `select count(*)::int c from post_comments where author_id is not null and not is_named`)).rows[0].c === 0 &&
+     (await as(FB[1], `select count(*)::int c from feed_posts where author_id is not null and not is_named`)).rows[0].c === 0)
+  // push throttle
+  const cid = async (post, body) => (await su(`select id from comments where post_id=$1 and body=$2`, [post, body])).rows[0].id
+  ok('feedb: claim_comment_push not for users', !!(await fails(() => as(FB[1], `select claim_comment_push($1)`, [FB[0]]))))
+  const claim = async (id) => (await su(`select claim_comment_push($1) a`, [id])).rows[0].a
+  ok('feedb: first reply notifies the author', (await claim(await cid(fbAnon, 'x1'))) === FB[0])
+  ok('feedb: at most one push per 10 minutes', (await claim(await cid(fbAnon, 'x2'))) === null)
+  ok('feedb: own comment never notifies', (await claim(await cid(fbNamed, 'op anon on named'))) === null)
+  await su(`update posts set last_comment_push_at = now() - interval '11 minutes' where id=$1`, [fbAnon])
+  ok('feedb: notifies again after 10 minutes', (await claim(await cid(fbAnon, 'x3'))) === FB[0])
+  // retention: 90 days, unless under an open report
+  const fbOld = (await su(`insert into posts (author_id, body, created_at) values ($1,'feedb old', now() - interval '91 days') returning id`, [FB[3]])).rows[0].id
+  const fbKept = (await su(`insert into posts (author_id, body, created_at) values ($1,'feedb old reported', now() - interval '91 days') returning id`, [FB[3]])).rows[0].id
+  const fbOldC = (await su(`insert into comments (post_id, author_id, alias_no, body, created_at) values ($1,$2,1,'feedb old c', now() - interval '91 days') returning id`, [fbAnon, FB[1]])).rows[0].id
+  await as(FB[1], `insert into reports (target_type, target_id, reason) values ('post', $1, 'feedb reason')`, [fbKept])
+  ok('feedb: purge not for users', !!(await fails(() => as(FB[1], `select purge_old_feed_content()`))))
+  ok('feedb: purge deletes old content', (await su(`select purge_old_feed_content() n`)).rows[0].n === 2)
+  ok('feedb: old post and comment gone, reported and recent kept',
+     (await su(`select count(*)::int c from posts where id=$1`, [fbOld])).rows[0].c === 0 &&
+     (await su(`select count(*)::int c from comments where id=$1`, [fbOldC])).rows[0].c === 0 &&
+     (await su(`select count(*)::int c from posts where id = any($1)`, [[fbKept, fbAnon, fbNamed]])).rows[0].c === 3)
+  // chat media: voice messages, video circles, legacy image_path, 90-day retention
+  const media_uuid = (n) => `e${n}000000-0000-4000-8000-00000000000${n}`
+  const media_obj = (n, ext) => `${cm}/${media_uuid(n)}.${ext}`
+  const media_send = async (u, f) => (await as(u, `insert into messages (match_id, body, media_kind, media_path, media_mime, media_duration_ms, waveform, image_width, image_height)
+    values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`, [cm, f.body ?? null, f.kind, f.path, f.mime, f.ms ?? null, f.wave ?? null, f.w ?? null, f.h ?? null])).rows[0].id
+  await upload(C[0], media_obj(7, 'webp'))
+  await send(C[0], cm, null, { path: media_obj(7, 'webp'), w: 300, h: 400 })
+  const legacy = (await su(`select media_kind, media_path, media_mime from messages where image_path=$1`, [media_obj(7, 'webp')])).rows[0]
+  ok('media: legacy image_path insert mapped to media_*', legacy?.media_kind === 'image' && legacy?.media_mime === 'image/webp' && !!legacy?.media_path, JSON.stringify(legacy))
+  const media_bucket = (await su(`select file_size_limit l, allowed_mime_types t from storage.buckets where id='chat-media'`)).rows[0]
+  ok('media: bucket 15 MB, audio/video types', Number(media_bucket.l) === 15728640 && ['image/webp', 'audio/webm', 'audio/mp4', 'video/webm', 'video/mp4'].every((t) => media_bucket.t.includes(t)))
+  ok('media: .mp3 upload rejected', !!(await fails(() => upload(C[0], media_obj(1, 'mp3')))))
+  for (const [n, ext] of [[1, 'webm'], [2, 'm4a'], [3, 'mp4'], [4, 'webm'], [5, 'webm']]) await upload(C[0], media_obj(n, ext))
+  const voice = { kind: 'voice', path: media_obj(1, 'webm'), mime: 'audio/webm', ms: 5200, wave: '{0,10,55,100,40}' }
+  ok('media: voice wrong extension for mime rejected', !!(await fails(() => media_send(C[0], { ...voice, mime: 'audio/mp4' }))))
+  ok('media: voice over 120 s rejected', !!(await fails(() => media_send(C[0], { ...voice, ms: 130000 }))))
+  ok('media: voice without duration rejected', !!(await fails(() => media_send(C[0], { ...voice, ms: null }))))
+  ok('media: waveform peaks 0..100', !!(await fails(() => media_send(C[0], { ...voice, wave: '{0,101}' }))))
+  ok('media: not-uploaded file rejected', !!(await fails(() => media_send(C[0], { ...voice, path: media_obj(6, 'webm') }))))
+  const vErr = await fails(() => media_send(C[0], voice))
+  ok('media: voice message accepted', !vErr, vErr)
+  const media_voice = (await su(`select id, image_path, waveform from messages where media_path=$1`, [voice.path])).rows[0]
+  ok('media: voice keeps image_path null and the waveform', media_voice?.image_path === null && media_voice?.waveform?.length === 5)
+  ok('media: one message per file', !!(await fails(() => media_send(C[1], voice))))
+  ok('media: iOS m4a voice accepted', !(await fails(() => media_send(C[1], { ...voice, path: media_obj(2, 'm4a'), mime: 'audio/mp4', wave: null }))))
+  const video = { kind: 'video', path: media_obj(3, 'mp4'), mime: 'video/mp4', ms: 12000 }
+  ok('media: video over 60 s rejected', !!(await fails(() => media_send(C[0], { ...video, ms: 70000 }))))
+  ok('media: waveform only for voice', !!(await fails(() => media_send(C[0], { ...video, wave: '{1,2}' }))))
+  ok('media: image kind needs size', !!(await fails(() => media_send(C[0], { kind: 'image', path: media_obj(4, 'webm'), mime: 'image/webp' }))))
+  const vdErr = await fails(() => media_send(C[0], video))
+  ok('media: video circle accepted', !vdErr, vdErr)
+  ok('media: client cannot set media_expired_at', !!(await fails(() => as(C[0], `insert into messages (match_id, body, media_expired_at) values ($1,'x',now())`, [cm]))))
+  const media_del = await media_send(C[0], { kind: 'video', path: media_obj(4, 'webm'), mime: 'video/webm', ms: 3000 })
+  ok('media: delete archives the media path', (await as(C[0], `select delete_message($1) p`, [media_del])).rows[0].p === null && (await su(`select count(*)::int c from message_deletions where media_path=$1`, [media_obj(4, 'webm')])).rows[0].c === 1)
+  ok('media: delete clears media fields', (await su(`select media_kind is null and media_path is null and media_mime is null v from messages where id=$1`, [media_del])).rows[0].v === true)
+  // retention: chat media
+  const fn = (f) => su(`select has_function_privilege('authenticated', $1, 'execute') a, has_function_privilege('service_role', $1, 'execute') s`, [f])
+  for (const f of ['public.retention_chat_media(int)', 'public.retention_mark_chat_media_expired(uuid[])', 'public.retention_orphan_chat_media(int)', 'public.retention_selfies(int)']) {
+    const r = (await fn(f)).rows[0]
+    ok(`retention: ${f} service-role only`, r.a === false && r.s === true)
+  }
+  await su(`update messages set created_at = now() - interval '100 days' where id=$1`, [media_voice.id])
+  const due = async () => (await su(`select message_id from retention_chat_media(100)`)).rows.map((r) => r.message_id)
+  ok('retention: old voice is due, recent media not', JSON.stringify(await due()) === JSON.stringify([media_voice.id]))
+  const media_rep = (await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'user',$2,'abuse') returning id`, [C[0], C[1]])).rows[0].id
+  ok('retention: open report keeps the match media', (await due()).length === 0)
+  await su(`update reports set resolved_at = now() where id=$1`, [media_rep])
+  ok('retention: resolved report releases it', (await due()).length === 1)
+  const mark = async () => (await su(`select retention_mark_chat_media_expired($1) n`, [[media_voice.id]])).rows[0].n
+  ok('retention: not marked while the file exists', (await mark()) === 0)
+  await su(`delete from storage.objects where bucket_id='chat-media' and name=$1`, [voice.path])
+  ok('retention: marked once the file is gone', (await mark()) === 1)
+  const media_exp = (await as(C[1], `select media_kind, media_path, media_duration_ms, waveform, media_expired_at is not null e from messages where id=$1`, [media_voice.id])).rows[0]
+  ok('retention: expired placeholder keeps metadata', media_exp.media_kind === 'voice' && media_exp.media_path === null && media_exp.media_duration_ms === 5200 && media_exp.waveform === null && media_exp.e === true, JSON.stringify(media_exp))
+  ok('retention: expired media no longer due', (await due()).length === 0)
+  // retention: orphan uploads and selfies
+  await su(`update storage.objects set created_at = now() - interval '2 days' where bucket_id='chat-media' and name = any($1)`, [[media_obj(5, 'webm'), media_obj(3, 'mp4')]])
+  const orphans = (await su(`select retention_orphan_chat_media(100) n`)).rows.map((r) => r.n)
+  ok('retention: unreferenced upload is an orphan, sent one is not', orphans.includes(media_obj(5, 'webm')) && !orphans.includes(media_obj(3, 'mp4')), JSON.stringify(orphans))
+  await su(`update storage.objects set created_at = now() - interval '100 days' where bucket_id='selfies'`)
+  const selfies = async () => (await su(`select retention_selfies(100) n`)).rows.map((r) => r.n)
+  ok('retention: reviewed selfie older than 90 days is due', (await selfies()).includes(`${U[0]}/s.jpg`))
+  await su(`insert into storage.objects (bucket_id, name, created_at) values ('selfies', $1, now() - interval '100 days')`, [`${C[2]}/p.jpg`])
+  await su(`insert into verification_requests (user_id, selfie_path, challenge, status) values ($1,$2,'peace','pending')`, [C[2], `${C[2]}/p.jpg`])
+  ok('retention: pending selfie kept', !(await selfies()).includes(`${C[2]}/p.jpg`))
+  await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'user',$2,'fake')`, [C[1], U[0]])
+  ok('retention: selfie of a reported user kept', !(await selfies()).includes(`${U[0]}/s.jpg`))
+  // safety protocol: "delete for everyone" archives the content for moderators (90 days)
+  const arch_m = (await su(`select id, user_a, user_b from matches limit 1`)).rows[0]
+  if (arch_m) {
+    await su(`update profiles set verification_status='approved', is_active=true, banned_at=null where id in ($1,$2)`, [arch_m.user_a, arch_m.user_b])
+    const arch_msg = (await as(arch_m.user_a, `insert into messages (match_id, body) values ($1,'regret this') returning id`, [arch_m.id])).rows[0].id
+    const arch_ret = (await as(arch_m.user_a, `select delete_message($1) p`, [arch_msg])).rows[0].p
+    ok('archive: delete_message returns no file to remove', arch_ret === null)
+    ok('archive: participants no longer see the text', (await as(arch_m.user_b, `select body from messages where id=$1`, [arch_msg])).rows[0].body === null)
+    ok('archive: moderators keep the content', (await su(`select body from message_deletions where message_id=$1`, [arch_msg])).rows[0]?.body === 'regret this')
+    ok('archive: clients cannot read the archive', !!(await fails(() => as(arch_m.user_b, `select body from message_deletions`))))
+    ok('archive: not due before 90 days', (await su(`select count(*)::int c from retention_message_deletions(100) where message_id=$1`, [arch_msg])).rows[0].c === 0)
+    await su(`update message_deletions set deleted_at = now() - interval '91 days' where message_id=$1`, [arch_msg])
+    await su(`update reports set resolved_at = now() where resolved_at is null`)
+    ok('archive: due after 90 days', (await su(`select count(*)::int c from retention_message_deletions(100) where message_id=$1`, [arch_msg])).rows[0].c === 1)
+    ok('archive: drop removes the row', (await su(`select retention_drop_message_deletions($1) n`, [[arch_msg]])).rows[0].n === 1)
+  } else ok('archive: a match exists for the test', false)
+  // calls: consent, mutual permission, signalling, realtime topic, moderation access, retention
+  const K = ['ca000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000002',
+             'ca000000-0000-0000-0000-000000000003', 'ca000000-0000-0000-0000-000000000004']
+  for (const [i, u] of K.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    await as(u, `insert into profiles (display_name,birth_date,gender,interested_in) values ($1,'1995-01-01','male','{female}')`, ['Call' + i])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [K.slice(0, 3)])
+  const km = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[1]])).rows[0].id
+  const ko = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[2]])).rows[0].id
+  const kv = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[3]])).rows[0].id
+  const startCall = (u, match, kind = 'audio') => as(u, `select start_call($1,$2) id`, [match, kind]).then((r) => r.rows[0].id)
+  const allow = (u, match, v = true) => as(u, `select set_call_permission($1,$2)`, [match, v])
+  ok('call_no_consent: start needs both permissions', (await fails(() => startCall(K[0], km)))?.includes('both participants'))
+  ok('call_no_consent: allowing needs the recording notice', (await fails(() => allow(K[0], km)))?.includes('recording notice'))
+  ok('call_consent: column not readable by clients', !!(await fails(() => as(K[0], `select calls_consent_at from profiles where id=$1`, [K[0]]))))
+  ok('call_consent: no direct write', !!(await fails(() => as(K[0], `update profiles set calls_consent_at=now() where id=$1`, [K[0]]))))
+  for (const u of K) await as(u, `select accept_calls_notice()`)
+  await allow(K[0], km)
+  const ks = (await as(K[0], `select * from call_settings($1)`, [km])).rows[0]
+  ok('call_settings: own view', ks?.consented === true && ks.me_allowed === true && ks.partner_allowed === false, JSON.stringify(ks))
+  ok('call_settings: outsider gets nothing', (await as(K[2], `select * from call_settings($1)`, [km])).rows.length === 0)
+  ok('call_permission: partner notified', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='permission'`, ['call:' + K[1]])).rows[0].c === 1)
+  ok('call_one_sided: still refused', (await fails(() => startCall(K[0], km)))?.includes('both participants'))
+  ok('call_permission: outsider cannot allow', !!(await fails(() => allow(K[2], km))))
+  ok('call_permission: unverified cannot allow', !!(await fails(() => allow(K[3], kv))))
+  ok('call_permission: no direct insert', !!(await fails(() => as(K[1], `insert into call_permissions (match_id, user_id) values ($1,$2)`, [km, K[1]]))))
+  await allow(K[1], km)
+  ok('call_permission: partner sees both rows', (await as(K[1], `select count(*)::int c from call_permissions where match_id=$1`, [km])).rows[0].c === 2)
+  ok('call_permission: outsider sees none', (await as(K[2], `select count(*)::int c from call_permissions`)).rows[0].c === 0)
+  ok('call_outsider: cannot start in a foreign match', !!(await fails(() => startCall(K[2], km))))
+  const c1 = await startCall(K[0], km, 'video')
+  ok('call_start: ringing row', (await su(`select status, kind, callee_id from calls where id=$1`, [c1])).rows[0]?.status === 'ringing')
+  ok('call_start: callee gets incoming event', (await su(`select payload from realtime.messages where topic=$1 and event='incoming'`, ['call:' + K[1]])).rows[0]?.payload.call_id === c1)
+  ok('call_busy: second call refused', (await fails(() => startCall(K[1], km)))?.includes('busy'))
+  ok('call_rows: outsider sees none', (await as(K[2], `select count(*)::int c from calls`)).rows[0].c === 0)
+  ok('call_rows: participants see it', (await as(K[1], `select count(*)::int c from calls where id=$1`, [c1])).rows[0].c === 1)
+  ok('call_rows: recording columns hidden', !!(await fails(() => as(K[0], `select recording_path from calls`))))
+  ok('call_rows: no direct writes', !!(await fails(() => as(K[0], `update calls set status='ended' where id=$1`, [c1]))) &&
+     !!(await fails(() => as(K[0], `insert into calls (match_id, caller_id, callee_id, kind) values ($1,$2,$3,'audio')`, [km, K[0], K[1]]))))
+  ok('call_answer: outsider and caller cannot answer', !!(await fails(() => as(K[2], `select answer_call($1)`, [c1]))) && !!(await fails(() => as(K[0], `select answer_call($1)`, [c1]))))
+  ok('call_end: outsider cannot end', !!(await fails(() => as(K[2], `select end_call($1)`, [c1]))))
+  ok('call_finish: not callable by users', !!(await fails(() => as(K[0], `select finish_call($1)`, [c1]))))
+  ok('call_answer: callee answers', (await as(K[1], `select answer_call($1) s`, [c1])).rows[0].s === 'active')
+  ok('call_answer: caller notified', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='answered'`, ['call:' + K[0]])).rows[0].c === 1)
+  ok('call_end: hang up → ended', (await as(K[0], `select end_call($1) s`, [c1])).rows[0].s === 'ended' &&
+     (await as(K[0], `select end_call($1) s`, [c1])).rows[0].s === 'ended')
+  ok('call_end: partner notified', (await su(`select payload->>'status' s from realtime.messages where topic=$1 and event='ended'`, ['call:' + K[1]])).rows[0]?.s === 'ended')
+  const c2 = await startCall(K[0], km)
+  await su(`update calls set started_at = now() - interval '31 seconds' where id=$1`, [c2])
+  ok('call_ring: unanswered after 30 s is missed', (await as(K[1], `select answer_call($1) s`, [c2])).rows[0].s === 'missed')
+  const c3 = await startCall(K[1], km)
+  ok('call_decline: callee hang-up → declined', (await as(K[0], `select end_call($1) s`, [c3])).rows[0].s === 'declined')
+  const c4 = await startCall(K[0], km)
+  ok('call_cancel: caller hang-up → missed', (await as(K[0], `select end_call($1) s`, [c4])).rows[0].s === 'missed')
+  ok('call_unverified: cannot be called', !!(await fails(async () => { await su(`insert into call_permissions values ($1,$2),($1,$3)`, [kv, K[0], K[3]]); await startCall(K[0], kv) })))
+  // realtime topic authorization
+  const ct = 'call:' + K[1]
+  ok('realtime: own call topic visible', (await as(K[1], `select count(*)::int c from realtime.messages where topic=$1`, [ct], ct)).rows[0].c >= 3)
+  ok('realtime: foreign call topic hidden', (await as(K[0], `select count(*)::int c from realtime.messages where topic=$1`, [ct], ct)).rows[0].c === 0)
+  ok('realtime: client cannot write to call topic', !!(await fails(() => as(K[1], `insert into realtime.messages (topic, event, payload) values ($1,'incoming','{}')`, [ct], ct))))
+  ok('realtime: older topics still work', (await as(K[1], `select count(*)::int c from realtime.messages where topic=$1`, ['match:' + km], 'match:' + km)).rows[0].c >= 0 &&
+     (await as(K[2], `select count(*)::int c from realtime.messages where topic=$1`, ['call:' + K[1]], 'match:' + km)).rows[0].c === 0)
+  // blocked users can't call; the call history survives the match (evidence)
+  await as(K[1], `insert into blocks (blocked_id) values ($1)`, [K[0]])
+  ok('call_blocked: caller blocked by callee refused', !!(await fails(() => startCall(K[0], km))))
+  ok('call_blocked: blocker cannot call either', !!(await fails(() => startCall(K[1], km))))
+  await su(`delete from blocks where blocker_id=$1`, [K[1]])
+  // moderation access to recordings
+  const KA = K[2]
+  await su(`insert into admins values ($1)`, [KA])
+  await su(`update calls set recording_path = 'calls/' || match_id || '/' || id || '.mp4', recording_status='ready' where id=$1`, [c1])
+  ok('call_recording: malformed path rejected', !!(await fails(() => su(`update calls set recording_path='calls/x/y.mp4' where id=$1`, [c1]))))
+  ok('call_recording: needs an open report', (await fails(() => su(`select admin_open_call_recording($1,$2)`, [KA, c1])))?.includes('open report'))
+  await as(K[1], `insert into reports (target_type, target_id, reason) values ('user',$1,'harassment: call')`, [K[0]])
+  ok('call_recording: non-moderator refused', !!(await fails(() => su(`select admin_open_call_recording($1,$2)`, [K[1], c1]))))
+  const callPath = (await su(`select admin_open_call_recording($1,$2,'report') p`, [KA, c1])).rows[0].p
+  ok('call_recording: moderator gets path', callPath === `calls/${km}/${c1}.mp4`, callPath)
+  ok('call_recording: access logged', (await su(`select count(*)::int c from moderation_actions where action='call.recording_open' and target_id=$1 and admin_id=$2`, [c1, KA])).rows[0].c === 1)
+  ok('call_recording: not callable by users', !!(await fails(() => as(KA, `select admin_open_call_recording($1,$2)`, [KA, c1]))))
+  // retention: 90 days, except evidence of an open report
+  await su(`update calls set started_at = now() - interval '91 days', ended_at = now() - interval '91 days' where match_id=$1`, [km])
+  ok('call_retention: open report holds the recording', (await su(`select count(*)::int c from call_recordings_to_purge()`)).rows[0].c === 0)
+  ok('call_retention: held rows not purged', (await su(`select purge_old_calls() n`)).rows[0].n === 0 && (await su(`select count(*)::int c from calls where id=$1`, [c1])).rows[0].c === 1)
+  await su(`update reports set resolved_at = now() where target_id=$1`, [K[0]])
+  const call_due = (await su(`select * from call_recordings_to_purge()`)).rows
+  ok('call_retention: lists expired paths', call_due.length === 1 && call_due[0].recording_path === callPath, JSON.stringify(call_due))
+  ok('call_retention: purge functions not for users', !!(await fails(() => as(K[0], `select * from call_recordings_to_purge()`))) && !!(await fails(() => as(K[0], `select purge_old_calls()`))))
+  ok('call_retention: mark purged', (await su(`select mark_call_recordings_purged($1) n`, [[c1]])).rows[0].n === 1 &&
+     (await su(`select recording_status s from calls where id=$1`, [c1])).rows[0].s === 'purged')
+  ok('call_retention: old rows deleted', (await su(`select purge_old_calls() n`)).rows[0].n === 4 && (await su(`select count(*)::int c from calls where match_id=$1`, [km])).rows[0].c === 0)
+  const c5 = await startCall(K[0], km)
+  await su(`delete from matches where id=$1`, [km])
+  ok('call_history: row kept when the match is removed', (await su(`select match_id from calls where id=$1`, [c5])).rows[0]?.match_id === null)
+  ok('call_unmatched: participants keep seeing their call', (await as(K[0], `select count(*)::int c from calls where id=$1`, [c5])).rows[0].c === 1)
+  ok('call_unmatched: settings gone', (await as(K[0], `select count(*)::int c from call_permissions where match_id=$1`, [km])).rows[0].c === 0)
+  void ko
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

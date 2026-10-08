@@ -2,14 +2,17 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { FormError } from '@/components/ui/field'
+import { ChatIcebreakers } from '@/features/icebreakers/components/chat-icebreakers'
+import { useCallHistory } from '@/features/calls/components/call-history'
+import type { CallEntry } from '@/features/calls/types'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { loadMessagesBefore } from '../history-actions'
-import type { ChatImage, ChatMessage, Reaction } from '../types'
-import { ChatComposer } from './chat-composer'
+import type { ChatMessage, Reaction } from '../types'
+import { ChatComposer, type ComposerPrefill } from './chat-composer'
 import type { ComposerMode } from './composer-banner'
 import { MessageList } from './message-list'
-import { PhotoViewer } from './photo-viewer'
+import { MediaViewer, type ViewerMedia } from './media-viewer'
 import { ScrollDownButton } from './scroll-down-button'
 import { useChatChannel } from './use-chat-channel'
 import { useChatMessages } from './use-chat-messages'
@@ -27,6 +30,7 @@ type Props = {
   initialMessages: ChatMessage[]
   initialReactions: Reaction[]
   initialHasMore: boolean
+  initialCalls?: CallEntry[]
 }
 
 export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) {
@@ -34,14 +38,16 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
   const errorText = useErrorText()
   const [error, setError] = useState<ErrorKey>()
   const chat = useChatMessages(matchId, viewerId, initial.initialMessages)
+  const calls = useCallHistory(matchId, initial.initialCalls ?? [])
   const reactions = useReactions(matchId, viewerId, initial.initialReactions, setError)
   const { partnerTyping, notifyTyping, clear } = useMatchTyping(matchId, viewerId)
   const scroll = useStickToBottom(chat.messages, viewerId, partnerTyping)
   const [hasMore, setHasMore] = useState(initial.initialHasMore)
   const [loadingEarlier, startLoading] = useTransition()
   const [mode, setMode] = useState<ComposerMode | null>(null)
-  const [photo, setPhoto] = useState<ChatImage | null>(null)
-  const actions = useMessageActions({ chat, reactions, setMode, setPhoto, setError })
+  const [viewer, setViewer] = useState<ViewerMedia | null>(null)
+  const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
+  const actions = useMessageActions({ chat, reactions, setMode, setViewer, setError })
   // Reply/edit target as currently loaded; dropped once it is deleted (by either side).
   const target = mode && chat.messages.find((m) => m.id === mode.message.id)
   const activeMode = mode && target && !target.deletedAt ? { ...mode, message: target } : null
@@ -80,6 +86,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
       <FormError message={errorText(error)} />
       <MessageList
         messages={chat.messages}
+        calls={calls}
         reactions={reactions.byMessage}
         viewerId={viewerId}
         partnerName={partnerName}
@@ -91,8 +98,15 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
         onLoadEarlier={loadEarlier}
         onAction={actions.onBubble}
       />
+      {chat.messages.length === 0 && !hasMore && (
+        <ChatIcebreakers
+          matchId={matchId}
+          onPick={(text) => setPrefill({ text, at: Date.now() })}
+        />
+      )}
       <ChatComposer
         matchId={matchId}
+        prefill={prefill}
         mode={activeMode}
         quoteAuthor={activeMode?.message.senderId === viewerId ? dict.chats.yourself : partnerName}
         aside={
@@ -125,7 +139,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
         onCancel={actions.cancelDelete}
         onConfirm={actions.confirmDelete}
       />
-      <PhotoViewer image={photo} onClose={() => setPhoto(null)} />
+      <MediaViewer media={viewer} onClose={() => setViewer(null)} />
     </div>
   )
 }

@@ -1,7 +1,14 @@
-import { REACTIONS, type ChatMessage, type Reaction, type ReactionEmoji } from './types'
+import {
+  REACTIONS,
+  type ChatMedia,
+  type ChatMessage,
+  type MediaKind,
+  type Reaction,
+  type ReactionEmoji,
+} from './types'
 
 export const MESSAGE_COLUMNS =
-  'id, body, sender_id, created_at, read_at, edited_at, deleted_at, reply_to, image_path, image_width, image_height'
+  'id, body, sender_id, created_at, read_at, edited_at, deleted_at, reply_to, image_width, image_height, media_kind, media_path, media_duration_ms, waveform, media_expired_at'
 
 export type MessageRow = {
   id: string
@@ -12,12 +19,37 @@ export type MessageRow = {
   edited_at: string | null
   deleted_at: string | null
   reply_to: string | null
-  image_path: string | null
   image_width: number | null
   image_height: number | null
+  media_kind: string | null
+  media_path: string | null
+  media_duration_ms: number | null
+  waveform: number[] | null
+  media_expired_at: string | null
 }
 
-// Plain row → message without the extras that need a query (signed image URL, quoted message).
+const isMediaKind = (k: string | null): k is MediaKind =>
+  k === 'image' || k === 'voice' || k === 'video'
+
+export const mediaKindOf = (m: Pick<MessageRow, 'media_kind'>): MediaKind | null =>
+  isMediaKind(m.media_kind) ? m.media_kind : null
+
+function toMedia(m: MessageRow): ChatMedia | null {
+  const path = m.media_path
+  const kind = mediaKindOf(m)
+  if (!path || !kind) return null
+  if (kind === 'image') {
+    return m.image_width && m.image_height
+      ? { kind, path, url: null, width: m.image_width, height: m.image_height }
+      : null
+  }
+  const durationMs = m.media_duration_ms ?? 0
+  return kind === 'voice'
+    ? { kind, path, url: null, durationMs, waveform: m.waveform }
+    : { kind, path, url: null, durationMs }
+}
+
+// Plain row → message without the extras that need a query (signed media URL, quoted message).
 export const toChatMessage = (m: MessageRow): ChatMessage => ({
   id: m.id,
   body: m.body,
@@ -28,10 +60,8 @@ export const toChatMessage = (m: MessageRow): ChatMessage => ({
   deletedAt: m.deleted_at,
   replyTo: m.reply_to,
   reply: null,
-  image:
-    m.image_path && m.image_width && m.image_height
-      ? { path: m.image_path, url: null, width: m.image_width, height: m.image_height }
-      : null,
+  media: toMedia(m),
+  expiredMedia: m.media_expired_at ? mediaKindOf(m) : null,
 })
 
 export const REACTION_COLUMNS = 'message_id, user_id, emoji'

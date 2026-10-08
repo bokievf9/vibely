@@ -1,3 +1,4 @@
+import { callsLegal } from './calls'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -20,7 +21,7 @@ export const ms: LegalContent = {
           'Foto yang anda muat naik ke profil.',
           'Lokasi anggaran: jika anda benarkan, lokasi peranti anda digunakan untuk mengira jarak anda dengan pengguna lain. Lokasi tepat anda tidak pernah ditunjukkan kepada sesiapa. Orang lain hanya melihat jarak yang dibundarkan, contohnya "5 km dari sini".',
           'Swafoto pengesahan: foto anda membuat isyarat tangan, hanya untuk memastikan anda sepadan dengan foto profil (lihat seksyen 3).',
-          'Aktiviti dalam aplikasi: suka dan langkau, padanan, mesej sembang, hantaran, komen dan suka dalam suapan, mesej sembang rawak, sekatan dan laporan.',
+          'Aktiviti dalam aplikasi: suka dan langkau, padanan, mesej sembang (teks, foto, mesej suara dan mesej video), panggilan audio dan video (dirakam, lihat seksyen 3), hantaran, komen dan suka dalam suapan, mesej sembang rawak, sekatan dan laporan.',
           'Data teknikal: kuki yang mengekalkan log masuk dan mengingati bahasa anda. Kami tidak menggunakan penjejak iklan.',
         ],
       },
@@ -32,23 +33,29 @@ export const ms: LegalContent = {
         ],
       },
       {
-        heading: '3. Pengesahan swafoto',
+        heading: '3. Rakaman keselamatan dan pengesahan swafoto',
         paragraphs: [
-          'Setiap profil mesti lulus semakan swafoto. Swafoto anda hanya disemak oleh moderator manusia. Ia tidak pernah diterbitkan atau ditunjukkan kepada pengguna lain, dan fail foto dipadam selepas semakan. Kami hanya menyimpan keputusan (diluluskan atau ditolak, serta sebab penolakan).',
+          'Untuk memastikan semua orang selamat, semua yang berlaku dalam Vibely dirakam dan disimpan: mesej sembang, foto, mesej suara dan video, sembang rawak, kandungan suapan dan semua panggilan audio dan video (panggilan dirakam di pelayan kami, dan anda sentiasa melihat notis "Panggilan ini dirakam" semasa panggilan). Kami tidak pernah merakam apa-apa tanpa memberitahu anda.',
+          'Rakaman ini disimpan sehingga 90 hari dan kemudian dipadam secara automatik. Bahan yang berkaitan dengan laporan atau kes moderasi yang masih terbuka disimpan sehingga kes itu selesai. Rakaman disimpan secara peribadi dan tidak pernah ditunjukkan kepada pengguna lain. Hanya moderator kami boleh membukanya, hanya semasa mengendalikan laporan, dan setiap akses direkodkan.',
+          'Setiap profil mesti lulus semakan swafoto. Swafoto anda hanya disemak oleh moderator manusia dan tidak pernah diterbitkan atau ditunjukkan kepada pengguna lain. Fail swafoto disimpan sehingga 90 hari (supaya moderator boleh menyemaknya jika akaun dilaporkan) dan kemudian dipadam secara automatik; kami menyimpan keputusan (diluluskan atau ditolak, serta sebab penolakan).',
         ],
       },
       {
-        heading: '4. Suapan tanpa nama',
+        heading: '4. Suapan',
         paragraphs: [
-          'Pengguna lain tidak pernah melihat siapa yang menulis hantaran atau komen dalam suapan. Kami menyimpan maklumat penulis secara dalaman supaya anda boleh memadam hantaran sendiri dan supaya moderator boleh bertindak atas laporan (contohnya menyekat akaun yang menghantar kandungan kesat).',
+          'Setiap hantaran dan komen dalam suapan adalah tanpa nama kecuali anda memilih "Diri saya". Kandungan tanpa nama hanya menunjukkan nama samaran rawak untuk bebenang itu (contohnya "Durian Ungu"); pengguna lain tidak pernah melihat siapa penulisnya. Dengan "Diri saya", pengguna lain yang disahkan melihat nama, umur, foto utama dan lencana pengesahan anda, dan boleh membuka kad profil ringkas untuk dibaca sahaja (tidak pernah lokasi anda). Orang lain mungkin melihat bahawa hantaran datang dari bandar mereka, tetapi tidak pernah bandar yang mana.',
+          'Kami menyimpan penulis setiap hantaran dan komen secara dalaman supaya anda boleh memadam kandungan sendiri dan supaya moderator boleh bertindak atas laporan (contohnya menyekat akaun yang menghantar kandungan kesat). Hantaran dan komen suapan dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih dibuka.',
         ],
       },
       {
         heading: '5. Sembang rawak',
         paragraphs: [
-          'Sembang rawak adalah tanpa nama sehingga kedua-dua pihak bersetuju untuk mendedahkan profil. Mesej sembang rawak disimpan selama 30 hari dan kemudian dipadam secara automatik. Jika sesuatu sembang dilaporkan, ia disimpan selama yang diperlukan oleh moderator untuk mengendalikan laporan itu.',
+          'Sembang rawak adalah tanpa nama sehingga kedua-dua pihak bersetuju untuk mendedahkan profil. Mesej sembang rawak disimpan selama 90 hari dan kemudian dipadam secara automatik. Jika sesuatu sembang dilaporkan, ia disimpan sehingga laporan itu selesai.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ms.privacy,
+      // --- end calls ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -59,7 +66,7 @@ export const ms: LegalContent = {
       {
         heading: '7. Siapa yang boleh melihat data anda',
         paragraphs: [
-          'Pengguna lain yang disahkan boleh melihat profil, foto, umur dan jarak anggaran anda. Moderator boleh melihat apa yang diperlukan untuk menyemak pengesahan dan laporan.',
+          'Pengguna lain yang disahkan boleh melihat profil, foto, umur dan jarak anggaran anda. Moderator boleh melihat apa yang diperlukan untuk menyemak pengesahan dan laporan; mesej, media dan panggilan yang dirakam hanya semasa mengendalikan laporan (lihat seksyen 3).',
           'Kami menggunakan penyedia perkhidmatan yang dipercayai yang memproses data hanya mengikut arahan kami:',
         ],
         list: [
@@ -76,7 +83,7 @@ export const ms: LegalContent = {
       {
         heading: '9. Tempoh penyimpanan data',
         paragraphs: [
-          'Kami menyimpan data anda selagi akaun anda wujud. Swafoto pengesahan dipadam selepas semakan dan mesej sembang rawak selepas 30 hari (kecuali jika dilaporkan).',
+          'Kami menyimpan data anda selagi akaun anda wujud, kecuali rakaman keselamatan: foto, mesej suara dan video yang dihantar dalam sembang, rakaman panggilan, swafoto pengesahan dan mesej sembang rawak dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih terbuka. Foto, mesej suara atau video sembang yang telah tamat tempoh ditunjukkan sebagai "tamat tempoh".',
           'Apabila anda memadam akaun, kami serta-merta memadam profil, foto, swafoto, padanan, mesej, hantaran, komen, suka, sekatan dan laporan yang anda buat. Laporan yang dibuat oleh orang lain tentang anda dan rekod moderasi mungkin disimpan untuk mencegah penyalahgunaan, contohnya supaya orang yang disekat tidak kembali. Sandaran ditimpa dalam tempoh yang terhad.',
         ],
       },
@@ -156,10 +163,14 @@ export const ms: LegalContent = {
           'Semakan swafoto mengurangkan profil palsu, tetapi kami tidak dapat menjamin identiti atau tingkah laku seseorang. Berjumpa orang baharu di tempat awam, beritahu rakan ke mana anda pergi dan jangan sekali-kali menghantar wang kepada orang yang anda kenali dalam talian. Gunakan Lapor dan Sekat apabila sesuatu terasa tidak kena.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ms.terms,
+      // --- end calls ---
       {
         heading: '6. Moderasi',
         paragraphs: [
           'Laporan disemak oleh manusia. Kami boleh menyembunyikan kandungan, mengehadkan ciri atau menyekat akaun yang melanggar Terma ini atau membahayakan orang lain, dengan atau tanpa notis. Jika anda rasa kami tersilap, hubungi kami.',
+          'Demi keselamatan semua, mesej, foto, mesej suara dan video serta panggilan audio dan video dirakam dan disimpan sehingga 90 hari (lebih lama hanya semasa laporan mengenainya masih terbuka). Hanya moderator yang mengendalikan laporan boleh mengaksesnya. Lihat Dasar Privasi, seksyen 3.',
         ],
       },
       {
