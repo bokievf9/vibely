@@ -8,6 +8,22 @@
   --border: #26262f;
   --accent: #ff4d7d;
   --accent-foreground: #ffffff;
+
+  /* Semantic colors, tuned for the near-black background next to the rose accent: slightly
+     desaturated so status reads clearly without glowing. Danger is a true red (no pink) so it never
+     reads as the accent; verified is a calm blue. All pass 4.5:1 as text on --background. */
+  --success: #4cc38a;
+  --danger: #e5484d;
+  /* Fill behind white text (4.8:1); --danger stays for red text on the dark background (5:1). */
+  --danger-strong: #cf3b40;
+  --warning: #f2b54b;
+  --verified: #4f9df7;
+
+  /* Shell geometry. Sticky children of a page header use top-[var(--header-h)]. */
+  --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
+  --tabbar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
+
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -18,11 +34,246 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-warning: var(--warning);
+  --color-verified: var(--verified);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Motion tokens (.claude/skills/emil-design-eng). The built-in CSS curves are too weak:
+   `ease-out` / `ease-in-out` utilities now use these, `ease-drawer` is for sheets,
+   `ease-spring` is a CSS spring (about 5% overshoot, 500ms) for toggles and pops. */
+@theme {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: linear(
+    0,
+    0.046,
+    0.157,
+    0.3,
+    0.452,
+    0.596,
+    0.723,
+    0.828,
+    0.91,
+    0.97,
+    1.012,
+    1.037,
+    1.05,
+    1.054,
+    1.052,
+    1.047,
+    1.039,
+    1.031,
+    1.023,
+    1.016,
+    1.01,
+    1.005,
+    1.002,
+    1,
+    0.998,
+    0.997,
+    1
+  );
+  --default-transition-duration: 160ms;
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --animate-rise: rise 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+}
+
+/* Mobile baseline (.claude/skills/mobile-native). */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+  /* Launch, rubber-band and keyboard gaps show the app color, never white. */
+  background-color: var(--background);
 }
 
 body {
   font-family: var(--font-sans);
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
+}
+
+/* Fast taps, and long-press must not select a control's label. Content text stays selectable. */
+button,
+a,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+button,
+[role='button'],
+[data-tabbar] a {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+[data-tabbar] img {
+  -webkit-user-drag: none;
+}
+
+/* iOS zooms into inputs under 16px and never zooms back. Unlayered, so it beats text-sm. */
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Floating chrome (tab bar, page header): a translucent material instead of an opaque strip.
+   Users who ask for less transparency get a solid surface. */
+@layer components {
+  .material-bar {
+    background-color: rgb(11 11 16 / 0.78);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    backdrop-filter: blur(20px) saturate(170%);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .material-bar {
+      background-color: var(--background);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* The header hairline only appears once content scrolls under it (scroll edge effect).
+   Browsers without scroll-driven animations keep it hidden, which is the at-rest look. */
+.header-edge {
+  opacity: 0;
+}
+@supports (animation-timeline: scroll()) {
+  .header-edge {
+    animation: header-edge linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 24px;
+  }
+}
+@keyframes header-edge {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Skeleton shimmer: a soft highlight sweeping across, on the compositor (transform only). */
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.045) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Unread badge: pops in when it appears and when the count changes (keyed remount). */
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+.badge-pop {
+  animation:
+    badge-pop 500ms var(--ease-spring) both,
+    fade-in 120ms ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Route content enters with a quick fade and a 6px rise. Each page's root is a new node after
+   navigation, so this needs no JS and never blocks input. The rise uses a transform, which would
+   re-anchor position:fixed descendants for 200ms, so pages with fixed or immersive UI only fade.
+   The tab bar lives outside [data-main] and never animates. */
+[data-main] > * {
+  animation: route-fade 200ms var(--ease-out) backwards;
+}
+[data-main] > :not(:has(.fixed, [data-immersive])) {
+  animation-name: route-rise;
+}
+@keyframes route-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes route-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A page spinner only appears when loading is actually slow: no flash on fast navigations. */
+.delayed-appear {
+  animation: fade-in 200ms var(--ease-out) 350ms both;
+}
+
+/* Reduced motion means gentler, not none: keep fades, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .skeleton-shimmer::after {
+    display: none;
+  }
+  [data-main] > *,
+  [data-main] > :not(:has(.fixed, [data-immersive])),
+  .delayed-appear {
+    animation-name: fade-in;
+    animation-duration: 160ms !important;
+  }
+  .header-edge {
+    animation-duration: auto !important;
+  }
+}
+
+/* The install banner floats above the tab bar; while it is visible the page gets extra bottom
+   padding so the banner never covers the last row of content (height set by the banner). */
+body:has([data-install-prompt]) [data-main] {
+  padding-bottom: calc(var(--tabbar-h) + var(--install-prompt-h, 0px) + 0.75rem);
+}
+
+/* Immersive screens (chat room, call, full-screen viewers) render an element with [data-immersive]:
+   the tab bar, its bottom padding and the install banner go away while it is mounted. */
+body:has([data-immersive]) [data-tabbar],
+body:has([data-immersive]) [data-install-prompt] {
+  display: none;
+}
+body:has([data-immersive]) [data-main] {
+  padding-bottom: 0;
 }

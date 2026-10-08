@@ -12,6 +12,8 @@ import { resetBrowserToken } from '@/lib/supabase/client'
 import { deleteAccount } from '../actions'
 import { DELETE_CONFIRM_WORD, deleteAccountSchema } from '../schemas'
 
+const DANGER = 'bg-danger-strong'
+
 // Danger zone on the own profile: type DELETE → the account and all its data are removed.
 export function DeleteAccount() {
   const { dict } = useI18n()
@@ -41,12 +43,18 @@ export function DeleteAccount() {
   return (
     <section
       aria-labelledby="danger-zone"
-      className="flex flex-col gap-3 rounded-2xl border border-red-500/30 p-4"
+      className="border-danger/30 flex flex-col gap-3 rounded-2xl border p-4"
     >
-      <h2 id="danger-zone" className="text-sm font-medium text-red-400">
+      <h2 id="danger-zone" className="text-danger text-sm font-medium">
         {dict.account.dangerZone}
       </h2>
-      <Button variant="danger" onClick={() => setOpen(true)} fullWidth>
+      {/* Outlined here; the filled red button is kept for the final, irreversible step. */}
+      <Button
+        variant="ghost"
+        className="border-danger/40 text-danger active:bg-danger/10 border"
+        onClick={() => setOpen(true)}
+        fullWidth
+      >
         <Trash2 className="size-5" /> {dict.account.delete}
       </Button>
       <Modal open={open} onClose={close} title={dict.account.deleteTitle}>
@@ -73,12 +81,21 @@ export function DeleteAccount() {
             />
           </Field>
           <FormError message={errorText(error)} />
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={close} disabled={pending}>
-              {dict.common.cancel}
-            </Button>
-            <Button type="submit" variant="danger" disabled={!valid} loading={pending}>
+          {/* Stacked, not side by side: "Padam selama-lamanya" / "Удалить навсегда" do not fit
+              half of a 320px sheet. */}
+          <div className="flex flex-col gap-2">
+            <Button
+              type="submit"
+              variant="danger"
+              className={DANGER}
+              fullWidth
+              disabled={!valid}
+              loading={pending}
+            >
               {dict.account.deleteConfirm}
+            </Button>
+            <Button variant="ghost" fullWidth onClick={close} disabled={pending}>
+              {dict.common.cancel}
             </Button>
           </div>
         </form>

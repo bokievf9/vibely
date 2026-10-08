@@ -3,9 +3,13 @@ import { cn } from '@/lib/utils'
 
 type ChipProps = Omit<ComponentProps<'button'>, 'type'> & { selected?: boolean }
 
+// 40px pill with an invisible 44px hit area (::before), so dense chip rows stay tappable.
 export function chipClassName(selected: boolean, className?: string) {
   return cn(
-    'inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium transition select-none',
+    'relative inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium select-none',
+    "before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-['']",
+    'transition-[transform,scale,background-color,border-color,color] duration-150 ease-out active:scale-[0.97]',
+    'focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
     selected
       ? 'border-accent bg-accent/15 text-accent'
       : 'border-border bg-surface text-foreground active:bg-border',

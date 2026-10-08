@@ -1,13 +1,19 @@
 import { avatarMs } from './avatar/ms'
 import { aboutMs } from './about/ms'
 import { discoverMs } from './discover/ms'
+import { discoverUiMs } from './discoverui/ms'
 import { feedMs } from './feed/ms'
 import { callErrorsMs, callsMs } from './calls/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { likesMs, settingsMs } from './settings/ms'
 import { mediaMs } from './media/ms'
+import { chatUiMs } from './chatui/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
+import { usernameMs, usernameErrorsMs } from './username/ms'
+import { flowsMs } from './flowsui/ms'
+import { reportsMs } from './reports/ms'
+import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -21,9 +27,15 @@ export const ms: Dictionary = {
     loading: 'Memuatkan',
     send: 'Hantar',
     back: 'Kembali',
+    moreOptions: 'Lagi pilihan',
+    previous: 'Sebelumnya',
+    next: 'Seterusnya',
+    retry: 'Cuba lagi',
   },
   errors: {
     ...callErrorsMs,
+    ...usernameErrorsMs,
+    ...sanctionErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -161,6 +173,7 @@ export const ms: Dictionary = {
     randomizer: 'Rawak',
     profile: 'Profil',
     unread: 'Belum dibaca: {count}',
+    label: 'Navigasi utama',
   },
   swipe: {
     title: 'Teroka',
@@ -171,7 +184,7 @@ export const ms: Dictionary = {
     pass: 'Langkau',
     km: '{km} km dari sini',
     showMe: 'Tunjukkan',
-    age: 'Umur: {min}–{max}',
+    age: 'Umur: {min}-{max}',
     distance: 'Jarak: sehingga {km} km',
     apply: 'Guna',
     matchTitle: 'Padanan!',
@@ -179,6 +192,8 @@ export const ms: Dictionary = {
     sendMessage: 'Hantar mesej',
     keepSwiping: 'Teruskan swipe',
     refresh: 'Muat semula',
+    minAge: 'Umur minimum',
+    maxAge: 'Umur maksimum',
   },
   chats: {
     title: 'Sembang',
@@ -256,7 +271,7 @@ export const ms: Dictionary = {
     intro:
       'Bersembang tanpa nama dengan orang rawak yang disahkan. Jika kedua-dua setuju, profil boleh didedahkan.',
     lookingFor: 'Bersembang dengan',
-    age: 'Umur: {min}–{max}',
+    age: 'Umur: {min}-{max}',
     tags: 'Minat bersama (pilihan)',
     start: 'Cari seseorang',
     searching: 'Mencari seseorang…',
@@ -284,6 +299,8 @@ export const ms: Dictionary = {
     skip: 'Seterusnya',
     skipConfirm: 'Tamatkan sembang ini dan cari orang baharu?',
     changeFilters: 'Tukar penapis',
+    minAge: 'Umur minimum',
+    maxAge: 'Umur maksimum',
   },
   legal: {
     privacy: 'Dasar Privasi',
@@ -311,8 +328,10 @@ export const ms: Dictionary = {
   settings: settingsMs,
   likes: likesMs,
   discover: discoverMs,
+  discoverui: discoverUiMs,
   media: mediaMs,
   calls: callsMs,
+  chatui: chatUiMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',
@@ -352,4 +371,8 @@ export const ms: Dictionary = {
   tags: tagsMs,
   tagCategories: tagCategoriesMs,
   avatar: avatarMs,
+  username: usernameMs,
+  flows: flowsMs,
+  reports: reportsMs,
+  sanctions: sanctionsMs,
 }

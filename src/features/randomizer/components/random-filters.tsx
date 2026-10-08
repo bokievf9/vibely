@@ -20,7 +20,8 @@ type Props = {
   onStart: (f: JoinFilters) => void
 }
 
-const range = 'accent-accent h-2 w-full cursor-pointer'
+// The native track stays thin; h-11 makes the thumb a 44px-tall touch target.
+const range = 'accent-accent h-11 w-full cursor-pointer'
 
 export function RandomFilters({ tags, initial, pending, error, onStart }: Props) {
   const { dict } = useI18n()
@@ -40,7 +41,7 @@ export function RandomFilters({ tags, initial, pending, error, onStart }: Props)
         </legend>
         <input
           type="range"
-          aria-label="min"
+          aria-label={dict.flows.random.minAge}
           className={range}
           min={18}
           max={99}
@@ -49,7 +50,7 @@ export function RandomFilters({ tags, initial, pending, error, onStart }: Props)
         />
         <input
           type="range"
-          aria-label="max"
+          aria-label={dict.flows.random.maxAge}
           className={range}
           min={18}
           max={99}

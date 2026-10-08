@@ -76,3 +76,37 @@ export function groupMessages<M extends Groupable>(
   })
   return items
 }
+
+// Optimistic text messages: shown at once as "sending", replaced by the real message when
+// sendMessage returns, or kept as "not sent" with retry.
+export type Outgoing = {
+  tempId: string
+  body: string
+  replyTo: string | null
+  createdAt: string
+  status: 'pending' | 'failed'
+  // Id of the stored message that Realtime delivered before sendMessage returned.
+  claimedBy: string | null
+}
+
+type Sent = { id: string; body: string | null; replyTo: string | null }
+
+// The Realtime INSERT of an own message can arrive before sendMessage returns: the oldest
+// matching pending entry is claimed by it, so the message is never shown twice.
+export function claimOutgoing(list: Outgoing[], m: Sent): { list: Outgoing[]; claimed: boolean } {
+  if (list.some((o) => o.claimedBy === m.id)) return { list, claimed: true }
+  const i = list.findIndex(
+    (o) =>
+      o.claimedBy === null &&
+      o.status === 'pending' &&
+      o.body === (m.body ?? '') &&
+      o.replyTo === (m.replyTo ?? null),
+  )
+  if (i < 0) return { list, claimed: false }
+  return { list: list.map((o, j) => (j === i ? { ...o, claimedBy: m.id } : o)), claimed: true }
+}
+
+// Entries that still need their own bubble (not yet replaced by a loaded message).
+export function visibleOutgoing(list: Outgoing[], loaded: ReadonlySet<string>): Outgoing[] {
+  return list.filter((o) => !o.claimedBy || !loaded.has(o.claimedBy))
+}

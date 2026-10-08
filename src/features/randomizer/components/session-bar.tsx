@@ -27,8 +27,10 @@ export function SessionBar({ session, active, pending, onReveal, onEnd, onNext }
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">{session.partner?.name ?? dict.random.connected}</p>
-        <div className="flex gap-1">
+        <p className="min-w-0 truncate text-sm font-medium">
+          {session.partner?.name ?? dict.random.connected}
+        </p>
+        <div className="flex shrink-0 gap-1">
           <Button
             size="icon"
             variant="ghost"
@@ -66,12 +68,14 @@ export function SessionBar({ session, active, pending, onReveal, onEnd, onNext }
           })}
         </p>
       )}
-      {active && <RevealPanel session={session} pending={pending} onReveal={onReveal} />}
+      {/* Stays after the chat ends (inert) so the conversation below does not jump up. */}
+      <RevealPanel session={session} pending={pending} disabled={!active} onReveal={onReveal} />
       <Modal open={dialog === 'end'} onClose={() => setDialog(null)} title={dict.random.end}>
         <div className="flex flex-col gap-4">
           <p>{dict.random.endConfirm}</p>
           <Button
             variant="danger"
+            className="bg-danger-strong"
             fullWidth
             loading={pending}
             onClick={async () => {

@@ -1,12 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 import type { ChatImage, ChatMessage } from '../types'
 import { VideoCircle } from './video-circle'
 import { VoicePlayer } from './voice-player'
 
 const IMAGE_MAX_PX = 240
+const IMAGE_MIN_H_PX = 96
+const IMAGE_MAX_H_PX = 320
 
 type Props = { message: ChatMessage; mine: boolean; onError: () => void }
 
@@ -36,25 +40,44 @@ export function MessageMedia({ message: m, mine, onError }: Props) {
   }
 }
 
+// Shown at most 240px wide and between 96px and 320px tall (a panorama or a long screenshot is
+// cropped, never a sliver or a wall), with the box reserved before the file loads. The image fades
+// in once decoded instead of popping in line by line.
+function photoBox(image: ChatImage) {
+  const width = Math.min(IMAGE_MAX_PX, image.width)
+  const height = Math.min(
+    IMAGE_MAX_H_PX,
+    Math.max(IMAGE_MIN_H_PX, (width * image.height) / image.width),
+  )
+  return { width, height }
+}
+
 function Photo({ image, alt, onError }: { image: ChatImage; alt: string; onError: () => void }) {
+  const [loaded, setLoaded] = useState<string | null>(null)
   return (
     <span
+      data-media
       className="bg-background/30 block overflow-hidden rounded-xl"
-      style={{
-        width: Math.min(IMAGE_MAX_PX, image.width),
-        aspectRatio: `${image.width} / ${image.height}`,
-      }}
+      style={photoBox(image)}
     >
       {image.url && (
         // eslint-disable-next-line @next/next/no-img-element -- private signed URL, never via the optimizer
         <img
+          // Cached images can finish before hydration attaches onLoad.
+          ref={(el) => {
+            if (el?.complete && el.naturalWidth) setLoaded(image.url)
+          }}
           src={image.url}
           alt={alt}
           width={image.width}
           height={image.height}
           draggable={false}
+          onLoad={() => setLoaded(image.url)}
           onError={onError}
-          className="size-full object-cover"
+          className={cn(
+            'size-full object-cover transition-opacity duration-300 ease-out',
+            loaded === image.url ? 'opacity-100' : 'opacity-0',
+          )}
         />
       )}
     </span>

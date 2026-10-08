@@ -1,5 +1,6 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Enums } from '@/types/database.types'
 import { requireAdmin } from '../guard'
 import { signUrls } from './storage'
 
@@ -54,4 +55,60 @@ export async function getRecentPhotos(days: PhotoPeriod, limit = 120): Promise<R
       },
     ]
   })
+}
+
+export const PHOTO_SCOPES = ['pending', 'unverified', 'verified', 'all'] as const
+export type PhotoScope = (typeof PHOTO_SCOPES)[number]
+
+export type QueuePhoto = RecentPhoto & {
+  verificationStatus: Enums<'verification_status'>
+  reviewed: boolean
+  openReports: number
+}
+
+export const PHOTO_PAGE_SIZE = 60
+
+// Photo review queue (admin_photo_queue, 20261009000164): every user's photos, verified or not.
+// "pending" = uploaded in the period and not reviewed yet.
+export async function getPhotoQueue(
+  scope: PhotoScope,
+  days: PhotoPeriod,
+  page: number,
+): Promise<{ photos: QueuePhoto[]; total: number }> {
+  const adminId = await requireAdmin()
+  const { data, error } = await createAdminClient().rpc('admin_photo_queue', {
+    p_admin: adminId,
+    p_scope: scope,
+    p_days: days,
+    p_limit: PHOTO_PAGE_SIZE,
+    p_offset: (page - 1) * PHOTO_PAGE_SIZE,
+  })
+  if (error) throw new Error(`photo queue: ${error.message}`)
+  if (!data?.length) return { photos: [], total: 0 }
+
+  const urls = await signUrls(
+    'profile-photos',
+    data.map((p) => p.storage_path),
+  )
+  return {
+    total: Number(data[0]?.total ?? 0),
+    photos: data.flatMap((p) => {
+      const url = urls.get(p.storage_path)
+      if (!url) return []
+      return [
+        {
+          id: p.id,
+          userId: p.profile_id,
+          userName: p.display_name,
+          url,
+          width: p.width,
+          height: p.height,
+          createdAt: p.created_at,
+          verificationStatus: p.verification_status,
+          reviewed: p.reviewed,
+          openReports: p.open_reports,
+        },
+      ]
+    }),
+  }
 }

@@ -38,6 +38,7 @@ export const ms: LegalContent = {
           'Untuk memastikan semua orang selamat, semua yang berlaku dalam Vibely dirakam dan disimpan: mesej sembang, foto, mesej suara dan video, sembang rawak, kandungan suapan dan semua panggilan audio dan video (panggilan dirakam di pelayan kami, dan anda sentiasa melihat notis "Panggilan ini dirakam" semasa panggilan). Kami tidak pernah merakam apa-apa tanpa memberitahu anda.',
           'Rakaman ini disimpan sehingga 90 hari dan kemudian dipadam secara automatik. Bahan yang berkaitan dengan laporan atau kes moderasi yang masih terbuka disimpan sehingga kes itu selesai. Rakaman disimpan secara peribadi dan tidak pernah ditunjukkan kepada pengguna lain. Hanya moderator kami boleh membukanya, hanya semasa mengendalikan laporan, dan setiap akses direkodkan.',
           'Setiap profil mesti lulus semakan swafoto. Swafoto anda hanya disemak oleh moderator manusia dan tidak pernah diterbitkan atau ditunjukkan kepada pengguna lain. Fail swafoto disimpan sehingga 90 hari (supaya moderator boleh menyemaknya jika akaun dilaporkan) dan kemudian dipadam secara automatik; kami menyimpan keputusan (diluluskan atau ditolak, serta sebab penolakan).',
+          'Swafoto pengesahan anda, bersama sehingga 3 foto profil anda, mungkin disemak oleh moderator kami melalui saluran moderasi peribadi di Telegram, dan foto ini dipadam daripada saluran tersebut selepas semakan atau selewat-lewatnya dalam masa 2 hari.',
         ],
       },
       {
@@ -61,6 +62,9 @@ export const ms: LegalContent = {
         paragraphs: [
           'Apabila anda melaporkan seseorang, moderator kami melihat kandungan yang dilaporkan beserta konteksnya (contohnya sembang berkenaan). Orang yang anda laporkan tidak diberitahu siapa yang melaporkannya. Moderator boleh menyembunyikan kandungan atau menyekat akaun, dan setiap keputusan direkodkan.',
           'Apabila anda menyekat seseorang, anda berdua tidak lagi dapat melihat satu sama lain dan padanan antara anda dibuang.',
+          'Sistem kami menyemak mesej sembang dan sembang rawak secara automatik untuk tanda penipuan atau hubungan yang tidak selamat (contohnya nombor telefon, pautan ke aplikasi mesej lain atau permintaan wang). Ini tidak pernah menyekat atau mengubah mesej anda. Ia hanya menandakannya supaya moderator boleh menyemak, dan tanda tersebut dipadam selepas 90 hari.',
+          'Jika anda melanggar peraturan kami, kami boleh memberi amaran, menghalang anda daripada menghantar mesej dan hantaran untuk sementara, mengehadkan siapa yang boleh melihat kandungan anda, atau menggantung atau menyekat akaun anda. Kami menyimpan rekod keputusan ini dan sebabnya. Jika akaun anda digantung atau disekat, anda boleh membuat rayuan dalam aplikasi dan moderator akan menyemaknya.',
+          'Setiap kali moderator membuka swafoto, nombor telefon, perbualan, media atau rakaman panggilan, tindakan itu direkodkan. Jika anda membatalkan padanan atau menyekat seseorang semasa laporan antara anda masih terbuka, perbualan itu disimpan untuk moderator sehingga laporan diselesaikan.',
         ],
       },
       {
@@ -72,6 +76,8 @@ export const ms: LegalContent = {
         list: [
           'Supabase: pengehosan pangkalan data, log masuk dan storan fail.',
           'Twilio: penghantaran kod log masuk melalui SMS.',
+          'DigitalOcean: pelayan aplikasi dan storan rakaman panggilan.',
+          'Telegram: saluran peribadi yang digunakan oleh moderator kami untuk menyemak swafoto pengesahan (lihat seksyen 3).',
         ],
       },
       {
@@ -85,6 +91,7 @@ export const ms: LegalContent = {
         paragraphs: [
           'Kami menyimpan data anda selagi akaun anda wujud, kecuali rakaman keselamatan: foto, mesej suara dan video yang dihantar dalam sembang, rakaman panggilan, swafoto pengesahan dan mesej sembang rawak dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih terbuka. Foto, mesej suara atau video sembang yang telah tamat tempoh ditunjukkan sebagai "tamat tempoh".',
           'Apabila anda memadam akaun, kami serta-merta memadam profil, foto, swafoto, padanan, mesej, hantaran, komen, suka, sekatan dan laporan yang anda buat. Laporan yang dibuat oleh orang lain tentang anda dan rekod moderasi mungkin disimpan untuk mencegah penyalahgunaan, contohnya supaya orang yang disekat tidak kembali. Sandaran ditimpa dalam tempoh yang terhad.',
+          'Kami mungkin menyimpan data tertentu lebih lama daripada 90 hari apabila ia diperlukan untuk menangani isu keselamatan yang serius, tuntutan undang-undang atau permintaan pihak berkuasa Malaysia. Dalam keadaan itu, data disimpan hanya selama yang perlu dan setiap akses kepadanya direkodkan.',
         ],
       },
       {
@@ -169,7 +176,9 @@ export const ms: LegalContent = {
       {
         heading: '6. Moderasi',
         paragraphs: [
-          'Laporan disemak oleh manusia. Kami boleh menyembunyikan kandungan, mengehadkan ciri atau menyekat akaun yang melanggar Terma ini atau membahayakan orang lain, dengan atau tanpa notis. Jika anda rasa kami tersilap, hubungi kami.',
+          'Laporan disemak oleh manusia. Jika anda melanggar Terma ini atau membahayakan orang lain, kami boleh menyembunyikan kandungan anda, memberi amaran, menghalang anda daripada menghantar mesej dan hantaran untuk sementara, mengehadkan siapa yang boleh melihat kandungan anda, atau menggantung akaun anda untuk satu tempoh atau menyekatnya secara kekal. Pelanggaran serius (contohnya apa-apa yang melibatkan kanak-kanak, ugutan atau penipuan) boleh menyebabkan sekatan kekal serta-merta.',
+          'Jika akaun anda digantung atau disekat, anda boleh membuat rayuan daripada skrin yang anda lihat semasa log masuk. Moderator menyemak setiap rayuan dan anda akan melihat keputusannya dalam aplikasi. Anda juga boleh menghubungi kami melalui e-mel.',
+          'Kami boleh menyimpan maklumat yang berkaitan dengan laporan dan berkongsinya dengan pihak berkuasa Malaysia apabila dikehendaki oleh undang-undang.',
           'Demi keselamatan semua, mesej, foto, mesej suara dan video serta panggilan audio dan video dirakam dan disimpan sehingga 90 hari (lebih lama hanya semasa laporan mengenainya masih terbuka). Hanya moderator yang mengendalikan laporan boleh mengaksesnya. Lihat Dasar Privasi, seksyen 3.',
         ],
       },

@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
+import { notifyBanChanged, notifyVerificationDecided } from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
-import { readableBan } from './labels'
+import { resolveCase } from './report-actions'
 import {
   banSchema,
   contentSchema,
@@ -50,6 +51,16 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
   ])
   // `moderate` has validated the input and authorized the admin.
   const parsed = reviewVerificationSchema.safeParse(input)
+  if (result.ok && parsed.success) {
+    // The Telegram copy shows the decision and the selfie photos leave the chat.
+    const d = parsed.data
+    notifyVerificationDecided(
+      d.requestId,
+      await requireAdmin(),
+      d.approve,
+      d.approve ? undefined : d.reason,
+    )
+  }
   if (result.ok && parsed.success && parsed.data.approve) {
     // A newly verified person: alert opted-in users nearby (fire-and-forget, after the response).
     const userId = await reviewedUserId(parsed.data.requestId)
@@ -68,7 +79,7 @@ async function reviewedUserId(requestId: string): Promise<string | null> {
 }
 
 export async function setBan(input: z.input<typeof banSchema>) {
-  return moderate(banSchema, input, (d, admin) => [
+  const result = await moderate(banSchema, input, (d, admin) => [
     createAdminClient().rpc('admin_set_ban', {
       p_admin: admin,
       p_user: d.userId,
@@ -76,6 +87,12 @@ export async function setBan(input: z.input<typeof banSchema>) {
       p_reason: d.banned ? d.reason : undefined,
     }),
   ])
+  const parsed = banSchema.safeParse(input)
+  if (result.ok && parsed.success) {
+    const d = parsed.data
+    notifyBanChanged(await requireAdmin(), d.userId, d.banned, d.banned ? d.reason : undefined)
+  }
+  return result
 }
 
 export async function revokeVerification(input: z.input<typeof revokeSchema>) {
@@ -100,40 +117,8 @@ export async function setContentHidden(input: z.input<typeof contentSchema>) {
   ])
 }
 
+// One atomic RPC (20261009000161) through resolveCase: the sanction and the closing of every
+// open report on the target happen in one transaction.
 export async function resolveReports(input: z.input<typeof resolveSchema>) {
-  return moderate(resolveSchema, input, (d, admin) => {
-    const db = createAdminClient()
-    const resolve = (resolution: string) =>
-      db.rpc('admin_resolve_reports', {
-        p_admin: admin,
-        p_type: d.targetType,
-        p_target: d.targetId,
-        p_resolution: resolution,
-      })
-    switch (d.decision) {
-      case 'dismiss':
-        return [resolve(d.reason || 'Отклонено: нарушения нет')]
-      case 'hide':
-        return [
-          db.rpc('admin_set_content_hidden', {
-            p_admin: admin,
-            p_type: d.targetType,
-            p_id: d.targetId,
-            p_hidden: true,
-            p_reason: d.reason,
-          }),
-          resolve(`Контент скрыт: ${d.reason}`),
-        ]
-      case 'ban':
-        return [
-          db.rpc('admin_set_ban', {
-            p_admin: admin,
-            p_user: d.offenderId,
-            p_banned: true,
-            p_reason: d.reason,
-          }),
-          resolve(`Пользователь заблокирован: ${readableBan(d.reason)}`),
-        ]
-    }
-  })
+  return resolveCase(input)
 }

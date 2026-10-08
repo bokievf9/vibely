@@ -54,7 +54,7 @@ export function CallHistoryRow({ call }: { call: CallEntry }) {
       <span
         className={cn(
           'bg-surface flex items-center gap-2 rounded-full px-3 py-1.5 text-sm',
-          missed ? 'text-red-400' : 'text-muted',
+          missed ? 'text-danger' : 'text-muted',
         )}
       >
         <Icon className="size-4" aria-hidden />

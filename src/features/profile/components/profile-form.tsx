@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Field, FormError } from '@/components/ui/field'
@@ -12,6 +12,8 @@ import { track } from '@/lib/analytics'
 import { createProfile, updateProfile } from '../actions'
 import type { OwnProfile, Tag } from '../queries'
 import { TermsConsent } from '@/features/legal/components/terms-consent'
+import { suggestUsername } from '@/features/username/actions'
+import { UsernameField } from '@/features/username/components/username-field'
 import { MAX_TAGS, newProfileSchema, profileFormSchema, type NewProfileInput } from '../schemas'
 import { GenderPicker } from './gender-picker'
 import { LocationButton } from './location-button'
@@ -26,22 +28,42 @@ export function ProfileForm({ tags, initial }: Props) {
   const errorText = useErrorText()
   const router = useLocaleRouter()
   const [serverError, setServerError] = useState<string>()
-  const { register, control, handleSubmit, setError, formState } = useForm<NewProfileInput>({
-    resolver: zodResolver(initial ? profileFormSchema : newProfileSchema),
-    defaultValues: {
-      interestedIn: [],
-      bio: '',
-      city: '',
-      tagIds: [],
-      location: null,
-      displayName: '',
-      birthDate: '',
-      acceptTerms: false,
-      ...initial,
-    },
-  })
+  const { register, control, handleSubmit, setError, setValue, formState } =
+    useForm<NewProfileInput>({
+      resolver: zodResolver(initial ? profileFormSchema : newProfileSchema),
+      defaultValues: {
+        interestedIn: [],
+        bio: '',
+        city: '',
+        tagIds: [],
+        location: null,
+        displayName: '',
+        username: '',
+        birthDate: '',
+        acceptTerms: false,
+        ...initial,
+      },
+    })
   const { errors, isSubmitting } = formState
   const err = (message?: string) => errorText(message)
+
+  // Onboarding: prefill the username from the name until the user edits it themselves.
+  const [usernameEdited, setUsernameEdited] = useState(false)
+  const displayName = useWatch({ control, name: 'displayName' })
+  useEffect(() => {
+    const name = displayName.trim()
+    if (initial || usernameEdited || name.length < 2) return
+    let alive = true
+    const timer = setTimeout(() => {
+      void suggestUsername(name).then((r) => {
+        if (alive && r.ok) setValue('username', r.data)
+      })
+    }, 500)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [displayName, initial, usernameEdited, setValue])
 
   const onSubmit = handleSubmit(async (values) => {
     const result = initial ? await updateProfile(values) : await createProfile(values)
@@ -63,10 +85,36 @@ export function ProfileForm({ tags, initial }: Props) {
         <Input
           id="displayName"
           autoComplete="given-name"
+          autoCapitalize="words"
+          enterKeyHint="next"
           aria-invalid={Boolean(errors.displayName) || undefined}
           {...register('displayName')}
         />
       </Field>
+      {!initial && (
+        <Field
+          label={dict.username.label}
+          htmlFor="username"
+          hint={usernameEdited ? dict.username.rules : dict.username.suggested}
+        >
+          <Controller
+            control={control}
+            name="username"
+            render={({ field }) => (
+              <UsernameField
+                id="username"
+                value={field.value}
+                onChange={(v) => {
+                  setUsernameEdited(true)
+                  field.onChange(v)
+                }}
+                onBlur={field.onBlur}
+                error={err(errors.username?.message)}
+              />
+            )}
+          />
+        </Field>
+      )}
       {!initial && (
         <>
           <Field
@@ -101,7 +149,13 @@ export function ProfileForm({ tags, initial }: Props) {
         />
       </Field>
       <Field label={dict.onboarding.city} htmlFor="city" error={err(errors.city?.message)}>
-        <Input id="city" autoComplete="address-level2" {...register('city')} />
+        <Input
+          id="city"
+          autoComplete="address-level2"
+          autoCapitalize="words"
+          enterKeyHint={initial ? 'done' : 'next'}
+          {...register('city')}
+        />
       </Field>
       <Controller
         control={control}
@@ -127,10 +181,23 @@ export function ProfileForm({ tags, initial }: Props) {
       {!initial && (
         <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
       )}
-      <FormError message={errorText(serverError)} />
-      <Button type="submit" loading={isSubmitting} fullWidth>
-        {initial ? dict.common.save : dict.common.continue}
-      </Button>
+      {initial ? (
+        // Editing: Save stays in reach above the tab bar instead of waiting at the end of a long
+        // form. It rests in place once the end of the form scrolls into view.
+        <div className="bg-background/90 border-border sticky bottom-[var(--tabbar-h)] z-20 -mx-4 -mb-6 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+          <FormError message={errorText(serverError)} />
+          <Button type="submit" loading={isSubmitting} fullWidth>
+            {dict.common.save}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <FormError message={errorText(serverError)} />
+          <Button type="submit" loading={isSubmitting} fullWidth>
+            {dict.common.continue}
+          </Button>
+        </>
+      )}
     </form>
   )
 }

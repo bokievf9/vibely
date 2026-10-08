@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { BadgeCheck } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
@@ -54,7 +54,7 @@ export function AuthorLine({ identity, fallbackName, size = 32, nameClassName, c
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`${dict.feed.profile}: ${a.name}`}
-        className="flex min-w-0 items-center gap-2 text-left"
+        className="flex min-w-0 items-center gap-2 rounded-full text-left transition-opacity active:opacity-70"
       >
         <Avatar
           photo={a.photoUrl ? { url: a.photoUrl, width: size, height: size } : null}
@@ -65,8 +65,12 @@ export function AuthorLine({ identity, fallbackName, size = 32, nameClassName, c
           {a.name}
           {a.age !== null && `, ${fmt(dict.feed.ageYears, { age: a.age })}`}
         </span>
-        {a.verified && (
-          <BadgeCheck className="text-accent size-4 shrink-0" aria-label={dict.feed.verified} />
+        {a.verified && <VerifiedBadge size={16} />}
+        {/* The handle gives way first: a long name and a long handle must not both end in "…". */}
+        {a.username && (
+          <span className="text-muted max-w-[45%] min-w-0 shrink-[3] truncate text-xs">
+            @{a.username}
+          </span>
         )}
         {children}
       </button>

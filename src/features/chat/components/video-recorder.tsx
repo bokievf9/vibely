@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
@@ -15,12 +16,14 @@ type Props = {
 }
 
 const RING_R = 48
+const EASE_OUT = [0.23, 1, 0.32, 1] as const
 const RING_C = 2 * Math.PI * RING_R
 
 // Full-screen video circle recorder: front camera preview in a circle, tap to start, tap again to
 // stop and send (also at 60 s). Mounted only while open, so the camera is on only meanwhile.
 export function VideoRecorder({ onClose, onDone, onError }: Props) {
   const { dict } = useI18n()
+  const reduce = useReducedMotion()
   const done = (r: Recording | null) => {
     onDone(r)
     onClose()
@@ -62,27 +65,37 @@ export function VideoRecorder({ onClose, onDone, onError }: Props) {
   }
 
   return (
-    <div
+    // Mounted inside <AnimatePresence> (chat composer): fades in, the circle grows from just
+    // below its size; it leaves faster than it came.
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-label={dict.media.recordVideo}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black/95 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.22, ease: EASE_OUT } }}
+      exit={{ opacity: 0, transition: { duration: 0.16, ease: EASE_OUT } }}
+      className="fixed inset-0 z-50 flex touch-none flex-col items-center justify-center gap-6 bg-neutral-950/95 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-neutral-50"
     >
       <button
         type="button"
         onClick={close}
         aria-label={dict.media.cancel}
-        className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 rounded-full bg-white/10 p-2"
+        className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 flex size-11 items-center justify-center rounded-full bg-neutral-50/15 transition-transform duration-150 ease-out active:scale-90"
       >
         <X className="size-6" />
       </button>
-      <div className="relative aspect-square w-[min(80vw,20rem)]">
+      <motion.div
+        className="relative aspect-square w-[min(80vw,20rem)]"
+        initial={{ transform: reduce ? 'scale(1)' : 'scale(0.9)' }}
+        animate={{ transform: 'scale(1)', transition: { duration: 0.3, ease: EASE_OUT } }}
+        exit={{ transform: reduce ? 'scale(1)' : 'scale(0.94)', transition: { duration: 0.16 } }}
+      >
         <video
           ref={preview}
           autoPlay
           muted
           playsInline
-          className="size-full -scale-x-100 rounded-full bg-white/5 object-cover"
+          className="size-full -scale-x-100 rounded-full bg-neutral-50/5 object-cover"
         />
         <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
           <circle
@@ -92,12 +105,12 @@ export function VideoRecorder({ onClose, onDone, onError }: Props) {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className="text-accent"
             strokeDasharray={RING_C}
             strokeDashoffset={RING_C * (1 - progress)}
+            className="text-accent transition-[stroke-dashoffset] duration-100 ease-linear"
           />
         </svg>
-      </div>
+      </motion.div>
       <p className="text-sm tabular-nums" role="status">
         {recording ? `${formatDuration(rec.elapsedMs)} / ${formatDuration(VIDEO_MAX_MS)}` : ' '}
       </p>
@@ -106,16 +119,16 @@ export function VideoRecorder({ onClose, onDone, onError }: Props) {
         onClick={toggle}
         disabled={rec.phase === 'idle'}
         aria-label={recording ? dict.media.stop : dict.media.start}
-        className="flex size-18 items-center justify-center rounded-full border-4 border-white disabled:opacity-40"
+        className="flex size-18 items-center justify-center rounded-full border-4 border-neutral-50 transition-transform duration-150 ease-out active:scale-95 disabled:opacity-40"
       >
         <span
           className={cn(
-            'bg-red-500 transition-all',
-            recording ? 'size-7 rounded-md' : 'size-14 rounded-full',
+            'size-14 bg-red-500 transition-[border-radius,transform,scale] duration-200 ease-out',
+            recording ? 'scale-50 rounded-xl' : 'rounded-full',
           )}
         />
       </button>
-      <p className="max-w-xs text-center text-xs text-white/60">{dict.media.safetyNote}</p>
-    </div>
+      <p className="max-w-xs text-center text-xs text-neutral-50/60">{dict.media.safetyNote}</p>
+    </motion.div>
   )
 }

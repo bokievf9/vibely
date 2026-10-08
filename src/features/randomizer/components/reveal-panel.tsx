@@ -7,10 +7,16 @@ import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import type { RandomSession } from '../types'
 
-type Props = { session: RandomSession; pending: boolean; onReveal: () => void }
+type Props = {
+  session: RandomSession
+  pending: boolean
+  // The chat has ended: the panel keeps its place but can no longer be used.
+  disabled?: boolean
+  onReveal: () => void
+}
 
 // Mutual consent: nothing is shown until both people press the button.
-export function RevealPanel({ session, pending, onReveal }: Props) {
+export function RevealPanel({ session, pending, disabled = false, onReveal }: Props) {
   const { dict } = useI18n()
   const { partner, matchId, myRevealed, partnerRevealed } = session
 
@@ -40,7 +46,7 @@ export function RevealPanel({ session, pending, onReveal }: Props) {
         {matchId && (
           <LocaleLink
             href={`/chats/${matchId}`}
-            className="bg-accent text-accent-foreground flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-semibold"
+            className="bg-accent text-accent-foreground flex h-11 shrink-0 items-center gap-1.5 rounded-2xl px-4 text-sm font-semibold transition-transform duration-150 active:scale-[0.97]"
           >
             <MessageCircle className="size-4" /> {dict.random.openChat}
           </LocaleLink>
@@ -61,8 +67,10 @@ export function RevealPanel({ session, pending, onReveal }: Props) {
       {!myRevealed && (
         <Button
           size="sm"
+          className="h-11"
           variant={partnerRevealed ? 'primary' : 'secondary'}
           loading={pending}
+          disabled={disabled}
           onClick={onReveal}
         >
           <Eye className="size-4" /> {dict.random.reveal}

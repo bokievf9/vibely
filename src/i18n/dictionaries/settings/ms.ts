@@ -20,6 +20,8 @@ export const settingsMs: SettingsDictionary = {
     'Anda tidak akan muncul dalam Teroka atau “Siapa suka anda”. Padanan dan sembang anda kekal. Sembang rawak hanya memadankan anda apabila anda sendiri mencari.',
   blocked: 'Pengguna yang disekat',
   blockedEmpty: 'Anda belum menyekat sesiapa.',
+  blockedEmptyHint:
+    'Apabila anda menyekat seseorang dari sembang atau profil, mereka akan muncul di sini.',
   unblock: 'Nyahsekat',
   unblockConfirm:
     'Nyahsekat {name}? Anda akan dapat melihat satu sama lain semula. Padanan yang telah dibuang tidak dipulihkan.',

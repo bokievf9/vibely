@@ -47,7 +47,7 @@ export function IcebreakerList({ matchId, onPick, className }: Props) {
             <button
               type="button"
               onClick={() => onPick(line)}
-              className="border-border bg-surface active:bg-border w-full rounded-2xl border px-4 py-2.5 text-left text-sm"
+              className="border-border bg-surface active:bg-border w-full rounded-2xl border px-4 py-2.5 text-left text-sm [overflow-wrap:anywhere] transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
             >
               {line}
             </button>

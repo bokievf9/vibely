@@ -20,7 +20,7 @@ export function ProfilePreview({ candidate }: { candidate: Candidate }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="bg-surface border-border flex h-12 items-center justify-center gap-2 rounded-2xl border font-semibold"
+        className="bg-surface border-border active:bg-border flex h-12 items-center justify-center gap-2 rounded-2xl border font-semibold transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
       >
         <Eye className="size-5" /> {dict.avatar.preview}
       </button>

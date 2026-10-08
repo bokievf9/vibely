@@ -1,13 +1,19 @@
 import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
 import { discoverRu } from './discover/ru'
+import { discoverUiRu } from './discoverui/ru'
 import { feedRu } from './feed/ru'
 import { callErrorsRu, callsRu } from './calls/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { likesRu, settingsRu } from './settings/ru'
 import { mediaRu } from './media/ru'
+import { chatUiRu } from './chatui/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
+import { usernameRu, usernameErrorsRu } from './username/ru'
+import { flowsRu } from './flowsui/ru'
+import { reportsRu } from './reports/ru'
+import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
@@ -21,9 +27,15 @@ export const ru: Dictionary = {
     loading: 'Загрузка',
     send: 'Отправить',
     back: 'Назад',
+    moreOptions: 'Ещё',
+    previous: 'Назад',
+    next: 'Далее',
+    retry: 'Повторить',
   },
   errors: {
     ...callErrorsRu,
+    ...usernameErrorsRu,
+    ...sanctionErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -160,6 +172,7 @@ export const ru: Dictionary = {
     randomizer: 'Рандом',
     profile: 'Профиль',
     unread: 'Непрочитанных: {count}',
+    label: 'Основная навигация',
   },
   swipe: {
     title: 'Знакомства',
@@ -170,7 +183,7 @@ export const ru: Dictionary = {
     pass: 'Пропустить',
     km: '{km} км от вас',
     showMe: 'Показывать',
-    age: 'Возраст: {min}–{max}',
+    age: 'Возраст: {min}-{max}',
     distance: 'Расстояние: до {km} км',
     apply: 'Применить',
     matchTitle: 'Это мэтч!',
@@ -178,6 +191,8 @@ export const ru: Dictionary = {
     sendMessage: 'Написать',
     keepSwiping: 'Смотреть дальше',
     refresh: 'Обновить',
+    minAge: 'Минимальный возраст',
+    maxAge: 'Максимальный возраст',
   },
   chats: {
     title: 'Чаты',
@@ -253,7 +268,7 @@ export const ru: Dictionary = {
     intro:
       'Анонимный чат со случайным верифицированным человеком. Если оба согласны, можно раскрыть профили.',
     lookingFor: 'С кем общаться',
-    age: 'Возраст: {min}–{max}',
+    age: 'Возраст: {min}-{max}',
     tags: 'Общие интересы (необязательно)',
     start: 'Найти собеседника',
     searching: 'Ищем собеседника…',
@@ -281,6 +296,8 @@ export const ru: Dictionary = {
     skip: 'Следующий',
     skipConfirm: 'Завершить этот чат и найти нового собеседника?',
     changeFilters: 'Изменить фильтры',
+    minAge: 'Минимальный возраст',
+    maxAge: 'Максимальный возраст',
   },
   legal: {
     privacy: 'Политика конфиденциальности',
@@ -308,8 +325,10 @@ export const ru: Dictionary = {
   settings: settingsRu,
   likes: likesRu,
   discover: discoverRu,
+  discoverui: discoverUiRu,
   media: mediaRu,
   calls: callsRu,
+  chatui: chatUiRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',
@@ -350,4 +369,8 @@ export const ru: Dictionary = {
   tags: tagsRu,
   tagCategories: tagCategoriesRu,
   avatar: avatarRu,
+  username: usernameRu,
+  flows: flowsRu,
+  reports: reportsRu,
+  sanctions: sanctionsRu,
 }

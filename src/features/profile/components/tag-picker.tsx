@@ -1,7 +1,7 @@
 'use client'
 
 import { useDeferredValue, useMemo, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { ChevronDown, Search, X } from 'lucide-react'
 import { Chip } from '@/components/ui/chip'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
@@ -19,11 +19,16 @@ const normalize = (s: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .toLocaleLowerCase()
 
+// How many chips the browse view shows before "Show all": enough to pick from, short enough that
+// the rest of the form stays reachable without a scroller nested inside the page.
+const PREVIEW_CHIPS = 24
+
 // Interests grouped by category: search (current language), category filter, selected row on top.
 export function TagPicker({ tags, value, onChange }: Props) {
   const { dict } = useI18n()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<TagCategory | null>(null)
+  const [expanded, setExpanded] = useState(false)
   const search = normalize(useDeferredValue(query).trim())
   const label = (tag: Tag) => dict.tags[tag.slug] ?? tag.slug
 
@@ -46,6 +51,20 @@ export function TagPicker({ tags, value, onChange }: Props) {
       tags: visible.filter((t) => t.category === c),
     })).filter((g) => g.tags.length > 0)
   }, [tags, search, category, dict.tags])
+
+  // Search results and a single category are short: show them whole. "All" is clamped inline.
+  const total = groups.reduce((n, g) => n + g.tags.length, 0)
+  const clamped = !search && !category && !expanded && total > PREVIEW_CHIPS
+  const shown = clamped
+    ? groups.reduce<{ left: number; out: typeof groups }>(
+        (acc, g) => {
+          if (acc.left <= 0) return acc
+          const part = g.tags.slice(0, acc.left)
+          return { left: acc.left - part.length, out: [...acc.out, { ...g, tags: part }] }
+        },
+        { left: PREVIEW_CHIPS, out: [] },
+      ).out
+    : groups
 
   const renderChip = (tag: Tag) => {
     const on = value.includes(tag.id)
@@ -110,10 +129,9 @@ export function TagPicker({ tags, value, onChange }: Props) {
         </div>
       )}
 
-      {/* Bounded height keeps the rest of the form reachable with ~100 interests. */}
-      <div className="flex max-h-[55vh] flex-col gap-4 overflow-y-auto overscroll-contain">
+      <div className="flex flex-col gap-4">
         {groups.length === 0 && <p className="text-muted py-2 text-sm">{dict.tagPicker.empty}</p>}
-        {groups.map((g) => (
+        {shown.map((g) => (
           <section key={g.category} className="flex flex-col gap-2">
             <h3 className="text-muted text-xs font-semibold tracking-wide uppercase">
               {dict.tagCategories[g.category]}
@@ -121,6 +139,22 @@ export function TagPicker({ tags, value, onChange }: Props) {
             <div className="flex flex-wrap gap-2">{g.tags.map(renderChip)}</div>
           </section>
         ))}
+        {!search && !category && total > PREVIEW_CHIPS && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="text-accent active:bg-accent/10 -mx-2 flex h-11 items-center gap-1 self-start rounded-full px-3 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.97]"
+          >
+            {expanded
+              ? dict.discoverui.showFewerTags
+              : fmt(dict.discoverui.showAllTags, { count: total })}
+            <ChevronDown
+              className={cn('size-4 transition-transform duration-200', expanded && 'rotate-180')}
+              aria-hidden
+            />
+          </button>
+        )}
       </div>
     </div>
   )

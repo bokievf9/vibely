@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { PageSpinner } from '@/components/ui/spinner'
 import { BannedBadge, VerificationBadge, formatDate } from '@/features/admin/components/badges'
 import { findUsers } from '@/features/admin/queries/users'
+import { maskPhone } from '@/features/admin/mask'
 
 export const metadata: Metadata = { title: 'Пользователи' }
 
@@ -32,7 +33,7 @@ async function Results({ searchParams }: Pick<PageProps<'/admin/users'>, 'search
         <Input
           name="q"
           defaultValue={query}
-          placeholder="Имя, телефон или ID"
+          placeholder="Имя, @username, телефон или ID"
           aria-label="Поиск"
           className="pl-12"
         />
@@ -48,7 +49,9 @@ async function Results({ searchParams }: Pick<PageProps<'/admin/users'>, 'search
                 className="bg-surface flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-4 py-3"
               >
                 <span className="font-medium">{u.display_name}</span>
-                <span className="text-muted text-sm">+{u.phone}</span>
+                <span className="text-muted text-sm">@{u.username}</span>
+                {/* Masked: the full number is revealed (and logged) on the user page. */}
+                <span className="text-muted text-sm">{maskPhone(u.phone)}</span>
                 <VerificationBadge status={u.verification_status} />
                 {u.banned_at && <BannedBadge />}
                 {u.open_reports > 0 && (

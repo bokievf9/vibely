@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { Check, CircleUserRound, ImagePlus, SendHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
-import { sendMessage } from '../actions'
 import { editMessage } from '../message-actions'
 import type { RecordKind } from '../media'
 import type { ChatMessage } from '../types'
 import { ComposerBanner, type ComposerMode } from './composer-banner'
+import { CHAT_BAR_MATERIAL_CLASS } from './chat-layout'
+import { ComposerStatus, type StatusRow } from './composer-status'
+import { useFlash } from './use-flash'
 import { usePhotoSend } from './use-photo-send'
 import type { Recording } from './use-recorder'
 import { useRecordingSend } from './use-recording-send'
@@ -27,11 +29,19 @@ type Props = {
   quoteAuthor: string
   // Floating content above the composer (the "scroll down" button).
   aside?: ReactNode
+  // An error from the room (reactions, delete, history) shown in the same floating status.
+  roomError?: string
   onCancelMode: () => void
+  // Text: optimistic, the bubble is already on screen; resolves with the error, if any.
+  onSend: (body: string, replyTo: string | null) => Promise<ErrorKey | null>
+  // Photo, voice, video: added once stored.
   onSent: (m: ChatMessage) => void
   onEdited: (id: string, body: string, editedAt: string) => void
   onTyping: () => void
 }
+
+// 6 lines of 1.5rem plus the vertical padding and border: then the field scrolls.
+const MAX_INPUT_PX = 6 * 24 + 20 + 2
 
 export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on }: Props) {
   const { dict } = useI18n()
@@ -39,8 +49,8 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
   const [draft, setDraft] = useState('')
   // The edit text belongs to the message being edited; the normal draft is kept meanwhile.
   const [edit, setEdit] = useState<{ id: string; text: string } | null>(null)
-  const [error, setError] = useState<ErrorKey>()
-  const [pending, startTransition] = useTransition()
+  const [error, flashError] = useFlash<ErrorKey>()
+  const [saving, startTransition] = useTransition()
   const photo = usePhotoSend(matchId, on.onSent)
   const recording = useRecordingSend(matchId, on.onSent)
   const [voiceActive, setVoiceActive] = useState(false)
@@ -69,61 +79,77 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
     if (prefill) inputRef.current?.focus()
   }, [prefill])
 
-  const submit = () =>
-    startTransition(async () => {
-      const body = text.trim()
-      if (!body) return
-      if (editing) {
+  // Auto-grow: `field-sizing: content` where supported (CSS below), measured otherwise.
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (!el || CSS.supports('field-sizing', 'content')) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight + 2, MAX_INPUT_PX)}px`
+  }, [text, voiceActive])
+
+  const submit = () => {
+    const body = text.trim()
+    if (!body) return
+    // Inside the tap/keypress: keeps the keyboard up on iOS.
+    inputRef.current?.focus()
+    if (editing) {
+      startTransition(async () => {
         const result = await editMessage({ messageId: editing.id, body })
-        if (!result.ok) return setError(result.error)
+        if (!result.ok) return flashError(result.error)
+        flashError(null)
         on.onEdited(editing.id, body, result.data)
         setEdit(null)
-      } else {
-        const result = await sendMessage({ matchId, body, replyTo })
-        if (!result.ok) return setError(result.error)
-        setDraft('')
-        on.onSent(result.data)
-      }
-      setError(undefined)
-      on.onCancelMode()
-    })
+        on.onCancelMode()
+      })
+      return
+    }
+    // Optimistic: the bubble shows at once and the field is ready for the next message.
+    setDraft('')
+    if (replyTo) on.onCancelMode()
+    void on.onSend(body, replyTo).then((failed) => failed && flashError(failed))
+  }
 
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return
     const failed = await photo.send(file, replyTo)
-    setError(failed ?? undefined)
+    flashError(failed)
     if (!failed && replyTo) on.onCancelMode()
   }
 
   const sendRecording = async (kind: RecordKind, r: Recording | null) => {
     const failed = await recording.send(kind, r, replyTo)
-    setError(failed ?? undefined)
+    flashError(failed)
     if (!failed && r && replyTo) on.onCancelMode()
   }
 
+  const status: StatusRow[] = []
+  const shownError = errorText(error) ?? on.roomError
+  if (shownError) status.push({ key: 'error', tone: 'error', text: shownError })
+  if (sending) {
+    status.push({
+      key: 'sending',
+      tone: 'progress',
+      text: photo.sending ? dict.chats.sendingPhoto : dict.media.sending,
+    })
+  }
+  if (voiceActive) status.push({ key: 'voice', tone: 'info', text: dict.media.safetyNote })
+
+  const canSend = !!text.trim()
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
         submit()
       }}
-      className="bg-background/95 border-border sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] flex flex-col gap-2 border-t px-3 py-2 backdrop-blur"
+      className="relative shrink-0 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] group-data-[keyboard]/chat:pb-2"
     >
-      {aside && <div className="absolute right-3 bottom-full mb-3">{aside}</div>}
-      {mode && <ComposerBanner mode={mode} author={quoteAuthor} onCancel={on.onCancelMode} />}
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {errorText(error)}
-        </p>
-      )}
-      {sending && (
-        <p className="text-muted flex items-center gap-2 text-sm" role="status">
-          <Spinner className="size-4" />{' '}
-          {photo.sending ? dict.chats.sendingPhoto : dict.media.sending}
-        </p>
-      )}
-      {voiceActive && <p className="text-muted text-xs">{dict.media.safetyNote}</p>}
-      <div className="flex items-end gap-1.5">
+      {/* Material on its own layer (see CHAT_BAR_MATERIAL_CLASS): the video recorder below is a
+          fixed overlay and must not be clipped to the composer. */}
+      <div aria-hidden className={`${CHAT_BAR_MATERIAL_CLASS} border-t`} />
+      {aside && <div className="absolute right-3 bottom-full mb-2">{aside}</div>}
+      <ComposerStatus rows={status} />
+      <ComposerBanner mode={mode} author={quoteAuthor} onCancel={on.onCancelMode} />
+      <div className="relative flex items-end gap-1">
         {!editing && !voiceActive && (
           <>
             <IconButton
@@ -161,44 +187,51 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
             if (e.target.value.trim()) on.onTyping()
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               submit()
             } else if (e.key === 'Escape' && mode) on.onCancelMode()
           }}
           rows={1}
           maxLength={2000}
+          enterKeyHint="send"
+          autoCapitalize="sentences"
           placeholder={dict.chats.placeholder}
           aria-label={dict.chats.placeholder}
-          className="bg-surface border-border focus:border-accent max-h-32 min-h-11 flex-1 resize-none rounded-2xl border px-4 py-2.5 outline-none"
+          style={{ maxHeight: MAX_INPUT_PX }}
+          className="bg-surface border-border focus:border-accent/60 [field-sizing:content] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto overscroll-contain rounded-2xl border px-4 py-2.5 leading-6 transition-[border-color] duration-150 outline-none"
         />
-        {!editing && !text.trim() ? (
+        {!editing && !canSend ? (
           <VoiceRecorder
             disabled={sending}
             onActiveChange={setVoiceActive}
             onDone={(r) => void sendRecording('voice', r)}
-            onError={setError}
+            onError={flashError}
           />
         ) : (
           <Button
             type="submit"
             size="icon"
-            className="size-11 shrink-0 rounded-full"
-            loading={pending}
-            disabled={!text.trim()}
+            // Never take focus from the field: the keyboard stays up between messages.
+            onPointerDown={(e) => e.preventDefault()}
+            className="size-11 shrink-0 rounded-full transition-[transform,scale,opacity] starting:scale-75 starting:opacity-0"
+            loading={saving}
+            disabled={!canSend}
             aria-label={editing ? dict.common.save : dict.common.send}
           >
             {editing ? <Check className="size-5" /> : <SendHorizontal className="size-5" />}
           </Button>
         )}
       </div>
-      {videoOpen && (
-        <VideoRecorder
-          onClose={() => setVideoOpen(false)}
-          onDone={(r) => void sendRecording('video', r)}
-          onError={setError}
-        />
-      )}
+      <AnimatePresence>
+        {videoOpen && (
+          <VideoRecorder
+            onClose={() => setVideoOpen(false)}
+            onDone={(r) => void sendRecording('video', r)}
+            onError={flashError}
+          />
+        )}
+      </AnimatePresence>
     </form>
   )
 }
@@ -217,7 +250,7 @@ function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="text-muted flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
+      className="text-muted active:bg-surface flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50"
     >
       {children}
     </button>

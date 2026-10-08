@@ -42,11 +42,17 @@ function Prompt() {
         <BellRing className="text-accent size-5 shrink-0" aria-hidden /> {dict.push.promptText}
       </p>
       {failed || status === 'blocked' ? (
-        <p className="text-sm text-red-400">
+        <p className="text-danger text-sm">
           {status === 'blocked' ? dict.push.blocked : dict.push.failed}
         </p>
       ) : (
-        <Button variant="secondary" size="sm" loading={busy} onClick={() => void enable()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-11"
+          loading={busy}
+          onClick={() => void enable()}
+        >
           {dict.push.promptButton}
         </Button>
       )}

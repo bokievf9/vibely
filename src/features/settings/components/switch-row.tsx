@@ -1,6 +1,6 @@
 'use client'
 
-import { useOptimistic, useState, useTransition, type ReactNode } from 'react'
+import { useOptimistic, useState, useTransition, type MouseEvent, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { useErrorText } from '@/i18n/client'
@@ -40,14 +40,30 @@ export function SwitchRow({ label, icon: Icon, hint, initial, save }: RowProps) 
   const { on, pending, error, toggle } = useSavedToggle(initial, save)
   const note = error ? errorText(error) : hint
   return (
-    <div className="flex flex-col gap-1.5 p-4">
+    <div {...pressableRow(toggle, pending)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 font-medium">
-          {Icon && <Icon className="size-5 shrink-0" aria-hidden />} {label}
+        <span className="flex min-w-0 items-center gap-2 font-medium">
+          {Icon && <Icon className="size-5 shrink-0" aria-hidden />}
+          <span className="min-w-0">{label}</span>
         </span>
         <Switch checked={on} onToggle={toggle} label={label} disabled={pending} />
       </div>
-      {note && <p className={cn('text-sm', error ? 'text-red-400' : 'text-muted')}>{note}</p>}
+      {note && <p className={cn('text-sm', error ? 'text-danger' : 'text-muted')}>{note}</p>}
     </div>
   )
+}
+
+// The whole row is the tap target (the switch alone is 28px tall) and darkens on press.
+// The switch stays the one accessible control, so a tap on it is not counted twice.
+export function pressableRow(toggle: () => void, disabled: boolean) {
+  return {
+    className: cn(
+      'flex flex-col gap-1.5 p-4 transition-colors',
+      !disabled && 'cursor-pointer active:bg-border/50',
+    ),
+    onClick: (e: MouseEvent<HTMLDivElement>) => {
+      if (disabled || (e.target as HTMLElement).closest('[role="switch"], a, button')) return
+      toggle()
+    },
+  }
 }

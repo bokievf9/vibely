@@ -65,17 +65,26 @@ export function DeckEnd({ filters, onWiden, onRefresh, onOpenFilters, onAlertCha
   const options = [info?.widerKm, info?.widerAge]
 
   return (
-    <div className="flex flex-col gap-4 py-4">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <SearchX className="text-muted size-12" aria-hidden />
-        <h2 className="text-xl font-semibold">{t.emptyTitle}</h2>
-        <p className="text-muted max-w-xs text-sm">{t.emptyText}</p>
+    <div className="animate-rise flex flex-col gap-4 py-4">
+      <div className="flex flex-col items-center gap-2 pt-2 pb-1 text-center">
+        <span className="bg-accent/10 text-accent mb-1 flex size-16 items-center justify-center rounded-full">
+          <SearchX className="size-8" aria-hidden />
+        </span>
+        <h2 className="text-xl font-semibold text-balance">{t.emptyTitle}</h2>
+        <p className="text-muted max-w-xs text-sm text-pretty">{t.emptyText}</p>
       </div>
+      {/* The first real way out is the primary action; the rest stay secondary. */}
       {options.map(
         (o, i) =>
           o && (
-            <Button key={i} variant="secondary" fullWidth onClick={() => onWiden(o.filters)}>
-              <Expand className="size-5" aria-hidden /> {widen[i]}
+            <Button
+              key={i}
+              variant={i === options.findIndex(Boolean) ? 'primary' : 'secondary'}
+              fullWidth
+              className="h-auto min-h-12 py-3"
+              onClick={() => onWiden(o.filters)}
+            >
+              <Expand className="size-5 shrink-0" aria-hidden /> {widen[i]}
             </Button>
           ),
       )}
@@ -118,9 +127,11 @@ function LinkCard({ href, icon: Icon, title, text }: LinkCardProps) {
   return (
     <LocaleLink
       href={href}
-      className="bg-surface border-border active:bg-border flex items-center gap-3 rounded-2xl border p-4"
+      className="bg-surface border-border active:bg-border flex min-h-16 items-center gap-3 rounded-2xl border p-4 transition-[transform,scale,background-color] duration-150 ease-out select-none active:scale-[0.98]"
     >
-      <Icon className="text-accent size-6 shrink-0" aria-hidden />
+      <span className="bg-accent/10 text-accent flex size-10 shrink-0 items-center justify-center rounded-full">
+        <Icon className="size-5" aria-hidden />
+      </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="font-medium">{title}</span>
         <span className="text-muted truncate text-sm">{text}</span>

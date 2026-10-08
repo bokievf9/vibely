@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, Share2, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { publicEnv } from '@/lib/env'
@@ -15,6 +15,13 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
   const [copied, setCopied] = useState(false)
   const url = `${publicEnv.NEXT_PUBLIC_SITE_URL}/${locale}?${REF_PARAM}=${code}`
 
+  // "Link copied" reverts after a moment; the timer dies with the card.
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 2500)
+    return () => clearTimeout(timer)
+  }, [copied])
+
   const share = async () => {
     if (typeof navigator.share === 'function') {
       try {
@@ -28,7 +35,6 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
     try {
       await navigator.clipboard.writeText(`${t.inviteMessage} ${url}`)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
     } catch {
       window.prompt(t.inviteShare, url)
     }

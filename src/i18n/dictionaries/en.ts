@@ -1,12 +1,18 @@
 import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
 import { discoverEn } from './discover/en'
+import { discoverUiEn } from './discoverui/en'
 import { feedEn } from './feed/en'
 import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
 import { likesEn, settingsEn } from './settings/en'
 import { mediaEn } from './media/en'
+import { chatUiEn } from './chatui/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
+import { usernameEn, usernameErrorsEn } from './username/en'
+import { flowsEn } from './flowsui/en'
+import { reportsEn } from './reports/en'
+import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -20,9 +26,15 @@ export const en = {
     loading: 'Loading',
     send: 'Send',
     back: 'Back',
+    moreOptions: 'More options',
+    previous: 'Previous',
+    next: 'Next',
+    retry: 'Try again',
   },
   errors: {
     ...callErrorsEn,
+    ...usernameErrorsEn,
+    ...sanctionErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -158,6 +170,7 @@ export const en = {
     randomizer: 'Random',
     profile: 'Profile',
     unread: 'Unread: {count}',
+    label: 'Main navigation',
   },
   swipe: {
     title: 'Discover',
@@ -168,7 +181,7 @@ export const en = {
     pass: 'Pass',
     km: '{km} km away',
     showMe: 'Show me',
-    age: 'Age: {min}–{max}',
+    age: 'Age: {min}-{max}',
     distance: 'Distance: up to {km} km',
     apply: 'Apply',
     matchTitle: "It's a match!",
@@ -176,6 +189,8 @@ export const en = {
     sendMessage: 'Send a message',
     keepSwiping: 'Keep swiping',
     refresh: 'Refresh',
+    minAge: 'Minimum age',
+    maxAge: 'Maximum age',
   },
   chats: {
     title: 'Chats',
@@ -251,7 +266,7 @@ export const en = {
     intro:
       'Chat anonymously with a random verified person. If you both agree, you can reveal your profiles.',
     lookingFor: 'Talk to',
-    age: 'Age: {min}–{max}',
+    age: 'Age: {min}-{max}',
     tags: 'Common interests (optional)',
     start: 'Find someone',
     searching: 'Looking for someone…',
@@ -279,6 +294,8 @@ export const en = {
     skip: 'Next',
     skipConfirm: 'End this chat and find someone new?',
     changeFilters: 'Change filters',
+    minAge: 'Minimum age',
+    maxAge: 'Maximum age',
   },
   legal: {
     privacy: 'Privacy Policy',
@@ -306,8 +323,10 @@ export const en = {
   settings: settingsEn,
   likes: likesEn,
   discover: discoverEn,
+  discoverui: discoverUiEn,
   media: mediaEn,
   calls: callsEn,
+  chatui: chatUiEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',
@@ -347,6 +366,10 @@ export const en = {
   tags: tagsEn,
   tagCategories: tagCategoriesEn,
   avatar: avatarEn,
+  username: usernameEn,
+  flows: flowsEn,
+  reports: reportsEn,
+  sanctions: sanctionsEn,
 }
 
 export type Dictionary = typeof en

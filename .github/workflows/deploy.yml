@@ -55,6 +55,10 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build
+        # Version skew protection: a browser still running an older build gets a full reload
+        # instead of "Failed to find Server Action" (e.g. an installed PWA after a deploy).
+        env:
+          NEXT_DEPLOYMENT_ID: ${{ github.sha }}
         run: npm run build
       - name: Assemble release
         run: |

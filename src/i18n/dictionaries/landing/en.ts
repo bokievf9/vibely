@@ -10,7 +10,6 @@ export const landingEn = {
     subtitle:
       'Every profile is checked by a human moderator with a live selfie. No bots, no catfish, no endless fakes.',
     cta: 'Get started',
-    note: 'Free during beta · 18+ · Malaysian numbers only',
   },
   featuresTitle: 'Three ways to meet',
   features: {
@@ -58,7 +57,7 @@ export const landingEn = {
     },
   ],
   ctaTitle: 'Ready to meet someone real?',
-  ctaButton: 'Sign up with your phone',
+  ctaNote: 'Free during beta. 18+. Malaysian numbers only.',
   footer: {
     privacy: 'Privacy policy',
     terms: 'Terms of use',

@@ -52,6 +52,7 @@ export type MessagePage = { messages: ChatMessage[]; reactions: Reaction[]; hasM
 export type Partner = {
   id: string
   name: string
+  username: string
   photo: { url: string; width: number; height: number } | null
 }
 
@@ -63,6 +64,9 @@ export type ChatPreview = {
   lastMessage: { body: string | null; kind: PreviewKind; mine: boolean; at: string } | null
   unread: number
   createdAt: string
+  // Real presence only: the list shows the online dot when this is true. Left unset until the list
+  // query reads presence through the same rules as the chat header (show_last_seen on both sides).
+  online?: boolean
 }
 
 export const EDIT_WINDOW_MS = 15 * 60 * 1000

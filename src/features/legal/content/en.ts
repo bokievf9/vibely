@@ -35,6 +35,7 @@ export const en: LegalContent = {
           'To keep people safe, everything that happens in Vibely is recorded and stored: chat messages, photos, voice and video messages, random chats, feed content and all audio and video calls (calls are recorded on our servers, and you always see a "This call is recorded" notice during a call). We never record anything without telling you.',
           'These recordings are kept for up to 90 days and then deleted automatically. Material connected to an open report or moderation case is kept until that case is resolved. Recordings are stored privately and are never shown to other users. Only our moderators can open them, only while handling a report, and every access is logged.',
           'Every profile must pass a selfie check. Your selfie is reviewed by a human moderator only and is never published or shown to other users. The selfie file is kept for up to 90 days (so moderators can check it if the account is reported) and then deleted automatically; we keep the result (approved or rejected, and the reason for a rejection).',
+          'Your verification selfie, together with up to 3 of your profile photos, may be reviewed by our moderators through a private moderation channel in Telegram, and these photos are removed from that channel after the review or within 2 days at the latest.',
         ],
       },
       {
@@ -58,6 +59,9 @@ export const en: LegalContent = {
         paragraphs: [
           'When you report someone, our moderators see the reported content and its context (for example, the chat in question). The person you report is not told who reported them. Moderators may hide content or block accounts, and every decision is recorded.',
           'When you block someone, you stop seeing each other and any match between you is removed.',
+          'Our systems automatically check chat and random chat messages for signs of scams or unsafe contact (for example phone numbers, links to other messengers or requests for money). This never blocks or changes your messages. It only flags them so that a moderator can take a look, and flags are deleted after 90 days.',
+          'If you break our rules, we may give you a warning, temporarily stop you from sending messages and posts, limit who can see your content, or suspend or ban your account. We keep a record of these decisions and the reason for them. If your account is suspended or banned, you can appeal from the app and a moderator will review your appeal.',
+          'Every time a moderator opens a selfie, a phone number, a conversation, media or a call recording, this is logged. If you unmatch or block someone while a report between you is open, the conversation is kept for the moderators until the report is resolved.',
         ],
       },
       {
@@ -69,6 +73,8 @@ export const en: LegalContent = {
         list: [
           'Supabase: database, sign-in and file storage hosting.',
           'Twilio: sending SMS sign-in codes.',
+          'DigitalOcean: application servers and storage of call recordings.',
+          'Telegram: a private channel our moderators use to review verification selfies (see section 3).',
         ],
       },
       {
@@ -82,6 +88,7 @@ export const en: LegalContent = {
         paragraphs: [
           'We keep your data while your account exists, except for safety recordings: photos, voice and video messages sent in chats, call recordings, verification selfies and random chat messages are deleted automatically after 90 days, unless they are part of an open report. A chat photo, voice or video message that has expired is shown as "expired".',
           'When you delete your account, we immediately delete your profile, photos, selfies, matches, messages, posts, comments, likes, blocks and the reports you made. Reports other people made about you and moderation records may be kept to prevent abuse, for example to stop a banned person from returning. Backups are overwritten within a limited period.',
+          'We may keep specific data longer than 90 days when it is needed to deal with a serious safety issue, a legal claim or a request from Malaysian authorities. In that case it is kept only as long as necessary and access to it is logged.',
         ],
       },
       {
@@ -166,7 +173,9 @@ export const en: LegalContent = {
       {
         heading: '6. Moderation',
         paragraphs: [
-          'Reports are reviewed by people. We may hide content, limit features or ban accounts that break these Terms or put others at risk, with or without notice. If you think we made a mistake, contact us.',
+          'Reports are reviewed by people. If you break these Terms or put others at risk, we may hide your content, give you a warning, temporarily stop you from sending messages and posts, limit who can see your content, or suspend your account for a period or ban it permanently. Serious violations (for example anything involving minors, threats or scams) can lead to an immediate permanent ban.',
+          'If your account is suspended or banned, you can appeal from the screen you see when you sign in. A moderator reviews each appeal and you will see the decision in the app. You can also contact us by email.',
+          'We may preserve information connected to a report and share it with Malaysian authorities when the law requires it.',
           "For everyone's safety, messages, photos, voice and video messages and audio and video calls are recorded and stored for up to 90 days (longer only while a report about them is open). Only moderators handling a report can access them. See the Privacy Policy, section 3.",
         ],
       },

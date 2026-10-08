@@ -19,6 +19,11 @@ export function useI18n(): I18n {
   return value
 }
 
+// For shared UI that also renders in the admin panel, which has no provider.
+export function useOptionalI18n(): I18n | null {
+  return use(I18nContext)
+}
+
 // Server Actions return error keys; this turns one into text.
 export function useErrorText() {
   const { dict } = useI18n()

@@ -10,8 +10,9 @@ import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
+import { cn } from '@/lib/utils'
 import { swipe } from '@/features/swipe/actions'
-import { MatchModal } from '@/features/swipe/components/match-modal'
+import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
 import { LikeSheet } from './like-sheet'
 
@@ -24,7 +25,7 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
   const [open, setOpen] = useState<Candidate | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ErrorKey>()
-  const [match, setMatch] = useState<{ id: string; name: string } | null>(null)
+  const [match, setMatch] = useState<MatchInfo | null>(null)
 
   const decide = async (person: Candidate, direction: 'like' | 'pass') => {
     setBusy(true)
@@ -36,7 +37,7 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
     setOpen(null)
     if (!result.data.matchId) return
     trackOnce('first_match')
-    setMatch({ id: result.data.matchId, name: person.name })
+    setMatch({ id: result.data.matchId, name: person.name, photo: person.photos[0]?.url ?? null })
   }
 
   return (
@@ -48,17 +49,18 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
         <>
           <p className="text-muted text-sm">{dict.likes.hint}</p>
           <ul className="grid grid-cols-2 gap-3">
-            {people.map((person) => (
+            {people.map((person, i) => (
               <li key={person.id}>
                 <button
                   type="button"
                   onClick={() => setOpen(person)}
                   aria-label={fmt(dict.likes.view, { name: person.name })}
-                  className="bg-surface relative block aspect-[3/4] w-full overflow-hidden rounded-2xl text-left"
+                  className="bg-surface relative block aspect-[3/4] w-full overflow-hidden rounded-2xl text-left transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
-                  <GridPhoto person={person} />
-                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-3 pt-10 font-semibold text-white">
-                    {person.name}, <span className="font-normal">{person.age}</span>
+                  <GridPhoto person={person} eager={i < 4} />
+                  <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-gradient-to-t from-black/85 to-transparent p-3 pt-10 font-semibold text-white">
+                    <span className="truncate">{person.name}</span>
+                    <span className="shrink-0 font-normal">, {person.age}</span>
                   </span>
                 </button>
               </li>
@@ -82,7 +84,8 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
   )
 }
 
-function GridPhoto({ person }: { person: Candidate }) {
+function GridPhoto({ person, eager }: { person: Candidate; eager: boolean }) {
+  const [loaded, setLoaded] = useState(false)
   const photo = person.photos[0]
   if (!photo) {
     return (
@@ -98,7 +101,12 @@ function GridPhoto({ person }: { person: Candidate }) {
       width={photo.width}
       height={photo.height}
       sizes="(max-width: 448px) 50vw, 224px"
-      className="size-full object-cover"
+      loading={eager ? 'eager' : 'lazy'}
+      onLoad={() => setLoaded(true)}
+      className={cn(
+        'size-full object-cover transition-opacity duration-300 ease-out',
+        loaded ? 'opacity-100' : 'opacity-0',
+      )}
     />
   )
 }
