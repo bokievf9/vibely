@@ -14,6 +14,8 @@
      reads as the accent; verified is a calm blue. All pass 4.5:1 as text on --background. */
   --success: #4cc38a;
   --danger: #e5484d;
+  /* Fill behind white text (4.8:1); --danger stays for red text on the dark background (5:1). */
+  --danger-strong: #cf3b40;
   --warning: #f2b54b;
   --verified: #4f9df7;
 
@@ -34,6 +36,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
   --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
   --color-warning: var(--warning);
   --color-verified: var(--verified);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;

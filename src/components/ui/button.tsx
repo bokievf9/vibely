@@ -6,7 +6,7 @@ const variants = {
   primary: 'bg-accent text-accent-foreground active:opacity-90',
   secondary: 'bg-surface text-foreground border border-border active:bg-border',
   ghost: 'text-foreground active:bg-surface',
-  danger: 'bg-danger text-white active:opacity-90',
+  danger: 'bg-danger-strong text-white active:opacity-90',
 } as const
 
 // sm is 40px tall but its ::before hit area reaches 44px, so small buttons still pass touch-target
