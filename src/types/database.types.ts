@@ -262,38 +262,82 @@ export type Database = {
       message_deletions: {
         Row: {
           body: string | null
+          cause: string
           deleted_at: string
           match_id: string
           media_kind: string | null
           media_mime: string | null
           media_path: string | null
           message_id: string
+          recipient_id: string | null
           sender_id: string
           sent_at: string
         }
         Insert: {
           body?: string | null
+          cause?: string
           deleted_at?: string
           match_id: string
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
           message_id: string
+          recipient_id?: string | null
           sender_id: string
           sent_at: string
         }
         Update: {
           body?: string | null
+          cause?: string
           deleted_at?: string
           match_id?: string
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
           message_id?: string
+          recipient_id?: string | null
           sender_id?: string
           sent_at?: string
         }
         Relationships: []
+      }
+      message_flags: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          keyword: string | null
+          kind: string
+          message_id: string
+          sender_id: string
+          source: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          keyword?: string | null
+          kind: string
+          message_id: string
+          sender_id: string
+          source: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          keyword?: string | null
+          kind?: string
+          message_id?: string
+          sender_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'message_flags_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
       }
       message_reactions: {
         Row: {
@@ -537,6 +581,35 @@ export type Database = {
             columns: ['user_id']
             isOneToOne: true
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      photo_reviews: {
+        Row: {
+          decision: string
+          photo_id: string
+          reviewed_at: string
+          reviewed_by: string | null
+        }
+        Insert: {
+          decision: string
+          photo_id: string
+          reviewed_at?: string
+          reviewed_by?: string | null
+        }
+        Update: {
+          decision?: string
+          photo_id?: string
+          reviewed_at?: string
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'photo_reviews_photo_id_fkey'
+            columns: ['photo_id']
+            isOneToOne: true
+            referencedRelation: 'profile_photos'
             referencedColumns: ['id']
           },
         ]
@@ -1086,37 +1159,64 @@ export type Database = {
           },
         ]
       }
+      report_claims: {
+        Row: {
+          claimed_at: string
+          claimed_by: string
+          target_id: string
+          target_type: Database['public']['Enums']['report_target']
+        }
+        Insert: {
+          claimed_at?: string
+          claimed_by: string
+          target_id: string
+          target_type: Database['public']['Enums']['report_target']
+        }
+        Update: {
+          claimed_at?: string
+          claimed_by?: string
+          target_id?: string
+          target_type?: Database['public']['Enums']['report_target']
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           created_at: string
+          decision: string | null
           id: string
           reason: string
           reporter_id: string
           resolution: string | null
           resolved_at: string | null
           resolved_by: string | null
+          subject_id: string | null
           target_id: string
           target_type: Database['public']['Enums']['report_target']
         }
         Insert: {
           created_at?: string
+          decision?: string | null
           id?: string
           reason: string
           reporter_id?: string
           resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          subject_id?: string | null
           target_id: string
           target_type: Database['public']['Enums']['report_target']
         }
         Update: {
           created_at?: string
+          decision?: string | null
           id?: string
           reason?: string
           reporter_id?: string
           resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          subject_id?: string | null
           target_id?: string
           target_type?: Database['public']['Enums']['report_target']
         }
@@ -1129,6 +1229,30 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      risk_keywords: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          keyword: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keyword: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keyword?: string
+          weight?: number
+        }
+        Relationships: []
       }
       swipes: {
         Row: {
@@ -1285,6 +1409,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_risk_scores: {
+        Row: {
+          conversations: number
+          flags: number
+          kinds: Json
+          last_flag_at: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversations: number
+          flags: number
+          kinds?: Json
+          last_flag_at: string
+          score: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversations?: number
+          flags?: number
+          kinds?: Json
+          last_flag_at?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_risk_scores_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       verification_requests: {
         Row: {
           challenge: string
@@ -1395,9 +1557,33 @@ export type Database = {
     }
     Functions: {
       accept_calls_notice: { Args: never; Returns: string }
+      admin_add_risk_keyword: {
+        Args: { p_admin: string; p_keyword: string; p_weight?: number }
+        Returns: string
+      }
+      admin_approve_photos: {
+        Args: { p_admin: string; p_photos: string[] }
+        Returns: number
+      }
+      admin_bulk_dismiss: {
+        Args: { p_admin: string; p_reason?: string; p_targets: Json }
+        Returns: number
+      }
+      admin_claim_report: {
+        Args: {
+          p_admin: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: string
+      }
       admin_delete_photo: {
         Args: { p_admin: string; p_photo: string; p_reason: string }
         Returns: string
+      }
+      admin_delete_photos: {
+        Args: { p_admin: string; p_photos: string[]; p_reason: string }
+        Returns: string[]
       }
       admin_find_users: {
         Args: { p_admin: string; p_limit?: number; p_query?: string }
@@ -1412,9 +1598,155 @@ export type Database = {
           verification_status: Database['public']['Enums']['verification_status']
         }[]
       }
+      admin_flagged_users: {
+        Args: { p_admin: string; p_limit?: number; p_min_score?: number; p_offset?: number }
+        Returns: {
+          banned: boolean
+          conversations: number
+          display_name: string
+          flags: number
+          kinds: Json
+          last_flag_at: string
+          open_reports: number
+          score: number
+          total: number
+          user_id: string
+          username: string
+        }[]
+      }
       admin_open_call_recording: {
         Args: { p_admin: string; p_call: string; p_reason?: string }
         Returns: string
+      }
+      admin_open_chat_media: {
+        Args: {
+          p_admin: string
+          p_message: string
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: {
+          media_kind: string
+          media_mime: string
+          path: string
+        }[]
+      }
+      admin_open_chat_transcript: {
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: {
+          body: string
+          created_at: string
+          deleted: boolean
+          edited_at: string
+          has_media: boolean
+          media_duration_ms: number
+          media_kind: string
+          message_id: string
+          reported: boolean
+          sender_id: string
+          unmatched: boolean
+        }[]
+      }
+      admin_photo_queue: {
+        Args: {
+          p_admin: string
+          p_days?: number
+          p_limit?: number
+          p_offset?: number
+          p_scope?: string
+        }
+        Returns: {
+          created_at: string
+          display_name: string
+          height: number
+          id: string
+          open_reports: number
+          profile_id: string
+          reviewed: boolean
+          storage_path: string
+          total: number
+          verification_status: Database['public']['Enums']['verification_status']
+          width: number
+        }[]
+      }
+      admin_release_report: {
+        Args: {
+          p_admin: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: boolean
+      }
+      admin_remove_risk_keyword: {
+        Args: { p_admin: string; p_id: string }
+        Returns: undefined
+      }
+      admin_report_history: {
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_offset?: number
+          p_reason?: string
+          p_target_type?: Database['public']['Enums']['report_target']
+        }
+        Returns: {
+          decision: string
+          first_reported_at: string
+          reasons: string[]
+          report_count: number
+          resolution: string
+          resolved_at: string
+          resolved_by: string
+          subject_id: string
+          target_id: string
+          target_type: Database['public']['Enums']['report_target']
+          total: number
+        }[]
+      }
+      admin_report_queue: {
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_mine?: boolean
+          p_offset?: number
+          p_reason?: string
+          p_status?: string
+          p_target_type?: Database['public']['Enums']['report_target']
+        }
+        Returns: {
+          claimed_at: string
+          claimed_by: string
+          first_reported_at: string
+          last_reported_at: string
+          priority: number
+          reasons: string[]
+          report_count: number
+          reporter_count: number
+          status: string
+          subject_id: string
+          target_id: string
+          target_type: Database['public']['Enums']['report_target']
+          tier: number
+          total: number
+        }[]
+      }
+      admin_resolve_case: {
+        Args: {
+          p_admin: string
+          p_decision: string
+          p_offender?: string
+          p_reason?: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: Json
       }
       admin_resolve_reports: {
         Args: {
@@ -1529,6 +1861,13 @@ export type Database = {
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
       delete_message: { Args: { p_id: string }; Returns: string }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
+      detect_message_risk: {
+        Args: { p_text: string }
+        Returns: {
+          keyword: string
+          kind: string
+        }[]
+      }
       edit_message: { Args: { p_body: string; p_id: string }; Returns: string }
       end_call: {
         Args: { p_call: string }
@@ -1542,6 +1881,14 @@ export type Database = {
         }
         Returns: string
       }
+      evidence_case_subject: {
+        Args: {
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: string
+      }
       expire_stale_calls: { Args: never; Returns: undefined }
       feed_pseudonym: {
         Args: { p_alias: number; p_post: string }
@@ -1551,6 +1898,16 @@ export type Database = {
       finish_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
+      }
+      flag_message_risk: {
+        Args: {
+          p_body: string
+          p_conversation: string
+          p_message: string
+          p_sender: string
+          p_source: string
+        }
+        Returns: undefined
       }
       generate_username: { Args: { p_name: string }; Returns: string }
       get_blocked_users: {
@@ -1691,6 +2048,10 @@ export type Database = {
       normalize_username: { Args: { u: string }; Returns: string }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
+      purge_old_message_flags: {
+        Args: never
+        Returns: number
+      }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
@@ -1711,7 +2072,27 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      refresh_user_risk: {
+        Args: { p_user: string }
+        Returns: number
+      }
       reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
+      report_claim_ttl: {
+        Args: never
+        Returns: unknown
+      }
+      report_is_personal: {
+        Args: { t: Database['public']['Enums']['report_target'] }
+        Returns: boolean
+      }
+      report_reason_code: {
+        Args: { p_reason: string }
+        Returns: string
+      }
+      report_reason_tier: {
+        Args: { p_reason: string }
+        Returns: number
+      }
       retention_chat_media: {
         Args: { p_limit?: number }
         Returns: {
@@ -1739,6 +2120,18 @@ export type Database = {
         Returns: string[]
       }
       retention_selfies: { Args: { p_limit?: number }; Returns: string[] }
+      risk_kind_weight: {
+        Args: { p_kind: string }
+        Returns: number
+      }
+      risk_normalize: {
+        Args: { p_text: string }
+        Returns: string
+      }
+      risk_score_threshold: {
+        Args: never
+        Returns: number
+      }
       search_profiles_by_username: {
         Args: { lim?: number; q: string }
         Returns: {
@@ -1888,7 +2281,7 @@ export type Database = {
         | 'other'
         | 'none'
         | 'prefer_not_to_say'
-      report_target: 'user' | 'post' | 'comment' | 'random_session'
+      report_target: 'user' | 'post' | 'comment' | 'random_session' | 'message' | 'photo' | 'call'
       spoken_language:
         | 'malay'
         | 'english'
@@ -2047,7 +2440,7 @@ export const Constants = {
         'none',
         'prefer_not_to_say',
       ],
-      report_target: ['user', 'post', 'comment', 'random_session'],
+      report_target: ['user', 'post', 'comment', 'random_session', 'message', 'photo', 'call'],
       spoken_language: [
         'malay',
         'english',
