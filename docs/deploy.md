@@ -6,7 +6,7 @@
 ## Один раз на сервере
 
 ```bash
-# Node 22 LTS (Next 16 требует >= 20.9)
+# Node 22 LTS, не ниже 22.22: этого требует jsdom (isomorphic-dompurify), Node 20 не подходит
 node -v
 cd /var/www/vibely && git remote -v        # должен смотреть на GitHub-репозиторий
 
