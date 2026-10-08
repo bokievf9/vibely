@@ -76,7 +76,7 @@ export function PromptsEditor({ value = [], onChange, errorFor }: Props) {
               onChange={(e) => update(i, { answer: e.target.value })}
             />
             <div className="flex justify-between gap-2 text-xs">
-              <span role={error ? 'alert' : undefined} className="text-red-400">
+              <span role={error ? 'alert' : undefined} className="text-danger">
                 {error}
               </span>
               <span className="text-muted">

@@ -34,7 +34,7 @@ export function MoreAboutSection({ control, register, errors }: Props) {
           )}
         />
         {errors.prompts?.root?.message || errors.prompts?.message ? (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-danger text-sm">
             {errorText(errors.prompts.root?.message ?? errors.prompts.message)}
           </p>
         ) : null}

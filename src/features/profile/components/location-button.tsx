@@ -38,7 +38,7 @@ export function LocationButton({ value, onChange }: Props) {
         {value ? <Check className="size-5" /> : <MapPin className="size-5" />}
         {value ? dict.location.detected : dict.location.detect}
       </Button>
-      <p className={error ? 'text-sm text-red-400' : 'text-muted text-sm'}>
+      <p className={error ? 'text-danger text-sm' : 'text-muted text-sm'}>
         {error ? dict.errors[error] : dict.location.hint}
       </p>
     </div>

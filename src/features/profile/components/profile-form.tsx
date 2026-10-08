@@ -184,7 +184,7 @@ export function ProfileForm({ tags, initial }: Props) {
       {initial ? (
         // Editing: Save stays in reach above the tab bar instead of waiting at the end of a long
         // form. It rests in place once the end of the form scrolls into view.
-        <div className="bg-background/90 border-border sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 -mb-6 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+        <div className="bg-background/90 border-border sticky bottom-[var(--tabbar-h)] z-20 -mx-4 -mb-6 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
           <FormError message={errorText(serverError)} />
           <Button type="submit" loading={isSubmitting} fullWidth>
             {dict.common.save}

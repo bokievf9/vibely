@@ -133,7 +133,7 @@ export function LikeSheet({ person, busy, onDecide, onClose }: Props) {
             disabled={busy}
             onClick={() => onDecide('pass')}
           >
-            <X className="size-8 text-red-400" strokeWidth={2.5} />
+            <X className="text-danger size-8" strokeWidth={2.5} />
           </Button>
           <Button
             size="icon"

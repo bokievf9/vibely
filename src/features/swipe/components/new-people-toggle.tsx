@@ -76,7 +76,7 @@ function Toggle({ initialOn, filters, onChange }: Props) {
           />
         </button>
       </div>
-      <p className={cn('text-sm', error || push.failed ? 'text-red-400' : 'text-muted')}>{note}</p>
+      <p className={cn('text-sm', error || push.failed ? 'text-danger' : 'text-muted')}>{note}</p>
     </div>
   )
 }

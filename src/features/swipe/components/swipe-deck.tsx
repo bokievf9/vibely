@@ -180,7 +180,7 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
                 disabled={!top}
                 onClick={() => press('pass')}
               >
-                <X className="size-8 text-red-400" strokeWidth={2.5} />
+                <X className="text-danger size-8" strokeWidth={2.5} />
               </Button>
               <Button
                 size="icon"

@@ -267,7 +267,7 @@ export function SwipeCard({ candidate, active, onSwipe, draggable = true, progre
       <motion.span
         aria-hidden
         style={{ opacity: nopeOpacity }}
-        className="pointer-events-none absolute top-10 right-6 rotate-12 rounded-2xl border-4 border-red-400 bg-black/20 px-3 py-1 text-3xl font-black tracking-wide whitespace-nowrap text-red-400"
+        className="border-danger text-danger pointer-events-none absolute top-10 right-6 rotate-12 rounded-2xl border-4 bg-black/20 px-3 py-1 text-3xl font-black tracking-wide whitespace-nowrap"
       >
         {t.stampNope}
       </motion.span>
