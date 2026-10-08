@@ -1,0 +1,44 @@
+/* "Calling…" ripple: two rings leave the avatar in turn while nobody has picked up yet.
+   A CSS animation, so it stays smooth while LiveKit connects on the main thread. */
+.ripple {
+  position: relative;
+}
+
+.ripple::before,
+.ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: ripple 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  pointer-events: none;
+}
+
+.ripple::after {
+  animation-delay: 1.2s;
+}
+
+@keyframes ripple {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+/* Reduced motion: a still ring instead of expanding ones. */
+@media (prefers-reduced-motion: reduce) {
+  .ripple::before {
+    animation: none;
+    opacity: 0.5;
+    transform: scale(1.08);
+  }
+  .ripple::after {
+    animation: none;
+  }
+}

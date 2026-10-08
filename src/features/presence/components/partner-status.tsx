@@ -8,8 +8,10 @@ import { lastSeenText, ONLINE_MS } from '../last-seen'
 
 const REFRESH_MS = 60_000
 
-// Chat header subtitle: "online" / "last seen …". Nothing when either side hides last seen.
-export function PartnerStatus({ matchId }: { matchId: string }) {
+// Chat header subtitle: "online" / "last seen …", or `fallback` (the @username) while loading and
+// when either side hides last seen. The line always takes its height, so the header never shifts
+// when the status arrives; the text cross-fades instead.
+export function PartnerStatus({ matchId, fallback }: { matchId: string; fallback?: string }) {
   const { dict, locale } = useI18n()
   const [lastSeen, setLastSeen] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
@@ -33,11 +35,19 @@ export function PartnerStatus({ matchId }: { matchId: string }) {
     }
   }, [matchId])
 
-  if (!lastSeen) return null
-  const online = now.getTime() - Date.parse(lastSeen) < ONLINE_MS
+  const online = !!lastSeen && now.getTime() - Date.parse(lastSeen) < ONLINE_MS
+  const text = lastSeen ? lastSeenText(lastSeen, locale, dict.chats, now) : fallback
   return (
-    <span className={cn('truncate text-xs', online ? 'text-accent' : 'text-muted')}>
-      {lastSeenText(lastSeen, locale, dict.chats, now)}
+    <span className="relative block h-4 min-w-0 text-xs leading-4">
+      <span
+        key={lastSeen ? 'status' : 'fallback'}
+        className={cn(
+          'block truncate transition-opacity duration-200 ease-out starting:opacity-0',
+          online ? 'text-accent' : 'text-muted',
+        )}
+      >
+        {text ?? ' '}
+      </span>
     </span>
   )
 }

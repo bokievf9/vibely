@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { deleteMessage } from '../message-actions'
 import { EDIT_WINDOW_MS, type ChatMessage, type ReactionEmoji } from '../types'
-import type { ViewerMedia } from './media-viewer'
+import type { ViewerState } from './media-viewer'
 import type { BubbleAction } from './message-bubble'
 import type { ComposerMode } from './composer-banner'
 import type { MenuAction } from './message-menu'
@@ -17,7 +17,7 @@ type Deps = {
   chat: ReturnType<typeof useChatMessages>
   reactions: ReturnType<typeof useReactions>
   setMode: (mode: ComposerMode | null) => void
-  setViewer: (media: ViewerMedia | null) => void
+  setViewer: (viewer: ViewerState | null) => void
   setError: (error: ErrorKey | undefined) => void
 }
 
@@ -49,7 +49,7 @@ export function useMessageActions({ chat, reactions, setMode, setViewer, setErro
         return setMenuFor(m)
       case 'openMedia':
         return m.media?.kind === 'image' || m.media?.kind === 'video'
-          ? setViewer(m.media)
+          ? setViewer({ media: m.media, origin: action.origin, messageId: m.id })
           : undefined
       case 'mediaError':
         return m.media && chat.refreshMedia(m.media.path)

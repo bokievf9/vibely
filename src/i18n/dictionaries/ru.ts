@@ -8,6 +8,7 @@ import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { likesRu, settingsRu } from './settings/ru'
 import { mediaRu } from './media/ru'
+import { chatUiRu } from './chatui/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
 import { flowsRu } from './flowsui/ru'
@@ -324,6 +325,7 @@ export const ru: Dictionary = {
   discoverui: discoverUiRu,
   media: mediaRu,
   calls: callsRu,
+  chatui: chatUiRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',

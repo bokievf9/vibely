@@ -19,7 +19,12 @@ type Props = {
   onAction: (action: MenuAction) => void
 }
 
+// Destructive actions are drawn in the danger color.
+const DANGER: ReadonlySet<MenuAction> = new Set<MenuAction>(['delete'])
+
 // Long press / right click on a bubble: quick reactions plus Reply, Copy, Edit, Delete.
+// The pressed bubble stays lifted behind the sheet (see MessageBubble `lifted`), so the sheet
+// reads as coming from it.
 export function MessageMenu(props: Props) {
   const { message, mine, myReaction, onClose, onReact, onAction } = props
   const { dict } = useI18n()
@@ -42,15 +47,15 @@ export function MessageMenu(props: Props) {
               aria-pressed={myReaction === emoji}
               onClick={() => onReact(emoji)}
               className={cn(
-                'flex size-12 items-center justify-center rounded-full text-2xl transition active:scale-90',
-                myReaction === emoji ? 'bg-accent/30' : 'bg-background',
+                'flex size-12 items-center justify-center rounded-full text-2xl transition-[transform,scale,background-color] duration-150 ease-out active:scale-90',
+                myReaction === emoji ? 'bg-accent/30 ring-accent/60 ring-2' : 'bg-background',
               )}
             >
               {emoji}
             </button>
           ))}
         </div>
-        <ul className="bg-background divide-border flex flex-col divide-y rounded-2xl">
+        <ul className="bg-background divide-border flex flex-col divide-y overflow-hidden rounded-2xl">
           {items
             .filter((i) => i.show)
             .map(({ action, icon: Icon, label }) => (
@@ -59,11 +64,13 @@ export function MessageMenu(props: Props) {
                   type="button"
                   onClick={() => onAction(action)}
                   className={cn(
-                    'flex h-12 w-full items-center gap-3 px-4 text-left',
-                    action === 'delete' && 'text-red-400',
+                    'active:bg-surface flex h-13 w-full items-center gap-3 px-4 text-left transition-colors duration-150',
+                    // TODO(integration): text-danger once the shell tokens land.
+                    DANGER.has(action) && 'text-red-400',
                   )}
                 >
-                  <Icon className="size-5" aria-hidden /> {label}
+                  <Icon className="size-5 shrink-0" aria-hidden />
+                  <span className="min-w-0 truncate">{label}</span>
                 </button>
               </li>
             ))}

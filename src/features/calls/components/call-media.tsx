@@ -14,7 +14,7 @@ export function RecordingBadge({ className }: { className?: string }) {
       title={dict.calls.recordingHint}
       aria-label={dict.calls.recordingHint}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-950/70 px-3 py-1 text-xs font-semibold whitespace-nowrap text-neutral-50 ring-1 ring-red-500/40 backdrop-blur',
         className,
       )}
     >
@@ -49,7 +49,7 @@ export function TrackVideo({
       autoPlay
       playsInline
       muted
-      className={cn('bg-black object-cover', mirror && '-scale-x-100', className)}
+      className={cn('bg-neutral-900 object-cover', mirror && '-scale-x-100', className)}
     />
   )
 }

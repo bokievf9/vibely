@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/page-header'
-import { PageSpinner } from '@/components/ui/spinner'
 import { getViewer } from '@/features/auth/session'
 import { ChatList } from '@/features/chat/components/chat-list'
+import { ChatListSkeleton } from '@/features/chat/components/chat-skeletons'
 import { getChatList } from '@/features/chat/queries'
 import { getDictionary } from '@/i18n/server'
 
@@ -16,7 +16,7 @@ export default async function ChatsPage() {
   return (
     <>
       <PageHeader title={dict.chats.title} />
-      <Suspense fallback={<PageSpinner />}>
+      <Suspense fallback={<ChatListSkeleton label={dict.chatui.loadingChats} />}>
         <Chats />
       </Suspense>
     </>

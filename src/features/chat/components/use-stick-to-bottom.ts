@@ -1,71 +1,79 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { ChatMessage } from '../types'
 
-const NEAR_BOTTOM_PX = 320
+const NEAR_BOTTOM_PX = 160
 
-const distanceFromBottom = () =>
-  document.documentElement.scrollHeight - window.scrollY - window.innerHeight
-
-// The page (window) scrolls. New messages stick to the bottom unless the user is reading older
-// history (then partner messages are counted for the "scroll down" button); a prepended page
-// keeps the viewport anchored to the same message.
-export function useStickToBottom(messages: ChatMessage[], viewerId: string, typing: boolean) {
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const anchor = useRef<number | null>(null)
-  const mounted = useRef(false)
+// The message scroller is `flex-direction: column-reverse` around one content box, so its scroll
+// origin is the bottom: it opens at the latest message before any JS runs (no jump after
+// hydration), and when the keyboard opens, the composer grows or older history is prepended,
+// the distance from the bottom is what the browser keeps, so the view stays put by itself.
+// scrollTop is 0 at the bottom and negative above it.
+//
+// What is left for JS: a new last message sticks to the bottom when the user is near it (or sent
+// it); otherwise it is counted for the "scroll down" button and the view is held in place.
+export function useStickToBottom(lastId: string | undefined, lastMine: boolean, typing: boolean) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const height = useRef(0)
   const [away, setAway] = useState(false)
   const [unseen, setUnseen] = useState(0)
-  const firstId = messages[0]?.id
-  const last = messages.at(-1)
 
+  const distance = () => Math.abs(scrollRef.current?.scrollTop ?? 0)
+
+  // Before paint on mount: start at the bottom even if the browser restored a scroll position.
   useLayoutEffect(() => {
-    if (anchor.current === null) return
-    window.scrollTo({ top: document.documentElement.scrollHeight - anchor.current })
-    anchor.current = null
-  }, [firstId])
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = 0
+    height.current = el.scrollHeight
+  }, [])
 
-  const prevLast = useRef(last?.id)
-  useEffect(() => {
-    const isNew = last?.id !== prevLast.current
-    prevLast.current = last?.id
-    const stick = !mounted.current || last?.senderId === viewerId
-    mounted.current = true
-    if (stick || distanceFromBottom() < NEAR_BOTTOM_PX) {
-      bottomRef.current?.scrollIntoView({ block: 'end' })
-    } else if (isNew && last) {
-      setUnseen((n) => n + 1)
+  const prevLast = useRef(lastId)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const isNew = lastId !== prevLast.current
+    prevLast.current = lastId
+    const grown = el.scrollHeight - height.current
+    height.current = el.scrollHeight
+    if ((isNew && lastMine) || distance() < NEAR_BOTTOM_PX) {
+      el.scrollTop = 0
+      return
     }
-    // Only a new last message (or the typing row) should move the view.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [last?.id, viewerId, typing])
+    // Reading history: content added at the bottom would push the text being read upwards.
+    if (grown > 0) el.scrollTop -= grown
+    if (isNew && !lastMine) setUnseen((n) => n + 1)
+  }, [lastId, lastMine, typing])
+
+  // After every commit (a prepended page, an edit): the baseline for the next comparison.
+  useLayoutEffect(() => {
+    if (scrollRef.current) height.current = scrollRef.current.scrollHeight
+  })
 
   useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
     let frame = 0
     const onScroll = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        const isAway = distanceFromBottom() > NEAR_BOTTOM_PX
+        height.current = el.scrollHeight
+        const isAway = distance() > NEAR_BOTTOM_PX
         setAway(isAway)
         if (!isAway) setUnseen(0)
       })
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
+    el.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', onScroll)
+      el.removeEventListener('scroll', onScroll)
     }
   }, [])
 
   return {
-    bottomRef,
+    scrollRef,
     away,
     unseen,
-    toBottom: () => bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }),
-    // Call right before older messages are prepended.
-    keepAnchor: () => {
-      anchor.current = document.documentElement.scrollHeight - window.scrollY
-    },
+    toBottom: () => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }),
   }
 }

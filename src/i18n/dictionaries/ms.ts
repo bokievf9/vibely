@@ -8,6 +8,7 @@ import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { likesMs, settingsMs } from './settings/ms'
 import { mediaMs } from './media/ms'
+import { chatUiMs } from './chatui/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
@@ -327,6 +328,7 @@ export const ms: Dictionary = {
   discoverui: discoverUiMs,
   media: mediaMs,
   calls: callsMs,
+  chatui: chatUiMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',

@@ -63,13 +63,13 @@ export function CallsSheet(props: Props) {
               disabled={props.pending}
               onClick={props.onToggle}
               className={cn(
-                'relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50',
+                'relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50',
                 settings.meAllowed ? 'bg-accent' : 'bg-border',
               )}
             >
               <span
                 className={cn(
-                  'absolute top-1 left-1 size-5 rounded-full bg-white transition-transform',
+                  'absolute top-1 left-1 size-5 rounded-full bg-neutral-50 shadow-sm transition-transform duration-200 ease-out',
                   settings.meAllowed && 'translate-x-5',
                 )}
               />
