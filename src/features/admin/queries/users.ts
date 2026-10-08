@@ -27,6 +27,7 @@ export type UserDetail = {
   id: string
   phone: string | null
   displayName: string
+  username: string
   age: number
   gender: Enums<'gender'>
   city: string | null
@@ -85,6 +86,7 @@ export async function getUserDetail(userId: string): Promise<UserDetail | null> 
     id: p.id,
     phone: auth.data.user?.phone ? `+${auth.data.user.phone}` : null,
     displayName: p.display_name,
+    username: p.username,
     age: ageFromBirthDate(p.birth_date),
     gender: p.gender,
     city: p.city,

@@ -32,7 +32,7 @@ async function Results({ searchParams }: Pick<PageProps<'/admin/users'>, 'search
         <Input
           name="q"
           defaultValue={query}
-          placeholder="Имя, телефон или ID"
+          placeholder="Имя, @username, телефон или ID"
           aria-label="Поиск"
           className="pl-12"
         />
@@ -48,6 +48,7 @@ async function Results({ searchParams }: Pick<PageProps<'/admin/users'>, 'search
                 className="bg-surface flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-4 py-3"
               >
                 <span className="font-medium">{u.display_name}</span>
+                <span className="text-muted text-sm">@{u.username}</span>
                 <span className="text-muted text-sm">+{u.phone}</span>
                 <VerificationBadge status={u.verification_status} />
                 {u.banned_at && <BannedBadge />}
