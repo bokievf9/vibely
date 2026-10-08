@@ -1,4 +1,4 @@
-// Strings added by the flows UI pass (feed, random chat, sign-up, verification).
+// Strings added by the flows UI pass (feed, blind date, sign-up, verification).
 // Kept apart from en.ts so the main dictionary stays small.
 export const flowsEn = {
   step: 'Step {n} of {total}',

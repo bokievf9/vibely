@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
-import { getRandomStats } from '@/features/randomizer/actions'
+import { getBlindStats } from '@/features/blind-date/actions'
 import { AGE_MAX, AGE_MIN, DISTANCE_MAX_KM, filtersSchema, type SwipeFilters } from './schemas'
 
 const KM_STEP = 25
@@ -52,7 +52,7 @@ export async function loadDeckEnd(filters: SwipeFilters): Promise<UserResult<Dec
     count(parsed.data),
     count(wide.km),
     count(wide.age),
-    getRandomStats(),
+    getBlindStats(),
     supabase
       .from('feed_posts')
       .select('created_at')

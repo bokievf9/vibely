@@ -23,7 +23,7 @@ type Props = {
   note?: string
 }
 
-// Reusable for profiles, chats, messages, photos, calls, posts, comments and random chats.
+// Reusable for profiles, chats, messages, photos, calls, posts, comments and blind dates.
 export function ReportDialog({ open, onClose, targetType, targetId, title, note }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()

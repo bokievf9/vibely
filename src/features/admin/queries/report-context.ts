@@ -178,7 +178,7 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       'view.transcript',
       'random_session',
       [s.id],
-      'Жалоба на рандом-чат',
+      'Жалоба на блайнд-дейт',
     )
     const { data: messages } = await db
       .from('random_chat_messages')

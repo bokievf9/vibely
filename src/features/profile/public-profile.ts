@@ -21,7 +21,7 @@ export type PublicProfile = {
   swiped: 'like' | 'pass' | null
 }
 
-// Full profile of someone the viewer has matched with (swipes or a mutual randomizer reveal),
+// Full profile of someone the viewer has matched with (swipes or a mutual blind date Connect),
 // or, opened from people search, of a discoverable profile the viewer may see. RLS
 // (can_view_profile) already hides banned, unverified and blocked profiles; a paused profile
 // (discoverable = false) stays visible to its matches only.

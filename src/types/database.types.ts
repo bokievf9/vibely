@@ -1179,7 +1179,13 @@ export type Database = {
       random_chat_sessions: {
         Row: {
           a_revealed: boolean
+          alias_a: number
+          alias_b: number
           b_revealed: boolean
+          decided_at: string | null
+          decision_a: boolean | null
+          decision_b: boolean | null
+          end_reason: string | null
           ended_at: string | null
           id: string
           match_id: string | null
@@ -1191,7 +1197,13 @@ export type Database = {
         }
         Insert: {
           a_revealed?: boolean
+          alias_a?: number
+          alias_b?: number
           b_revealed?: boolean
+          decided_at?: string | null
+          decision_a?: boolean | null
+          decision_b?: boolean | null
+          end_reason?: string | null
           ended_at?: string | null
           id?: string
           match_id?: string | null
@@ -1203,7 +1215,13 @@ export type Database = {
         }
         Update: {
           a_revealed?: boolean
+          alias_a?: number
+          alias_b?: number
           b_revealed?: boolean
+          decided_at?: string | null
+          decision_a?: boolean | null
+          decision_b?: boolean | null
+          end_reason?: string | null
           ended_at?: string | null
           id?: string
           match_id?: string | null
@@ -2130,6 +2148,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      blind_block: { Args: { p_session: string }; Returns: undefined }
+      blind_decide: { Args: { p_connect: boolean; p_session: string }; Returns: Json }
       call_notify: {
         Args: {
           p_call: Database['public']['Tables']['calls']['Row']
@@ -2239,6 +2259,21 @@ export type Database = {
           display_name: string
           id: string
           photo: Json
+        }[]
+      }
+      get_blind_session: {
+        Args: { p_session?: string }
+        Returns: {
+          common_tags: string[]
+          id: string
+          match_id: string
+          my_alias: number
+          my_decision: boolean
+          my_side: string
+          partner: Json
+          partner_alias: number
+          started_at: string
+          state: string
         }[]
       }
       get_incoming_likes: {

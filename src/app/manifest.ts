@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/',
     name: 'Vibely: dating with verified people',
     short_name: 'Vibely',
-    description: 'Swipes, an anonymous feed and random chats with verified people in Malaysia.',
+    description: 'Swipes, an anonymous feed and blind dates with verified people in Malaysia.',
     lang: 'en',
     // The proxy sends "/" to the visitor's language: landing when signed out, swipes when signed in.
     start_url: '/',

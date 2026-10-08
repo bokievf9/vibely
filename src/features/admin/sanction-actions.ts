@@ -56,7 +56,7 @@ export async function setMute(input: z.input<typeof muteSchema>) {
 }
 
 // Bans (temporary up to 7 days: moderator; longer, permanent or with the phone blocked: admin).
-// The RPC ends the user's random chats and live calls and deletes their auth sessions (every
+// The RPC ends the user's blind dates and live calls and deletes their auth sessions (every
 // device is signed out once its access token expires); here we also close the calls' LiveKit
 // rooms so the media stops at once.
 export async function banUser(input: z.input<typeof banUserSchema>) {

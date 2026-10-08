@@ -18,7 +18,7 @@ export const sanctionsEn = {
   warningOk: 'I understand',
   mutedTitle: 'You can’t send messages for now',
   mutedBody:
-    'Until {date} you can’t send chat messages, random chat messages, posts or comments. Reason: {reason}.',
+    'Until {date} you can’t send chat messages, blind date messages, posts or comments. Reason: {reason}.',
   mutedOk: 'OK',
 }
 
