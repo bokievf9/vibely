@@ -145,22 +145,3 @@ export function notifyNewLike(userId: string, likerId: string) {
     }))
   })
 }
-
-// Someone commented on the recipient's anonymous post. Never the comment text or who wrote it.
-export function notifyFeedReply(commentId: string) {
-  inBackground(async () => {
-    const { data: comment } = await createAdminClient()
-      .from('comments')
-      .select('post_id, author_id, posts(author_id)')
-      .eq('id', commentId)
-      .maybeSingle()
-    const postAuthor = comment?.posts?.author_id
-    if (!comment || !postAuthor || postAuthor === comment.author_id) return
-    await sendToUser(postAuthor, 'feed_replies', (dict, locale) => ({
-      title: dict.settings.feedReplyPush,
-      body: dict.settings.feedReplyPushBody,
-      url: localePath(locale, `/feed/${comment.post_id}`),
-      tag: `feed-${comment.post_id}`,
-    }))
-  })
-}

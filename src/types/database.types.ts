@@ -62,6 +62,7 @@ export type Database = {
           created_at: string
           id: string
           is_hidden: boolean
+          is_named: boolean
           post_id: string
         }
         Insert: {
@@ -71,6 +72,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
           post_id: string
         }
         Update: {
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
           post_id?: string
         }
         Relationships: [
@@ -437,6 +440,8 @@ export type Database = {
           created_at: string
           id: string
           is_hidden: boolean
+          is_named: boolean
+          last_comment_push_at: string | null
           likes_count: number
         }
         Insert: {
@@ -446,6 +451,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
+          last_comment_push_at?: string | null
           likes_count?: number
         }
         Update: {
@@ -455,6 +462,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
+          last_comment_push_at?: string | null
           likes_count?: number
         }
         Relationships: [
@@ -1028,23 +1037,43 @@ export type Database = {
     Views: {
       feed_posts: {
         Row: {
+          anon_adj: number | null
+          anon_color: number | null
+          anon_noun: number | null
+          author_age: number | null
+          author_id: string | null
+          author_name: string | null
+          author_photo_path: string | null
+          author_verified: boolean | null
           body: string | null
           comments_count: number | null
           created_at: string | null
+          engagement: number | null
           id: string | null
           is_liked_by_me: boolean | null
           is_mine: boolean | null
+          is_named: boolean | null
           likes_count: number | null
+          same_city: boolean | null
         }
         Relationships: []
       }
       post_comments: {
         Row: {
           alias_no: number | null
+          anon_adj: number | null
+          anon_color: number | null
+          anon_noun: number | null
+          author_age: number | null
+          author_id: string | null
+          author_name: string | null
+          author_photo_path: string | null
+          author_verified: boolean | null
           body: string | null
           created_at: string | null
           id: string | null
           is_mine: boolean | null
+          is_named: boolean | null
           is_op: boolean | null
           post_id: string | null
         }
@@ -1151,6 +1180,12 @@ export type Database = {
         }
         Returns: string
       }
+      claim_comment_push: {
+        Args: {
+          p_comment_id: string
+        }
+        Returns: string
+      }
       claim_referral: {
         Args: {
           p_code: string
@@ -1174,12 +1209,14 @@ export type Database = {
         Args: {
           p_post_id: string
           p_body: string
+          p_named?: boolean
         }
         Returns: string
       }
       create_post: {
         Args: {
           p_body: string
+          p_named?: boolean
         }
         Returns: string
       }
@@ -1214,6 +1251,17 @@ export type Database = {
           b: string
           src: Database['public']['Enums']['match_source']
         }
+        Returns: string
+      }
+      feed_pseudonym: {
+        Args: {
+          p_post: string
+          p_alias: number
+        }
+        Returns: number[]
+      }
+      feed_viewer_city: {
+        Args: never
         Returns: string
       }
       get_blocked_users: {
@@ -1367,6 +1415,10 @@ export type Database = {
           p_profile: string
         }
         Returns: string[]
+      }
+      purge_old_feed_content: {
+        Args: never
+        Returns: number
       }
       purge_old_random_messages: {
         Args: never

@@ -23,5 +23,5 @@ export default async function FeedPage() {
 }
 
 async function Feed() {
-  return <FeedList initial={await getFeedPage(null)} />
+  return <FeedList initial={await getFeedPage('new', null)} />
 }

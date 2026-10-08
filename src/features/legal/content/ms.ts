@@ -38,9 +38,10 @@ export const ms: LegalContent = {
         ],
       },
       {
-        heading: '4. Suapan tanpa nama',
+        heading: '4. Suapan',
         paragraphs: [
-          'Pengguna lain tidak pernah melihat siapa yang menulis hantaran atau komen dalam suapan. Kami menyimpan maklumat penulis secara dalaman supaya anda boleh memadam hantaran sendiri dan supaya moderator boleh bertindak atas laporan (contohnya menyekat akaun yang menghantar kandungan kesat).',
+          'Setiap hantaran dan komen dalam suapan adalah tanpa nama kecuali anda memilih "Diri saya". Kandungan tanpa nama hanya menunjukkan nama samaran rawak untuk bebenang itu (contohnya "Durian Ungu"); pengguna lain tidak pernah melihat siapa penulisnya. Dengan "Diri saya", pengguna lain yang disahkan melihat nama, umur, foto utama dan lencana pengesahan anda, dan boleh membuka kad profil ringkas untuk dibaca sahaja (tidak pernah lokasi anda). Orang lain mungkin melihat bahawa hantaran datang dari bandar mereka, tetapi tidak pernah bandar yang mana.',
+          'Kami menyimpan penulis setiap hantaran dan komen secara dalaman supaya anda boleh memadam kandungan sendiri dan supaya moderator boleh bertindak atas laporan (contohnya menyekat akaun yang menghantar kandungan kesat). Hantaran dan komen suapan dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih dibuka.',
         ],
       },
       {
