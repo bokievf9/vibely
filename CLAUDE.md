@@ -40,6 +40,15 @@
 - **Access**: recordings and media live in private storage only (signed URLs, short TTL). Only
   moderators may open them, only while handling a report, and every access is logged in
   `public.moderation_actions`.
+- **Exception, verification selfies in Telegram** (decided by the owner, 2026-10-09): when
+  `TELEGRAM_SEND_SELFIES=true`, a selfie and up to 3 profile photos are uploaded (never as links)
+  to the private moderators group with `protect_content`, deleted from the chat right after the
+  decision or within 46 h at the latest, and every send/delete is logged. Only linked moderators
+  (`admins.telegram_user_id`) can act. Disclosed in the Privacy Policy (sections 3 and 7).
+- **Moderator roles**: viewer < moderator < admin < owner (`admins.role`). Every moderation RPC
+  checks the role in the database (`assert_admin_role`) and logs to `moderation_actions`, including
+  read access (selfies, phone numbers, transcripts, media). Moderators ban for at most 7 days;
+  permanent bans and unbans need admin.
 - **Storage plan**: Supabase free tier (1 GB) for now; the plan will be upgraded at launch. Keep media
   compact (duration limits, compression) until then.
 
