@@ -3,6 +3,7 @@
 import {
   Heart,
   MessageCircle,
+  Phone,
   Newspaper,
   Shuffle,
   Sparkles,
@@ -25,6 +26,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   feed_replies: Newspaper,
   random_reveal: Shuffle,
   new_people: UserPlus,
+  calls: Phone,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

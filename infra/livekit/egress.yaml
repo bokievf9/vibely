@@ -1,0 +1,36 @@
+# LiveKit Egress: server-side recording of every call (docs/calls.md, CLAUDE.md safety protocol).
+# API key/secret come from LIVEKIT_API_KEY / LIVEKIT_API_SECRET, bucket credentials from
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (docker-compose.yml ← .env). Nothing secret here.
+log_level: info
+ws_url: ws://127.0.0.1:7880
+insecure: false
+health_port: 9090
+
+redis:
+  address: 127.0.0.1:6379
+
+# Chrome (room composite template) runs with its sandbox enabled (needs cap SYS_ADMIN).
+enable_chrome_sandbox: true
+
+# Default upload target for every recording. The app sets only the object key:
+#   calls/<match_id>/<call_id>.ogg  (audio calls, Opus 32 kbps)
+#   calls/<match_id>/<call_id>.mp4  (video calls, 960x540 20 fps ~700 kbps, grid layout)
+# Option A (recommended): DigitalOcean Spaces, Singapore.
+storage:
+  s3:
+    endpoint: https://sgp1.digitaloceanspaces.com
+    region: sgp1
+    bucket: vibely-call-recordings
+    force_path_style: true
+# Option B: Supabase Storage through its S3 endpoint (private bucket "call-recordings", created by
+# supabase/migrations/20261008000120_calls.sql). Replace the block above with:
+#   s3:
+#     endpoint: https://<project-ref>.supabase.co/storage/v1/s3
+#     region: <project region, e.g. ap-southeast-1>
+#     bucket: call-recordings
+#     force_path_style: true
+
+# Refuse new recordings instead of overloading the box (a call that can't be recorded is not
+# connected, see src/features/calls/actions.ts). Defaults assume a dedicated 4 vCPU machine.
+cpu_cost:
+  room_composite_cpu_cost: 2.0

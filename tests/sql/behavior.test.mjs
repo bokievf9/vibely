@@ -817,6 +817,103 @@ export async function run(db) {
     ok('archive: due after 90 days', (await su(`select count(*)::int c from retention_message_deletions(100) where message_id=$1`, [arch_msg])).rows[0].c === 1)
     ok('archive: drop removes the row', (await su(`select retention_drop_message_deletions($1) n`, [[arch_msg]])).rows[0].n === 1)
   } else ok('archive: a match exists for the test', false)
+  // calls: consent, mutual permission, signalling, realtime topic, moderation access, retention
+  const K = ['ca000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000002',
+             'ca000000-0000-0000-0000-000000000003', 'ca000000-0000-0000-0000-000000000004']
+  for (const [i, u] of K.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    await as(u, `insert into profiles (display_name,birth_date,gender,interested_in) values ($1,'1995-01-01','male','{female}')`, ['Call' + i])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [K.slice(0, 3)])
+  const km = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[1]])).rows[0].id
+  const ko = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[2]])).rows[0].id
+  const kv = (await su(`select ensure_match($1,$2,'swipe') id`, [K[0], K[3]])).rows[0].id
+  const startCall = (u, match, kind = 'audio') => as(u, `select start_call($1,$2) id`, [match, kind]).then((r) => r.rows[0].id)
+  const allow = (u, match, v = true) => as(u, `select set_call_permission($1,$2)`, [match, v])
+  ok('call_no_consent: start needs both permissions', (await fails(() => startCall(K[0], km)))?.includes('both participants'))
+  ok('call_no_consent: allowing needs the recording notice', (await fails(() => allow(K[0], km)))?.includes('recording notice'))
+  ok('call_consent: column not readable by clients', !!(await fails(() => as(K[0], `select calls_consent_at from profiles where id=$1`, [K[0]]))))
+  ok('call_consent: no direct write', !!(await fails(() => as(K[0], `update profiles set calls_consent_at=now() where id=$1`, [K[0]]))))
+  for (const u of K) await as(u, `select accept_calls_notice()`)
+  await allow(K[0], km)
+  const ks = (await as(K[0], `select * from call_settings($1)`, [km])).rows[0]
+  ok('call_settings: own view', ks?.consented === true && ks.me_allowed === true && ks.partner_allowed === false, JSON.stringify(ks))
+  ok('call_settings: outsider gets nothing', (await as(K[2], `select * from call_settings($1)`, [km])).rows.length === 0)
+  ok('call_permission: partner notified', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='permission'`, ['call:' + K[1]])).rows[0].c === 1)
+  ok('call_one_sided: still refused', (await fails(() => startCall(K[0], km)))?.includes('both participants'))
+  ok('call_permission: outsider cannot allow', !!(await fails(() => allow(K[2], km))))
+  ok('call_permission: unverified cannot allow', !!(await fails(() => allow(K[3], kv))))
+  ok('call_permission: no direct insert', !!(await fails(() => as(K[1], `insert into call_permissions (match_id, user_id) values ($1,$2)`, [km, K[1]]))))
+  await allow(K[1], km)
+  ok('call_permission: partner sees both rows', (await as(K[1], `select count(*)::int c from call_permissions where match_id=$1`, [km])).rows[0].c === 2)
+  ok('call_permission: outsider sees none', (await as(K[2], `select count(*)::int c from call_permissions`)).rows[0].c === 0)
+  ok('call_outsider: cannot start in a foreign match', !!(await fails(() => startCall(K[2], km))))
+  const c1 = await startCall(K[0], km, 'video')
+  ok('call_start: ringing row', (await su(`select status, kind, callee_id from calls where id=$1`, [c1])).rows[0]?.status === 'ringing')
+  ok('call_start: callee gets incoming event', (await su(`select payload from realtime.messages where topic=$1 and event='incoming'`, ['call:' + K[1]])).rows[0]?.payload.call_id === c1)
+  ok('call_busy: second call refused', (await fails(() => startCall(K[1], km)))?.includes('busy'))
+  ok('call_rows: outsider sees none', (await as(K[2], `select count(*)::int c from calls`)).rows[0].c === 0)
+  ok('call_rows: participants see it', (await as(K[1], `select count(*)::int c from calls where id=$1`, [c1])).rows[0].c === 1)
+  ok('call_rows: recording columns hidden', !!(await fails(() => as(K[0], `select recording_path from calls`))))
+  ok('call_rows: no direct writes', !!(await fails(() => as(K[0], `update calls set status='ended' where id=$1`, [c1]))) &&
+     !!(await fails(() => as(K[0], `insert into calls (match_id, caller_id, callee_id, kind) values ($1,$2,$3,'audio')`, [km, K[0], K[1]]))))
+  ok('call_answer: outsider and caller cannot answer', !!(await fails(() => as(K[2], `select answer_call($1)`, [c1]))) && !!(await fails(() => as(K[0], `select answer_call($1)`, [c1]))))
+  ok('call_end: outsider cannot end', !!(await fails(() => as(K[2], `select end_call($1)`, [c1]))))
+  ok('call_finish: not callable by users', !!(await fails(() => as(K[0], `select finish_call($1)`, [c1]))))
+  ok('call_answer: callee answers', (await as(K[1], `select answer_call($1) s`, [c1])).rows[0].s === 'active')
+  ok('call_answer: caller notified', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='answered'`, ['call:' + K[0]])).rows[0].c === 1)
+  ok('call_end: hang up → ended', (await as(K[0], `select end_call($1) s`, [c1])).rows[0].s === 'ended' &&
+     (await as(K[0], `select end_call($1) s`, [c1])).rows[0].s === 'ended')
+  ok('call_end: partner notified', (await su(`select payload->>'status' s from realtime.messages where topic=$1 and event='ended'`, ['call:' + K[1]])).rows[0]?.s === 'ended')
+  const c2 = await startCall(K[0], km)
+  await su(`update calls set started_at = now() - interval '31 seconds' where id=$1`, [c2])
+  ok('call_ring: unanswered after 30 s is missed', (await as(K[1], `select answer_call($1) s`, [c2])).rows[0].s === 'missed')
+  const c3 = await startCall(K[1], km)
+  ok('call_decline: callee hang-up → declined', (await as(K[0], `select end_call($1) s`, [c3])).rows[0].s === 'declined')
+  const c4 = await startCall(K[0], km)
+  ok('call_cancel: caller hang-up → missed', (await as(K[0], `select end_call($1) s`, [c4])).rows[0].s === 'missed')
+  ok('call_unverified: cannot be called', !!(await fails(async () => { await su(`insert into call_permissions values ($1,$2),($1,$3)`, [kv, K[0], K[3]]); await startCall(K[0], kv) })))
+  // realtime topic authorization
+  const ct = 'call:' + K[1]
+  ok('realtime: own call topic visible', (await as(K[1], `select count(*)::int c from realtime.messages where topic=$1`, [ct], ct)).rows[0].c >= 3)
+  ok('realtime: foreign call topic hidden', (await as(K[0], `select count(*)::int c from realtime.messages where topic=$1`, [ct], ct)).rows[0].c === 0)
+  ok('realtime: client cannot write to call topic', !!(await fails(() => as(K[1], `insert into realtime.messages (topic, event, payload) values ($1,'incoming','{}')`, [ct], ct))))
+  ok('realtime: older topics still work', (await as(K[1], `select count(*)::int c from realtime.messages where topic=$1`, ['match:' + km], 'match:' + km)).rows[0].c >= 0 &&
+     (await as(K[2], `select count(*)::int c from realtime.messages where topic=$1`, ['call:' + K[1]], 'match:' + km)).rows[0].c === 0)
+  // blocked users can't call; the call history survives the match (evidence)
+  await as(K[1], `insert into blocks (blocked_id) values ($1)`, [K[0]])
+  ok('call_blocked: caller blocked by callee refused', !!(await fails(() => startCall(K[0], km))))
+  ok('call_blocked: blocker cannot call either', !!(await fails(() => startCall(K[1], km))))
+  await su(`delete from blocks where blocker_id=$1`, [K[1]])
+  // moderation access to recordings
+  const KA = K[2]
+  await su(`insert into admins values ($1)`, [KA])
+  await su(`update calls set recording_path = 'calls/' || match_id || '/' || id || '.mp4', recording_status='ready' where id=$1`, [c1])
+  ok('call_recording: malformed path rejected', !!(await fails(() => su(`update calls set recording_path='calls/x/y.mp4' where id=$1`, [c1]))))
+  ok('call_recording: needs an open report', (await fails(() => su(`select admin_open_call_recording($1,$2)`, [KA, c1])))?.includes('open report'))
+  await as(K[1], `insert into reports (target_type, target_id, reason) values ('user',$1,'harassment: call')`, [K[0]])
+  ok('call_recording: non-moderator refused', !!(await fails(() => su(`select admin_open_call_recording($1,$2)`, [K[1], c1]))))
+  const callPath = (await su(`select admin_open_call_recording($1,$2,'report') p`, [KA, c1])).rows[0].p
+  ok('call_recording: moderator gets path', callPath === `calls/${km}/${c1}.mp4`, callPath)
+  ok('call_recording: access logged', (await su(`select count(*)::int c from moderation_actions where action='call.recording_open' and target_id=$1 and admin_id=$2`, [c1, KA])).rows[0].c === 1)
+  ok('call_recording: not callable by users', !!(await fails(() => as(KA, `select admin_open_call_recording($1,$2)`, [KA, c1]))))
+  // retention: 90 days, except evidence of an open report
+  await su(`update calls set started_at = now() - interval '91 days', ended_at = now() - interval '91 days' where match_id=$1`, [km])
+  ok('call_retention: open report holds the recording', (await su(`select count(*)::int c from call_recordings_to_purge()`)).rows[0].c === 0)
+  ok('call_retention: held rows not purged', (await su(`select purge_old_calls() n`)).rows[0].n === 0 && (await su(`select count(*)::int c from calls where id=$1`, [c1])).rows[0].c === 1)
+  await su(`update reports set resolved_at = now() where target_id=$1`, [K[0]])
+  const call_due = (await su(`select * from call_recordings_to_purge()`)).rows
+  ok('call_retention: lists expired paths', call_due.length === 1 && call_due[0].recording_path === callPath, JSON.stringify(call_due))
+  ok('call_retention: purge functions not for users', !!(await fails(() => as(K[0], `select * from call_recordings_to_purge()`))) && !!(await fails(() => as(K[0], `select purge_old_calls()`))))
+  ok('call_retention: mark purged', (await su(`select mark_call_recordings_purged($1) n`, [[c1]])).rows[0].n === 1 &&
+     (await su(`select recording_status s from calls where id=$1`, [c1])).rows[0].s === 'purged')
+  ok('call_retention: old rows deleted', (await su(`select purge_old_calls() n`)).rows[0].n === 4 && (await su(`select count(*)::int c from calls where match_id=$1`, [km])).rows[0].c === 0)
+  const c5 = await startCall(K[0], km)
+  await su(`delete from matches where id=$1`, [km])
+  ok('call_history: row kept when the match is removed', (await su(`select match_id from calls where id=$1`, [c5])).rows[0]?.match_id === null)
+  ok('call_unmatched: participants keep seeing their call', (await as(K[0], `select count(*)::int c from calls where id=$1`, [c5])).rows[0].c === 1)
+  ok('call_unmatched: settings gone', (await as(K[0], `select count(*)::int c from call_permissions where match_id=$1`, [km])).rows[0].c === 0)
+  void ko
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

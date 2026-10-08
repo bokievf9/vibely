@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReportContext } from '../queries/report-context'
 import { Badge, BannedBadge, formatDate } from './badges'
+import { CallRecordings } from './call-recordings'
 
 // Read-only view of the reported thing: content, profile or chat transcript.
 export function ReportContextView({ context }: { context: ReportContext | null }) {
@@ -22,6 +23,7 @@ export function ReportContextView({ context }: { context: ReportContext | null }
           {offender}
           {context.banned && <BannedBadge />}
           {context.bio && <p className="text-muted text-sm whitespace-pre-wrap">{context.bio}</p>}
+          <CallRecordings calls={context.calls} reportTarget={context.offender.id} />
         </div>
       )
     case 'post':

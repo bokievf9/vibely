@@ -4,13 +4,16 @@ import { analyticsConfig } from './src/lib/env.optional'
 
 const isProd = process.env.NODE_ENV === 'production'
 const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321')
+// Headers are fixed at build time: the calls host comes from LIVEKIT_URL in the build environment
+// (GitHub variable) and falls back to the planned media server (docs/calls.md).
+const rtcUrl = process.env.LIVEKIT_URL || 'wss://rtc.vibelydate.com'
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Camera: selfie verification and video messages; microphone: voice/video messages (and calls);
-  // geolocation: distance filters.
+  // Camera: selfie verification, video messages and video calls; microphone: voice/video messages
+  // and calls; geolocation: distance filters.
   { key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=(self)' },
   // Production only: served over HTTPS (Certbot on Nginx); dev needs HMR/eval. See src/lib/csp.ts.
   ...(isProd
@@ -18,7 +21,11 @@ const securityHeaders = [
         { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         {
           key: 'Content-Security-Policy',
-          value: buildCsp({ supabaseUrl: supabaseUrl.href, analyticsSrc: analyticsConfig?.src }),
+          value: buildCsp({
+            supabaseUrl: supabaseUrl.href,
+            analyticsSrc: analyticsConfig?.src,
+            rtcUrl,
+          }),
         },
       ]
     : []),

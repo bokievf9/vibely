@@ -1,0 +1,42 @@
+# TLS front for the media server (docs/calls.md). One public port 443/tcp, routed by SNI:
+#   rtc.vibelydate.com   → TLS here, then HTTP/WebSocket to LiveKit on 127.0.0.1:7880
+#   turn.vibelydate.com  → TLS here, then plain TURN to LiveKit's TURN/TLS port 127.0.0.1:5349
+# Certificates: Let's Encrypt, obtained and renewed automatically (port 80 must be open).
+logging:
+  logs:
+    default:
+      level: INFO
+storage:
+  module: file_system
+  root: /data
+apps:
+  tls:
+    certificates:
+      automate:
+        - rtc.vibelydate.com
+        - turn.vibelydate.com
+  layer4:
+    servers:
+      main:
+        listen: [':443']
+        routes:
+          - match:
+              - tls:
+                  sni:
+                    - turn.vibelydate.com
+            handle:
+              - handler: tls
+              - handler: proxy
+                upstreams:
+                  - dial: ['127.0.0.1:5349']
+          - match:
+              - tls:
+                  sni:
+                    - rtc.vibelydate.com
+            handle:
+              - handler: tls
+                connection_policies:
+                  - alpn: ['http/1.1']
+              - handler: proxy
+                upstreams:
+                  - dial: ['127.0.0.1:7880']

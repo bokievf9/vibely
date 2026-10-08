@@ -21,6 +21,7 @@ export async function sendToUser(
   userId: string,
   type: NotificationType,
   build: Build,
+  options: { ttl?: number } = {},
 ): Promise<void> {
   const env = getPushEnv()
   if (!env) return
@@ -49,7 +50,7 @@ export async function sendToUser(
         await sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify(payload),
-          { vapidDetails, TTL: DAY, urgency: 'high', timeout: 10_000 },
+          { vapidDetails, TTL: options.ttl ?? DAY, urgency: 'high', timeout: 10_000 },
         )
       } catch (e) {
         if (e instanceof WebPushError && (e.statusCode === 404 || e.statusCode === 410)) {

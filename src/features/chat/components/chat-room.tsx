@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from 'react'
 import { FormError } from '@/components/ui/field'
 import { ChatIcebreakers } from '@/features/icebreakers/components/chat-icebreakers'
+import { useCallHistory } from '@/features/calls/components/call-history'
+import type { CallEntry } from '@/features/calls/types'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { loadMessagesBefore } from '../history-actions'
@@ -28,6 +30,7 @@ type Props = {
   initialMessages: ChatMessage[]
   initialReactions: Reaction[]
   initialHasMore: boolean
+  initialCalls?: CallEntry[]
 }
 
 export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) {
@@ -35,6 +38,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
   const errorText = useErrorText()
   const [error, setError] = useState<ErrorKey>()
   const chat = useChatMessages(matchId, viewerId, initial.initialMessages)
+  const calls = useCallHistory(matchId, initial.initialCalls ?? [])
   const reactions = useReactions(matchId, viewerId, initial.initialReactions, setError)
   const { partnerTyping, notifyTyping, clear } = useMatchTyping(matchId, viewerId)
   const scroll = useStickToBottom(chat.messages, viewerId, partnerTyping)
@@ -82,6 +86,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
       <FormError message={errorText(error)} />
       <MessageList
         messages={chat.messages}
+        calls={calls}
         reactions={reactions.byMessage}
         viewerId={viewerId}
         partnerName={partnerName}

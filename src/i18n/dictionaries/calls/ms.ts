@@ -1,0 +1,63 @@
+import type { callErrorsEn, callsEn } from './en'
+
+export const callsMs: typeof callsEn = {
+  audio: 'Panggilan suara',
+  video: 'Panggilan video',
+  settingsTitle: 'Panggilan dalam sembang ini',
+  allow: 'Benarkan panggilan dalam sembang ini',
+  allowHint:
+    'Anda boleh membuat panggilan hanya apabila kedua-dua pihak membenarkannya. Anda boleh mematikannya bila-bila masa.',
+  waitingPartner: 'Menunggu {name} membenarkan panggilan',
+  bothAllowed: 'Panggilan dihidupkan dalam sembang ini',
+  noticeTitle: 'Panggilan dirakam',
+  noticeText: 'Panggilan dirakam dan disimpan sehingga 90 hari demi keselamatan.',
+  noticeDetails:
+    'Rakaman adalah peribadi. Hanya moderator Vibely boleh membukanya, dan hanya semasa mengendalikan laporan tentang sembang itu; setiap akses direkodkan. Rakaman dipadam secara automatik selepas 90 hari kecuali ia sebahagian daripada laporan yang masih dibuka.',
+  noticeAccept: 'Saya faham, benarkan panggilan',
+  privacy: 'Dasar Privasi',
+  recording: 'Merakam',
+  recordingHint: 'Panggilan ini dirakam demi keselamatan',
+  incoming: 'Panggilan masuk',
+  incomingVideo: 'Panggilan video masuk',
+  accept: 'Jawab',
+  decline: 'Tolak',
+  end: 'Tamatkan panggilan',
+  calling: 'Memanggil…',
+  connecting: 'Menyambung…',
+  reconnecting: 'Menyambung semula…',
+  mute: 'Senyapkan mikrofon',
+  unmute: 'Hidupkan mikrofon',
+  cameraOff: 'Matikan kamera',
+  cameraOn: 'Hidupkan kamera',
+  switchCamera: 'Tukar kamera',
+  speaker: 'Tukar output audio',
+  enableSound: 'Ketik untuk menghidupkan bunyi',
+  ended: 'Panggilan tamat',
+  history: {
+    audio: 'Panggilan',
+    video: 'Panggilan video',
+    missed: 'Panggilan tidak dijawab',
+    missedVideo: 'Panggilan video tidak dijawab',
+    noAnswer: 'Tiada jawapan',
+    declinedByMe: 'Panggilan ditolak',
+    declinedByPartner: 'Panggilan ditolak',
+    ongoing: 'Panggilan sedang berlangsung',
+  },
+  push: {
+    incoming: 'Panggilan masuk daripada {name}',
+    incomingVideo: 'Panggilan video masuk daripada {name}',
+    body: 'Buka Vibely untuk menjawab.',
+  },
+}
+
+export const callErrorsMs: typeof callErrorsEn = {
+  callsDisabled: 'Panggilan tidak tersedia buat masa ini.',
+  callsNotAllowed: 'Kedua-dua anda perlu membenarkan panggilan dalam sembang ini.',
+  callsConsentRequired: 'Terima notis rakaman panggilan terlebih dahulu.',
+  callBusy: 'Dia sedang dalam panggilan lain. Cuba sebentar lagi.',
+  callUnavailable: 'Panggilan ini tidak lagi tersedia.',
+  callFailed: 'Tidak dapat menyambungkan panggilan. Cuba lagi.',
+  callRecordingFailed: 'Panggilan tidak dapat dirakam, jadi ia tidak disambungkan. Cuba lagi.',
+  callMicDenied: 'Tiada akses mikrofon. Benarkan dalam tetapan pelayar anda.',
+  callCameraDenied: 'Tiada akses kamera. Panggilan diteruskan dengan audio sahaja.',
+}

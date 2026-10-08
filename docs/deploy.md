@@ -19,6 +19,9 @@ Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и un
 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`,
 `CRON_SECRET` (≥ 32 символов, `openssl rand -hex 32`; без него `POST /api/cron/retention` отвечает 503
 и 90-дневная очистка медиа и селфи не работает).
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`.
+Звонки (опционально, см. `docs/calls.md`): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+`CALLS_PURGE_SECRET`, `RECORDINGS_S3_*`.
 
 Ручной откат: `ln -sfn /var/www/vibely/releases/<id> /var/www/vibely/current && pm2 restart vibely`.
 

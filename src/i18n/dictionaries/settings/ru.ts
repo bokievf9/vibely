@@ -12,6 +12,7 @@ export const settingsRu: SettingsDictionary = {
     feed_replies: 'Ответы в ленте',
     random_reveal: 'Раскрытие в случайном чате',
     new_people: 'Новые люди рядом',
+    calls: 'Входящие звонки',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

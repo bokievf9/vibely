@@ -1,3 +1,4 @@
+import { callsLegal } from './calls'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -52,6 +53,9 @@ export const ru: LegalContent = {
           'Случайный чат анонимен, пока оба собеседника не согласятся открыть профили. Сообщения случайного чата хранятся 90 дней, после чего удаляются автоматически. Если на чат пожаловались, он хранится до завершения рассмотрения жалобы.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ru.privacy,
+      // --- end calls ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [
@@ -159,6 +163,9 @@ export const ru: LegalContent = {
           'Проверка по селфи уменьшает число фейков, но мы не можем гарантировать, кем является человек и как он себя поведёт. Встречайтесь в общественных местах, предупреждайте друзей, куда идёте, и никогда не переводите деньги тем, с кем познакомились онлайн. Пользуйтесь кнопками «Пожаловаться» и «Заблокировать», если что-то кажется неправильным.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ru.terms,
+      // --- end calls ---
       {
         heading: '6. Модерация',
         paragraphs: [

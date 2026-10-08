@@ -2,6 +2,9 @@
 
 import { useMemo, type RefObject } from 'react'
 import { Button } from '@/components/ui/button'
+import { CallHistoryRow } from '@/features/calls/components/call-history'
+import { withCalls } from '@/features/calls/timeline'
+import type { CallEntry } from '@/features/calls/types'
 import { useI18n } from '@/i18n/client'
 import { dayKey, daysAgo, formatDay } from '@/i18n/format'
 import { cn } from '@/lib/utils'
@@ -11,6 +14,7 @@ import { MessageBubble, type BubbleAction } from './message-bubble'
 
 type Props = {
   messages: ChatMessage[]
+  calls?: CallEntry[]
   reactions: Map<string, Reaction[]>
   viewerId: string
   partnerName: string
@@ -24,6 +28,7 @@ type Props = {
 }
 
 const NO_REACTIONS: Reaction[] = []
+const NO_CALLS: CallEntry[] = []
 
 const toPreview = (m: ChatMessage): ReplyPreview => ({
   id: m.id,
@@ -35,6 +40,7 @@ const toPreview = (m: ChatMessage): ReplyPreview => ({
 
 export function MessageList({
   messages,
+  calls = NO_CALLS,
   reactions,
   viewerId,
   partnerName,
@@ -47,7 +53,7 @@ export function MessageList({
   onAction,
 }: Props) {
   const { dict, locale } = useI18n()
-  const items = useMemo(() => groupMessages(messages, dayKey), [messages])
+  const items = useMemo(() => withCalls(groupMessages(messages, dayKey), calls), [messages, calls])
   const byId = useMemo(() => new Map(messages.map((m) => [m.id, m])), [messages])
   const lastOwn = messages.findLast((m) => m.senderId === viewerId)
 
@@ -70,6 +76,8 @@ export function MessageList({
         </li>
       )}
       {items.map((item) => {
+        if (item.kind === 'call')
+          return <CallHistoryRow key={`call-${item.call.id}`} call={item.call} />
         if (item.kind === 'day') {
           return (
             <li key={`day-${item.key}`} className="sticky top-16 z-20 flex justify-center py-2">

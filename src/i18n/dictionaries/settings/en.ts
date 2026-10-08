@@ -11,6 +11,7 @@ export const settingsEn = {
     feed_replies: 'Replies in the feed',
     random_reveal: 'Random chat reveals',
     new_people: 'New people nearby',
+    calls: 'Incoming calls',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',

@@ -2,6 +2,7 @@ import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
 import { discoverEn } from './discover/en'
 import { feedEn } from './feed/en'
+import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
 import { likesEn, settingsEn } from './settings/en'
 import { mediaEn } from './media/en'
@@ -21,6 +22,7 @@ export const en = {
     back: 'Back',
   },
   errors: {
+    ...callErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -305,6 +307,7 @@ export const en = {
   likes: likesEn,
   discover: discoverEn,
   media: mediaEn,
+  calls: callsEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "calls-backstop-expiry",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "calls/" },
+      "Expiration": { "Days": 120 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

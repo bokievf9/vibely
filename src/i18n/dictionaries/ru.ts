@@ -2,6 +2,7 @@ import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
 import { discoverRu } from './discover/ru'
 import { feedRu } from './feed/ru'
+import { callErrorsRu, callsRu } from './calls/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { likesRu, settingsRu } from './settings/ru'
@@ -22,6 +23,7 @@ export const ru: Dictionary = {
     back: 'Назад',
   },
   errors: {
+    ...callErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -307,6 +309,7 @@ export const ru: Dictionary = {
   likes: likesRu,
   discover: discoverRu,
   media: mediaRu,
+  calls: callsRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',
