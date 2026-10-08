@@ -2,7 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Flag, History, Images, LayoutDashboard, ScanFace, Users } from 'lucide-react'
+import {
+  FileText,
+  Flag,
+  History,
+  Images,
+  LayoutDashboard,
+  ScanFace,
+  Send,
+  Users,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const LINKS = [
@@ -13,6 +22,7 @@ const LINKS = [
   { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/content', label: 'Контент', icon: FileText },
   { href: '/admin/log', label: 'Журнал', icon: History },
+  { href: '/admin/telegram', label: 'Telegram', icon: Send },
 ] as const
 
 export function AdminNav() {

@@ -11,14 +11,20 @@ export type Database = {
       admins: {
         Row: {
           created_at: string
+          telegram_linked_at: string | null
+          telegram_user_id: number | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          telegram_linked_at?: string | null
+          telegram_user_id?: number | null
           user_id: string
         }
         Update: {
           created_at?: string
+          telegram_linked_at?: string | null
+          telegram_user_id?: number | null
           user_id?: string
         }
         Relationships: []
@@ -1184,6 +1190,101 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_audit: {
+        Row: {
+          chat_id: number | null
+          created_at: string
+          detail: string | null
+          event: string
+          id: number
+          telegram_user_id: number | null
+        }
+        Insert: {
+          chat_id?: number | null
+          created_at?: string
+          detail?: string | null
+          event: string
+          id?: never
+          telegram_user_id?: number | null
+        }
+        Update: {
+          chat_id?: number | null
+          created_at?: string
+          detail?: string | null
+          event?: string
+          id?: never
+          telegram_user_id?: number | null
+        }
+        Relationships: []
+      }
+      telegram_link_codes: {
+        Row: {
+          admin_id: string
+          code_hash: string
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          admin_id: string
+          code_hash: string
+          created_at?: string
+          expires_at: string
+        }
+        Update: {
+          admin_id?: string
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'telegram_link_codes_admin_id_fkey'
+            columns: ['admin_id']
+            isOneToOne: false
+            referencedRelation: 'admins'
+            referencedColumns: ['user_id']
+          },
+        ]
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          closed_at: string | null
+          control_message_id: number | null
+          created_at: string
+          id: string
+          kind: string
+          photo_message_ids: number[]
+          photos_deleted_at: string | null
+          ref_id: string
+          ref_type: string
+        }
+        Insert: {
+          chat_id: number
+          closed_at?: string | null
+          control_message_id?: number | null
+          created_at?: string
+          id?: string
+          kind: string
+          photo_message_ids?: number[]
+          photos_deleted_at?: string | null
+          ref_id: string
+          ref_type: string
+        }
+        Update: {
+          chat_id?: number
+          closed_at?: string | null
+          control_message_id?: number | null
+          created_at?: string
+          id?: string
+          kind?: string
+          photo_message_ids?: number[]
+          photos_deleted_at?: string | null
+          ref_id?: string
+          ref_type?: string
+        }
+        Relationships: []
+      }
       verification_requests: {
         Row: {
           challenge: string
@@ -1357,6 +1458,19 @@ export type Database = {
         Returns: undefined
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      admin_telegram_issue_code: {
+        Args: {
+          p_admin: string
+          p_code: string
+        }
+        Returns: string
+      }
+      admin_telegram_unlink: {
+        Args: {
+          p_admin: string
+        }
+        Returns: undefined
+      }
       answer_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
@@ -1682,6 +1796,75 @@ export type Database = {
       username_base: { Args: { p_name: string }; Returns: string }
       username_error: { Args: { u: string }; Returns: string }
       username_status: { Args: { p_username: string }; Returns: string }
+      telegram_code_hash: {
+        Args: {
+          p_code: string
+        }
+        Returns: string
+      }
+      telegram_link_admin: {
+        Args: {
+          p_code: string
+          p_telegram_user_id: number
+        }
+        Returns: {
+          result: string
+          linked_admin: string
+        }[]
+      }
+      telegram_mark_photos_deleted: {
+        Args: {
+          p_id: string
+          p_cause: string
+        }
+        Returns: boolean
+      }
+      telegram_photos_to_delete: {
+        Args: {
+          p_max_age: unknown
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          chat_id: number
+          photo_message_ids: number[]
+          control_message_id: number
+          ref_id: string
+          expired: boolean
+          created_at: string
+        }[]
+      }
+      telegram_record_message: {
+        Args: {
+          p_kind: string
+          p_ref_type: string
+          p_ref_id: string
+          p_chat: number
+          p_photos: number[]
+          p_control: number
+        }
+        Returns: string
+      }
+      telegram_report_summary: {
+        Args: {
+          p_type: Database['public']['Enums']['report_target']
+          p_target: string
+        }
+        Returns: {
+          open_reports: number
+          offender_id: string
+          offender_reports_1h: number
+          underage: boolean
+          auto_hidden: boolean
+          latest_reason: string
+        }[]
+      }
+      telegram_stats: {
+        Args: {
+          p_since: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       call_kind: 'audio' | 'video'

@@ -9,6 +9,8 @@ cp -R .next/standalone/. "$OUT/"
 cp -R .next/static "$OUT/.next/static"
 cp -R public "$OUT/public"
 cp ecosystem.config.cjs scripts/deploy/activate.sh "$OUT/"
+# Ops helper run on the server (docs/deploy.md, Telegram bot); dependency-free.
+mkdir -p "$OUT/scripts/telegram" && cp scripts/telegram/set-webhook.mjs "$OUT/scripts/telegram/"
 git rev-parse HEAD > "$OUT/REVISION" 2>/dev/null || true
 # Env files never ship inside a release; the server reads shared/.env.production.
 find "$OUT" -maxdepth 1 -name '.env*' -delete

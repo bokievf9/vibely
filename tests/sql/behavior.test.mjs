@@ -1047,6 +1047,103 @@ export async function run(db) {
 
 
   // ===== batch-4: telegram =====
+  await (async () => {
+    const T = ['7c000000-0000-4000-8000-000000000001', '7c000000-0000-4000-8000-000000000002',
+               '7c000000-0000-4000-8000-000000000003', '7c000000-0000-4000-8000-000000000004',
+               '7c000000-0000-4000-8000-000000000005', '7c000000-0000-4000-8000-000000000006']
+    const [A0, A1, X, R1, R2, R3] = T
+    for (const [i, u] of T.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013888000' + i])
+    for (const [i, u] of T.entries()) await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+       values ($1,'1995-03-03','female','{male}','Ipoh','SRID=4326;POINT(101.08 4.6)')`, ['Tg' + i])
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [T])
+    await su(`insert into admins (user_id) values ($1), ($2)`, [A0, A1])
+    const issue = (a, code) => su(`select admin_telegram_issue_code($1, $2) e`, [a, code])
+    const link = async (code, tg) => (await su(`select * from telegram_link_admin($1, $2)`, [code, tg])).rows[0]
+    const tgOf = async (a) => (await su(`select telegram_user_id t from admins where user_id=$1`, [a])).rows[0].t
+    const logged = async (action, target) => (await su(`select count(*)::int c from moderation_actions where action=$1 and target_id=$2`, [action, target])).rows[0].c
+    // codes
+    ok('telegram: only admins get a code', !!(await fails(() => issue(X, 'ABCDEFGH'))))
+    ok('telegram: code format enforced', !!(await fails(() => issue(A0, 'abc'))) && !!(await fails(() => issue(A0, 'ABCDEFG1'))))
+    const exp = (await issue(A0, 'ABCD2345')).rows[0].e
+    const mins = (new Date(exp) - Date.now()) / 60000
+    ok('telegram: code expires in 10 minutes', mins > 9 && mins <= 10.1, String(mins))
+    const stored = (await su(`select code_hash from telegram_link_codes where admin_id=$1`, [A0])).rows[0].code_hash
+    ok('telegram: code stored hashed', /^[0-9a-f]{64}$/.test(stored) && !stored.includes('ABCD2345'))
+    ok('telegram: code issue logged', (await logged('telegram.code_issue', A0)) === 1)
+    const { createHash } = await import('node:crypto')
+    ok('telegram: hash matches the app (linkCodeHash)', stored === createHash('sha256').update('ABCD2345').digest('hex') &&
+       (await su(`select telegram_code_hash(' abcd 2345 ') h`)).rows[0].h === stored)
+    ok('telegram: clients cannot read codes', !!(await fails(() => as(A0, `select * from telegram_link_codes`))))
+    ok('telegram: clients cannot link', !!(await fails(() => as(A0, `select * from telegram_link_admin('ABCD2345', 1)`))))
+    ok('telegram: clients cannot read admins', !!(await fails(() => as(A0, `select telegram_user_id from admins`))))
+    // linking
+    const bad = await link('ZZZZ2222', 9001)
+    ok('telegram: wrong code refused', bad.result === 'invalid' && bad.linked_admin === null)
+    ok('telegram: failed attempt recorded', (await su(`select count(*)::int c from telegram_audit where telegram_user_id=9001 and event='link_failed'`)).rows[0].c === 1)
+    const good = await link(' abcd 2345 ', 9001)
+    ok('telegram: code links (case and spaces ignored)', good.result === 'linked' && good.linked_admin === A0 && String(await tgOf(A0)) === '9001', JSON.stringify(good))
+    ok('telegram: link logged', (await logged('telegram.link', A0)) === 1)
+    ok('telegram: code is one-time', (await link('ABCD2345', 9001)).result === 'invalid')
+    ok('telegram: telegram_user_id unique', !!(await fails(() => su(`update admins set telegram_user_id=9001 where user_id=$1`, [A1]))))
+    await issue(A1, 'WXYZ6789')
+    ok('telegram: account linked to another moderator', (await link('WXYZ6789', 9001)).result === 'taken' && (await tgOf(A1)) === null)
+    await issue(A1, 'WXYZ6789')
+    await su(`update telegram_link_codes set expires_at = now() - interval '1 second' where admin_id=$1`, [A1])
+    ok('telegram: expired code refused', (await link('WXYZ6789', 9002)).result === 'invalid')
+    for (let i = 0; i < 4; i++) await link('QQQQ3333', 9002)
+    await issue(A1, 'MNPQ4567')
+    ok('telegram: throttled after 5 failures', (await link('MNPQ4567', 9002)).result === 'throttled' && (await tgOf(A1)) === null)
+    ok('telegram: other accounts not throttled', (await link('MNPQ4567', 9003)).result === 'linked' && String(await tgOf(A1)) === '9003')
+    await su(`select admin_telegram_unlink($1)`, [A1])
+    ok('telegram: unlink clears and logs', (await tgOf(A1)) === null && (await logged('telegram.unlink', A1)) === 1)
+    await su(`select admin_telegram_unlink($1)`, [A1])
+    ok('telegram: second unlink not logged', (await logged('telegram.unlink', A1)) === 1)
+    ok('telegram: unlink needs an admin', !!(await fails(() => su(`select admin_telegram_unlink($1)`, [X]))))
+    // selfie messages: sending and deleting is logged with message ids
+    await su(`update profiles set verification_status='unverified' where id=$1`, [X])
+    await as(X, `insert into verification_requests (selfie_path, challenge) values ($1, 'peace')`, [`${X}/tg.jpg`])
+    const req = (await su(`select id from verification_requests where user_id=$1 and status='pending'`, [X])).rows[0].id
+    const msg = (await su(`select telegram_record_message('selfie', 'verification_request', $1, -100123, '{11,12,13}', 14) id`, [req])).rows[0].id
+    const sent = (await su(`select admin_id, target_type, reason from moderation_actions where action='selfie.telegram_sent' and target_id=$1`, [req])).rows
+    ok('telegram: selfie send logged with message ids', sent.length === 1 && sent[0].admin_id === null && sent[0].target_type === 'verification_request' && sent[0].reason === 'chat -100123, messages 11,12,13,14', JSON.stringify(sent))
+    const toDelete = async (age = '46 hours') => (await su(`select * from telegram_photos_to_delete($1::interval, 50)`, [age])).rows
+    ok('telegram: pending fresh selfie stays', !(await toDelete()).some((r) => r.id === msg))
+    const old = await toDelete('0 seconds')
+    ok('telegram: old selfie photos expire', old.some((r) => r.id === msg && r.expired === true && r.photo_message_ids.length === 3))
+    await su(`select admin_review_verification($1, $2, true)`, [A0, req])
+    ok('telegram: decided selfie photos are due', (await toDelete()).some((r) => r.id === msg && r.expired === false))
+    ok('telegram: second decision refused (first wins)', !!(await fails(() => su(`select admin_review_verification($1, $2, false, 'face_mismatch')`, [A1, req]))))
+    ok('telegram: photo delete marked once', (await su(`select telegram_mark_photos_deleted($1, 'decided') d`, [msg])).rows[0].d === true &&
+       (await su(`select telegram_mark_photos_deleted($1, 'decided') d`, [msg])).rows[0].d === false)
+    ok('telegram: photo delete logged', (await logged('selfie.telegram_deleted', req)) === 1 && !(await toDelete('0 seconds')).some((r) => r.id === msg))
+    const again = (await su(`select telegram_record_message('report', 'post', $1, -100123, '{}', 20) id`, [req])).rows[0].id
+    await su(`select telegram_record_message('report', 'post', $1, -100123, '{}', 21)`, [req])
+    ok('telegram: one open message per subject', (await su(`select count(*)::int c from telegram_messages where ref_id=$1 and kind='report' and closed_at is null`, [req])).rows[0].c === 1 &&
+       (await su(`select closed_at is not null c from telegram_messages where id=$1`, [again])).rows[0].c === true)
+    ok('telegram: report messages not logged as selfie access', (await logged('selfie.telegram_sent', req)) === 1)
+    ok('telegram: clients cannot record messages', !!(await fails(() => as(X, `select telegram_record_message('selfie', 'x', $1, 1, '{}', 1)`, [req]))))
+    // report summary: no reporters, priority signals, offender
+    await su(`update profiles set verification_status='approved' where id=$1`, [X])
+    const post = (await as(X, `select create_post('tg post') id`)).rows[0].id
+    await as(R1, `insert into reports (target_type, target_id, reason) values ('post', $1, 'underage: looks 15')`, [post])
+    await as(R2, `insert into reports (target_type, target_id, reason) values ('post', $1, 'spam')`, [post])
+    await as(R3, `insert into reports (target_type, target_id, reason) values ('user', $1, 'fake')`, [X])
+    const sum = (await su(`select * from telegram_report_summary('post', $1)`, [post])).rows[0]
+    ok('telegram: summary counts and flags', sum.open_reports === 2 && sum.underage === true && sum.offender_id === X && sum.offender_reports_1h === 3 && sum.auto_hidden === false && sum.latest_reason === 'spam', JSON.stringify(sum))
+    ok('telegram: summary has no reporter fields', !Object.keys(sum).some((k) => k.includes('reporter')))
+    await as(R3, `insert into reports (target_type, target_id, reason) values ('post', $1, 'sexual')`, [post])
+    ok('telegram: summary sees auto-hide', (await su(`select auto_hidden a from telegram_report_summary('post', $1)`, [post])).rows[0].a === true)
+    const us = (await su(`select * from telegram_report_summary('user', $1)`, [X])).rows[0]
+    ok('telegram: user summary', us.open_reports === 1 && us.underage === false && us.offender_id === X)
+    const st = (await su(`select telegram_stats(now() - interval '1 hour') s`)).rows[0].s
+    ok('telegram: stats', st.reports_created >= 4 && st.selfies_approved >= 1 && st.auto_hidden >= 1 && 'oldest_report_at' in st, JSON.stringify(st))
+    ok('telegram: clients cannot read stats', !!(await fails(() => as(X, `select telegram_stats(now())`))))
+    ok('telegram: audit closed to clients', !!(await fails(() => as(X, `select * from telegram_audit`))))
+    // deleting a moderator removes their pending code
+    await issue(A1, 'ABCD2345')
+    await su(`delete from admins where user_id=$1`, [A1])
+    ok('telegram: codes removed with the moderator', (await su(`select count(*)::int c from telegram_link_codes where admin_id=$1`, [A1])).rows[0].c === 0)
+  })()
 
   // ===== end telegram =====
 

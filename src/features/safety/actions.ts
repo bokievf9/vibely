@@ -22,7 +22,7 @@ export async function report(input: ReportInput): Promise<UserResult> {
     .insert({ target_type: targetType, target_id: targetId, reason: text })
   if (error)
     return fail(error.code === '23505' ? 'alreadyReported' : rateLimitedOr(error.code, 'generic'))
-  notifyReportCreated(targetType, reason)
+  notifyReportCreated(targetType, reason, targetId)
   return ok(undefined)
 }
 
