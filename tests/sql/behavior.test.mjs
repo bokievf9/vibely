@@ -1022,8 +1022,8 @@ export async function run(db) {
     ok('feed: anonymous post never has author_username', (await fRow(1, anonPost)).author_username === null && (await fRow(0, anonPost)).author_username === null)
     await as(N[1], `select create_comment($1, 'anon c', false)`, [anonPost])
     await as(N[1], `select create_comment($1, 'named c', true)`, [anonPost])
-    const cm = (await as(N[2], `select body, author_username from post_comments where post_id=$1 order by created_at`, [anonPost])).rows
-    ok('feed: comment usernames only when named', cm.length === 2 && cm[0].author_username === null && cm[1].author_username === 'alisher.navoiy', JSON.stringify(cm))
+    const cm = (await as(N[2], `select body, author_username from post_comments where post_id=$1 order by body`, [anonPost])).rows
+    ok('feed: comment usernames only when named', cm.length === 2 && cm[0].body === 'anon c' && cm[0].author_username === null && cm[1].author_username === 'alisher.navoiy', JSON.stringify(cm))
     await as(N[1], `insert into blocks (blocked_id) values ($1)`, [N[0]])
     ok('feed: blocked author loses username', (await fRow(1, namedPost))?.author_username == null)
     await as(N[1], `delete from blocks where blocked_id=$1`, [N[0]])
