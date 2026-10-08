@@ -36,6 +36,9 @@ async function moderate<S extends z.ZodType>(
   return { ok: true, data: undefined }
 }
 
+// The selfie is kept after the review: retention is 90 days (Privacy Policy), purged by the
+// daily job POST /api/cron/retention (20261008000111), so moderators can still check it when a
+// report about the account comes in.
 export async function reviewVerification(input: z.input<typeof reviewVerificationSchema>) {
   const result = await moderate(reviewVerificationSchema, input, (d, admin) => [
     createAdminClient().rpc('admin_review_verification', {
@@ -47,28 +50,21 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
   ])
   // `moderate` has validated the input and authorized the admin.
   const parsed = reviewVerificationSchema.safeParse(input)
-  if (result.ok && parsed.success) {
-    const userId = await deleteReviewedSelfie(parsed.data.requestId)
+  if (result.ok && parsed.success && parsed.data.approve) {
     // A newly verified person: alert opted-in users nearby (fire-and-forget, after the response).
-    if (parsed.data.approve && userId) notifyNewPeople(userId)
+    const userId = await reviewedUserId(parsed.data.requestId)
+    if (userId) notifyNewPeople(userId)
   }
   return result
 }
 
-// The selfie is needed only for the review (Privacy Policy): delete the file right after it.
-// The decision is already saved, so a storage error is logged rather than reported as a failure.
-// Returns the reviewed user's id.
-async function deleteReviewedSelfie(requestId: string): Promise<string | null> {
-  const db = createAdminClient()
-  const { data } = await db
+async function reviewedUserId(requestId: string): Promise<string | null> {
+  const { data } = await createAdminClient()
     .from('verification_requests')
-    .select('selfie_path, user_id')
+    .select('user_id')
     .eq('id', requestId)
     .maybeSingle()
-  if (!data) return null
-  const { error } = await db.storage.from('selfies').remove([data.selfie_path])
-  if (error) console.error('Selfie deletion failed', requestId, error.message)
-  return data.user_id
+  return data?.user_id ?? null
 }
 
 export async function setBan(input: z.input<typeof banSchema>) {

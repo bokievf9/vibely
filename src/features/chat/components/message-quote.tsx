@@ -1,9 +1,11 @@
 'use client'
 
-import { ImageIcon } from 'lucide-react'
+import { ImageIcon, Mic, Video } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
-import type { ReplyPreview } from '../types'
+import type { MediaKind, ReplyPreview } from '../types'
+
+const ICONS = { image: ImageIcon, voice: Mic, video: Video } satisfies Record<MediaKind, unknown>
 
 type Props = {
   quote: ReplyPreview
@@ -16,14 +18,15 @@ type Props = {
 // The quoted message inside a reply bubble (and above the composer while replying).
 export function MessageQuote({ quote, author, mine, onClick, className }: Props) {
   const { dict } = useI18n()
-  const text = quote.deleted ? dict.chats.deleted : quote.body || dict.chats.photo
+  const labels = { image: dict.chats.photo, voice: dict.media.voice, video: dict.media.video }
+  const kind = quote.deleted ? null : quote.mediaKind
+  const Icon = kind && ICONS[kind]
+  const text = quote.deleted ? dict.chats.deleted : quote.body || (kind ? labels[kind] : '')
   const content = (
     <>
       <span className="block truncate text-xs font-semibold">{author}</span>
       <span className={cn('flex items-center gap-1 truncate text-sm', quote.deleted && 'italic')}>
-        {quote.hasImage && !quote.deleted && (
-          <ImageIcon className="size-3.5 shrink-0" aria-hidden />
-        )}
+        {Icon && <Icon className="size-3.5 shrink-0" aria-hidden />}
         <span className="truncate">{text}</span>
       </span>
     </>

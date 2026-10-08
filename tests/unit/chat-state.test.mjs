@@ -13,7 +13,8 @@ const msg = (id, senderId, createdAt, extra = {}) => ({
   deletedAt: null,
   replyTo: null,
   reply: null,
-  image: null,
+  media: null,
+  expiredMedia: null,
   ...extra,
 })
 
@@ -30,20 +31,20 @@ test('merge inserts in time order and updates in place', () => {
 })
 
 test('merge keeps signed URL and reply preview missing from Realtime rows', () => {
-  const image = { path: 'm/p.webp', url: 'https://signed', width: 1, height: 1 }
+  const image = { kind: 'image', path: 'm/p.webp', url: 'https://signed', width: 1, height: 1 }
   const reply = { id: 'x', senderId: 'u2', body: 'hi', hasImage: false, deleted: false }
-  const old = msg('a', 'u1', '2026-10-08T10:00:00Z', { image, replyTo: 'x', reply })
+  const old = msg('a', 'u1', '2026-10-08T10:00:00Z', { media: image, replyTo: 'x', reply })
   const row = msg('a', 'u1', '2026-10-08T10:00:00Z', {
-    image: { ...image, url: null },
+    media: { ...image, url: null },
     replyTo: 'x',
     readAt: '2026-10-08T10:05:00Z',
   })
   const [m] = mergeMessages([old], [row])
-  assert.equal(m.image.url, 'https://signed')
+  assert.equal(m.media.url, 'https://signed')
   assert.equal(m.reply, reply)
   assert.equal(m.readAt, '2026-10-08T10:05:00Z')
-  const [deleted] = mergeMessages([old], [{ ...row, image: null, body: null, deletedAt: 'now' }])
-  assert.equal(deleted.image, null)
+  const [deleted] = mergeMessages([old], [{ ...row, media: null, body: null, deletedAt: 'now' }])
+  assert.equal(deleted.media, null)
 })
 
 test('one reaction per user per message', () => {

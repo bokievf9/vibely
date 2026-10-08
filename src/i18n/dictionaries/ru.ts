@@ -5,6 +5,7 @@ import { feedRu } from './feed/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { likesRu, settingsRu } from './settings/ru'
+import { mediaRu } from './media/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 
 export const ru: Dictionary = {
@@ -68,6 +69,9 @@ export const ru: Dictionary = {
     captchaFailed: 'Проверка безопасности не пройдена. Попробуйте ещё раз.',
     photoSendFailed: 'Не удалось отправить фото. Попробуйте ещё раз.',
     messageNotEditable: 'Это сообщение уже нельзя изменить',
+    mediaSendFailed: 'Не удалось отправить. Попробуйте ещё раз.',
+    micDenied: 'Нет доступа к микрофону. Разрешите его в настройках браузера.',
+    recordingUnsupported: 'Запись не поддерживается в этом браузере.',
   },
   gender: { male: 'Мужчина', female: 'Женщина', other: 'Другое' },
   auth: {
@@ -283,6 +287,8 @@ export const ru: Dictionary = {
     lastUpdated: 'Обновлено: {date}',
     contact: 'Вопросы или запросы о ваших данных? Пишите на',
     consent: 'Мне есть 18 лет, и я принимаю {terms} и {privacy}',
+    consentRecording:
+      'Ради безопасности всех сообщения, фото, голосовые и видеосообщения и звонки записываются и хранятся до 90 дней. Доступ к ним есть только у модераторов при рассмотрении жалобы.',
     consentTerms: 'Условия использования',
     consentPrivacy: 'Политику конфиденциальности',
     home: 'Вернуться в Vibely',
@@ -300,6 +306,7 @@ export const ru: Dictionary = {
   settings: settingsRu,
   likes: likesRu,
   discover: discoverRu,
+  media: mediaRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',

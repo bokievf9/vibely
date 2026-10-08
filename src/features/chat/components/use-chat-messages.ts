@@ -9,7 +9,7 @@ import type { ChatMessage } from '../types'
 import { signalUnreadChanged } from '../unread-signal'
 
 // Live message list: initial history from the server, then Realtime rows (RLS-filtered).
-// Realtime rows lack signed photo URLs and quoted-message previews, so those are fetched through a
+// Realtime rows lack signed media URLs and quoted-message previews, so those are fetched through a
 // Server Action and merged in. UPDATEs carry read receipts, edits and deletions.
 export function useChatMessages(matchId: string, viewerId: string, initial: ChatMessage[]) {
   const [messages, setMessages] = useState(initial)
@@ -42,7 +42,7 @@ export function useChatMessages(matchId: string, viewerId: string, initial: Chat
 
   const onInsert = (row: MessageRow) => {
     const m = toChatMessage(row)
-    const needsMore = !!m.image || (!!m.replyTo && !known.current.has(m.replyTo))
+    const needsMore = !!m.media || (!!m.replyTo && !known.current.has(m.replyTo))
     merge([m])
     if (needsMore) hydrate([m.id])
   }
@@ -54,15 +54,15 @@ export function useChatMessages(matchId: string, viewerId: string, initial: Chat
 
   const resync = () => void loadMessagesAfter(matchId, latest.current).then(merge)
 
-  // Signed URLs expire after an hour: re-sign once when a photo fails to load.
-  const refreshImage = (path: string) => {
+  // Signed URLs expire after an hour: re-sign once when a photo/voice/video fails to load.
+  const refreshMedia = (path: string) => {
     if (resigned.current.has(path)) return
     resigned.current.add(path)
     void signChatImages([path]).then((urls) => {
       const url = urls[path]
       if (!url) return
       setMessages((prev) =>
-        prev.map((m) => (m.image?.path === path ? { ...m, image: { ...m.image, url } } : m)),
+        prev.map((m) => (m.media?.path === path ? { ...m, media: { ...m.media, url } } : m)),
       )
     })
   }
@@ -84,6 +84,6 @@ export function useChatMessages(matchId: string, viewerId: string, initial: Chat
     onInsert,
     onUpdate,
     resync,
-    refreshImage,
+    refreshMedia,
   }
 }

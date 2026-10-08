@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { deleteMessage } from '../message-actions'
-import { EDIT_WINDOW_MS, type ChatImage, type ChatMessage, type ReactionEmoji } from '../types'
+import { EDIT_WINDOW_MS, type ChatMessage, type ReactionEmoji } from '../types'
+import type { ViewerMedia } from './media-viewer'
 import type { BubbleAction } from './message-bubble'
 import type { ComposerMode } from './composer-banner'
 import type { MenuAction } from './message-menu'
@@ -16,12 +17,12 @@ type Deps = {
   chat: ReturnType<typeof useChatMessages>
   reactions: ReturnType<typeof useReactions>
   setMode: (mode: ComposerMode | null) => void
-  setPhoto: (image: ChatImage | null) => void
+  setViewer: (media: ViewerMedia | null) => void
   setError: (error: ErrorKey | undefined) => void
 }
 
 // What tapping, swiping and the long-press menu do to a message.
-export function useMessageActions({ chat, reactions, setMode, setPhoto, setError }: Deps) {
+export function useMessageActions({ chat, reactions, setMode, setViewer, setError }: Deps) {
   const [menuFor, setMenuFor] = useState<ChatMessage | null>(null)
   const [editable, setEditable] = useState(false)
   const [deleting, setDeleting] = useState<ChatMessage | null>(null)
@@ -46,10 +47,12 @@ export function useMessageActions({ chat, reactions, setMode, setPhoto, setError
       case 'menu':
         setEditable(Date.now() - Date.parse(m.createdAt) < EDIT_WINDOW_MS)
         return setMenuFor(m)
-      case 'openImage':
-        return setPhoto(m.image)
-      case 'imageError':
-        return m.image && chat.refreshImage(m.image.path)
+      case 'openMedia':
+        return m.media?.kind === 'image' || m.media?.kind === 'video'
+          ? setViewer(m.media)
+          : undefined
+      case 'mediaError':
+        return m.media && chat.refreshMedia(m.media.path)
       case 'react':
         return reactions.toggle(m.id, action.emoji)
       case 'jump':
@@ -79,7 +82,7 @@ export function useMessageActions({ chat, reactions, setMode, setPhoto, setError
       setDeleting(null)
       if (!result.ok) return setError(result.error)
       setError(undefined)
-      chat.patch(m.id, { body: null, image: null, deletedAt: new Date().toISOString() })
+      chat.patch(m.id, { body: null, media: null, deletedAt: new Date().toISOString() })
     })
 
   return {

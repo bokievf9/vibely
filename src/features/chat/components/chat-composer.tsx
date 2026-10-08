@@ -1,16 +1,21 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
-import { Check, ImagePlus, SendHorizontal } from 'lucide-react'
+import { Check, CircleUserRound, ImagePlus, SendHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { sendMessage } from '../actions'
 import { editMessage } from '../message-actions'
+import type { RecordKind } from '../media'
 import type { ChatMessage } from '../types'
 import { ComposerBanner, type ComposerMode } from './composer-banner'
 import { usePhotoSend } from './use-photo-send'
+import type { Recording } from './use-recorder'
+import { useRecordingSend } from './use-recording-send'
+import { VideoRecorder } from './video-recorder'
+import { VoiceRecorder } from './voice-recorder'
 
 // Text put into the composer from outside (an icebreaker); `at` makes repeated picks distinct.
 export type ComposerPrefill = { text: string; at: number }
@@ -37,6 +42,10 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
   const photo = usePhotoSend(matchId, on.onSent)
+  const recording = useRecordingSend(matchId, on.onSent)
+  const [voiceActive, setVoiceActive] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
+  const sending = photo.sending || recording.sending
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -86,6 +95,12 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
     if (!failed && replyTo) on.onCancelMode()
   }
 
+  const sendRecording = async (kind: RecordKind, r: Recording | null) => {
+    const failed = await recording.send(kind, r, replyTo)
+    setError(failed ?? undefined)
+    if (!failed && r && replyTo) on.onCancelMode()
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -101,22 +116,31 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
           {errorText(error)}
         </p>
       )}
-      {photo.sending && (
+      {sending && (
         <p className="text-muted flex items-center gap-2 text-sm" role="status">
-          <Spinner className="size-4" /> {dict.chats.sendingPhoto}
+          <Spinner className="size-4" />{' '}
+          {photo.sending ? dict.chats.sendingPhoto : dict.media.sending}
         </p>
       )}
-      <div className="flex items-end gap-2">
-        {!editing && (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={photo.sending}
-            aria-label={dict.chats.sendPhoto}
-            className="text-muted flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
-          >
-            <ImagePlus className="size-6" />
-          </button>
+      {voiceActive && <p className="text-muted text-xs">{dict.media.safetyNote}</p>}
+      <div className="flex items-end gap-1.5">
+        {!editing && !voiceActive && (
+          <>
+            <IconButton
+              label={dict.chats.sendPhoto}
+              disabled={sending}
+              onClick={() => fileRef.current?.click()}
+            >
+              <ImagePlus className="size-6" />
+            </IconButton>
+            <IconButton
+              label={dict.media.recordVideo}
+              disabled={sending}
+              onClick={() => setVideoOpen(true)}
+            >
+              <CircleUserRound className="size-6" />
+            </IconButton>
+          </>
         )}
         <input
           ref={fileRef}
@@ -129,6 +153,7 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
           }}
         />
         <textarea
+          hidden={voiceActive}
           ref={inputRef}
           value={text}
           onChange={(e) => {
@@ -147,17 +172,54 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
           aria-label={dict.chats.placeholder}
           className="bg-surface border-border focus:border-accent max-h-32 min-h-11 flex-1 resize-none rounded-2xl border px-4 py-2.5 outline-none"
         />
-        <Button
-          type="submit"
-          size="icon"
-          className="size-11 shrink-0 rounded-full"
-          loading={pending}
-          disabled={!text.trim()}
-          aria-label={editing ? dict.common.save : dict.common.send}
-        >
-          {editing ? <Check className="size-5" /> : <SendHorizontal className="size-5" />}
-        </Button>
+        {!editing && !text.trim() ? (
+          <VoiceRecorder
+            disabled={sending}
+            onActiveChange={setVoiceActive}
+            onDone={(r) => void sendRecording('voice', r)}
+            onError={setError}
+          />
+        ) : (
+          <Button
+            type="submit"
+            size="icon"
+            className="size-11 shrink-0 rounded-full"
+            loading={pending}
+            disabled={!text.trim()}
+            aria-label={editing ? dict.common.save : dict.common.send}
+          >
+            {editing ? <Check className="size-5" /> : <SendHorizontal className="size-5" />}
+          </Button>
+        )}
       </div>
+      {videoOpen && (
+        <VideoRecorder
+          onClose={() => setVideoOpen(false)}
+          onDone={(r) => void sendRecording('video', r)}
+          onError={setError}
+        />
+      )}
     </form>
+  )
+}
+
+type IconButtonProps = {
+  label: string
+  disabled: boolean
+  onClick: () => void
+  children: ReactNode
+}
+
+function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="text-muted flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
+    >
+      {children}
+    </button>
   )
 }

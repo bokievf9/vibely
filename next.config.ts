@@ -9,8 +9,9 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Camera is needed for selfie verification, geolocation for distance filters.
-  { key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=()' },
+  // Camera: selfie verification and video messages; microphone: voice/video messages (and calls);
+  // geolocation: distance filters.
+  { key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=(self)' },
   // Production only: served over HTTPS (Certbot on Nginx); dev needs HMR/eval. See src/lib/csp.ts.
   ...(isProd
     ? [

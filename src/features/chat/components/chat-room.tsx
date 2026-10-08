@@ -6,11 +6,11 @@ import { ChatIcebreakers } from '@/features/icebreakers/components/chat-icebreak
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { loadMessagesBefore } from '../history-actions'
-import type { ChatImage, ChatMessage, Reaction } from '../types'
+import type { ChatMessage, Reaction } from '../types'
 import { ChatComposer, type ComposerPrefill } from './chat-composer'
 import type { ComposerMode } from './composer-banner'
 import { MessageList } from './message-list'
-import { PhotoViewer } from './photo-viewer'
+import { MediaViewer, type ViewerMedia } from './media-viewer'
 import { ScrollDownButton } from './scroll-down-button'
 import { useChatChannel } from './use-chat-channel'
 import { useChatMessages } from './use-chat-messages'
@@ -41,9 +41,9 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
   const [hasMore, setHasMore] = useState(initial.initialHasMore)
   const [loadingEarlier, startLoading] = useTransition()
   const [mode, setMode] = useState<ComposerMode | null>(null)
-  const [photo, setPhoto] = useState<ChatImage | null>(null)
+  const [viewer, setViewer] = useState<ViewerMedia | null>(null)
   const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
-  const actions = useMessageActions({ chat, reactions, setMode, setPhoto, setError })
+  const actions = useMessageActions({ chat, reactions, setMode, setViewer, setError })
   // Reply/edit target as currently loaded; dropped once it is deleted (by either side).
   const target = mode && chat.messages.find((m) => m.id === mode.message.id)
   const activeMode = mode && target && !target.deletedAt ? { ...mode, message: target } : null
@@ -134,7 +134,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
         onCancel={actions.cancelDelete}
         onConfirm={actions.confirmDelete}
       />
-      <PhotoViewer image={photo} onClose={() => setPhoto(null)} />
+      <MediaViewer media={viewer} onClose={() => setViewer(null)} />
     </div>
   )
 }

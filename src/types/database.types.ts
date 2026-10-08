@@ -141,6 +141,42 @@ export type Database = {
           },
         ]
       }
+      message_deletions: {
+        Row: {
+          body: string | null
+          deleted_at: string
+          match_id: string
+          media_kind: string | null
+          media_mime: string | null
+          media_path: string | null
+          message_id: string
+          sender_id: string
+          sent_at: string
+        }
+        Insert: {
+          body?: string | null
+          deleted_at?: string
+          match_id: string
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
+          message_id: string
+          sender_id: string
+          sent_at: string
+        }
+        Update: {
+          body?: string | null
+          deleted_at?: string
+          match_id?: string
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
+          message_id?: string
+          sender_id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -201,9 +237,15 @@ export type Database = {
           image_path: string | null
           image_width: number | null
           match_id: string
+          media_duration_ms: number | null
+          media_expired_at: string | null
+          media_kind: string | null
+          media_mime: string | null
+          media_path: string | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
+          waveform: number[] | null
         }
         Insert: {
           body?: string | null
@@ -215,9 +257,15 @@ export type Database = {
           image_path?: string | null
           image_width?: number | null
           match_id: string
+          media_duration_ms?: number | null
+          media_expired_at?: string | null
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
+          waveform?: number[] | null
         }
         Update: {
           body?: string | null
@@ -229,9 +277,15 @@ export type Database = {
           image_path?: string | null
           image_width?: number | null
           match_id?: string
+          media_duration_ms?: number | null
+          media_expired_at?: string | null
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
+          waveform?: number[] | null
         }
         Relationships: [
           {
@@ -1410,6 +1464,12 @@ export type Database = {
         }
         Returns: string
       }
+      match_under_open_report: {
+        Args: {
+          p_match: string
+        }
+        Returns: boolean
+      }
       new_people_alert_recipients: {
         Args: {
           p_profile: string
@@ -1475,6 +1535,48 @@ export type Database = {
           p_ids: string[]
         }
         Returns: undefined
+      }
+      retention_chat_media: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: {
+          message_id: string
+          path: string
+        }[]
+      }
+      retention_drop_message_deletions: {
+        Args: {
+          p_ids: string[]
+        }
+        Returns: number
+      }
+      retention_mark_chat_media_expired: {
+        Args: {
+          p_ids: string[]
+        }
+        Returns: number
+      }
+      retention_message_deletions: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: {
+          message_id: string
+          media_path: string
+        }[]
+      }
+      retention_orphan_chat_media: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: string[]
+      }
+      retention_selfies: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: string[]
       }
       set_message_reaction: {
         Args: {

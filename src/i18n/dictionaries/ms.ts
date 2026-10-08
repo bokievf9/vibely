@@ -5,6 +5,7 @@ import { feedMs } from './feed/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { likesMs, settingsMs } from './settings/ms'
+import { mediaMs } from './media/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 
 export const ms: Dictionary = {
@@ -68,6 +69,9 @@ export const ms: Dictionary = {
     captchaFailed: 'Semakan keselamatan gagal. Sila cuba lagi.',
     photoSendFailed: 'Tidak dapat menghantar foto. Cuba lagi.',
     messageNotEditable: 'Mesej ini tidak boleh disunting lagi',
+    mediaSendFailed: 'Tidak dapat menghantar. Cuba lagi.',
+    micDenied: 'Tiada akses mikrofon. Benarkan dalam tetapan pelayar anda.',
+    recordingUnsupported: 'Rakaman tidak disokong dalam pelayar ini.',
   },
   gender: { male: 'Lelaki', female: 'Perempuan', other: 'Lain-lain' },
   auth: {
@@ -286,6 +290,8 @@ export const ms: Dictionary = {
     lastUpdated: 'Kemas kini terakhir: {date}',
     contact: 'Ada soalan atau permintaan tentang data anda? E-mel kami di',
     consent: 'Saya berumur 18 tahun ke atas dan bersetuju dengan {terms} dan {privacy}',
+    consentRecording:
+      'Demi keselamatan semua, mesej, foto, mesej suara dan video serta panggilan dirakam dan disimpan sehingga 90 hari. Hanya moderator yang mengendalikan laporan boleh mengaksesnya.',
     consentTerms: 'Terma Penggunaan',
     consentPrivacy: 'Dasar Privasi',
     home: 'Kembali ke Vibely',
@@ -303,6 +309,7 @@ export const ms: Dictionary = {
   settings: settingsMs,
   likes: likesMs,
   discover: discoverMs,
+  media: mediaMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',

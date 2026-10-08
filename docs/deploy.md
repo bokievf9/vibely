@@ -16,7 +16,9 @@ Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и un
 
 `shared/.env.production`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`.
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`,
+`CRON_SECRET` (≥ 32 символов, `openssl rand -hex 32`; без него `POST /api/cron/retention` отвечает 503
+и 90-дневная очистка медиа и селфи не работает).
 
 Ручной откат: `ln -sfn /var/www/vibely/releases/<id> /var/www/vibely/current && pm2 restart vibely`.
 
@@ -28,6 +30,7 @@ Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и un
 | `VPS_USER` | `deploy` |
 | `VPS_SSH_KEY` | приватный ключ `/home/deploy/.ssh/gha_deploy` |
 | `VPS_KNOWN_HOSTS` | вывод `ssh-keyscan 68.183.177.183` |
+| `CRON_SECRET` | то же значение, что в `shared/.env.production` (`.github/workflows/retention.yml`, ежедневно) |
 
 Variables (публичные значения, вшиваются в бандл при сборке): `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
