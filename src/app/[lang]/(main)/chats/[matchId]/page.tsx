@@ -8,6 +8,7 @@ import { getViewer } from '@/features/auth/session'
 import { unmatch } from '@/features/chat/actions'
 import { ChatRoom } from '@/features/chat/components/chat-room'
 import { getChatRoom } from '@/features/chat/queries'
+import { PartnerStatus } from '@/features/presence/components/partner-status'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
@@ -49,7 +50,10 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
           aria-label={dict.chats.viewProfile}
         >
           <Avatar photo={partner.photo} alt={partner.name} size={36} />
-          <h1 className="truncate font-semibold">{partner.name}</h1>
+          <span className="flex min-w-0 flex-col">
+            <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+            <PartnerStatus matchId={matchId} />
+          </span>
         </Link>
         <SafetyMenu
           userId={partner.id}
@@ -63,6 +67,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         viewerId={viewer.id}
         partnerName={partner.name}
         initialMessages={room.messages}
+        initialReactions={room.reactions}
         initialHasMore={room.hasMore}
       />
     </>

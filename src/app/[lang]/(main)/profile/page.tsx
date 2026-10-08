@@ -10,6 +10,8 @@ import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { getOwnPhotos } from '@/features/profile/queries'
+import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
+import { getShowLastSeen } from '@/features/presence/queries'
 import { PushToggle } from '@/features/push/components/push-toggle'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
@@ -33,7 +35,10 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const photos = await getOwnPhotos(viewer.id)
+  const [photos, showLastSeen] = await Promise.all([
+    getOwnPhotos(viewer.id),
+    getShowLastSeen(viewer.id),
+  ])
 
   return (
     <div className="flex flex-col gap-8 px-4 pb-6">
@@ -51,6 +56,7 @@ async function OwnProfile() {
         <PhotoUploader userId={viewer.id} photos={photos} />
       </section>
       <PushToggle />
+      <LastSeenToggle initial={showLastSeen} />
       <section className="flex flex-col gap-3">
         <h2 className="text-muted text-sm font-medium">{dict.profile.language}</h2>
         <LanguageSwitcher />

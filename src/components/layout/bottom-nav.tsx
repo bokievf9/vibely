@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { Flame, MessageCircle, Newspaper, Shuffle, User } from 'lucide-react'
 import { useUnreadCount } from '@/features/chat/components/use-unread-count'
+import { usePresenceHeartbeat } from '@/features/presence/use-heartbeat'
 import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ const ITEMS = [
 // The unread badge lives outside the boundary so its subscription survives navigation.
 export function BottomNav() {
   const { count, refresh } = useUnreadCount()
+  usePresenceHeartbeat()
   return (
     <Suspense fallback={<NavBar activePath={null} unread={count} />}>
       <ActiveNavBar unread={count} onNavigate={refresh} />
