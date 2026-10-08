@@ -75,7 +75,6 @@ export function SessionBar({ session, active, pending, onReveal, onEnd, onNext }
           <p>{dict.random.endConfirm}</p>
           <Button
             variant="danger"
-            // TODO(ui/shell): swap for the danger token once it lands.
             className="bg-danger-strong"
             fullWidth
             loading={pending}

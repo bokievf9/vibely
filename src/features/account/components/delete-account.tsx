@@ -12,7 +12,6 @@ import { resetBrowserToken } from '@/lib/supabase/client'
 import { deleteAccount } from '../actions'
 import { DELETE_CONFIRM_WORD, deleteAccountSchema } from '../schemas'
 
-// TODO(ui/shell): replace with the danger token once the shell branch adds it.
 const DANGER = 'bg-danger-strong'
 
 // Danger zone on the own profile: type DELETE → the account and all its data are removed.

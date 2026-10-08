@@ -38,7 +38,6 @@ export function ContentMenu({ type, id, isMine, onDelete, onDeleted }: Props) {
           <p>{dict.feed.deleteConfirm}</p>
           <Button
             variant="danger"
-            // TODO(ui/shell): swap for the danger token once it lands.
             className="bg-danger-strong"
             fullWidth
             loading={pending}
