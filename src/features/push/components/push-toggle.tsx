@@ -47,7 +47,7 @@ function Toggle() {
           onToggle={toggle}
         />
       </div>
-      <p className={cn('text-sm', failed ? 'text-red-400' : 'text-muted')}>{note}</p>
+      <p className={cn('text-sm', failed ? 'text-danger' : 'text-muted')}>{note}</p>
     </div>
   )
 }

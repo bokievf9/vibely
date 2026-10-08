@@ -116,7 +116,7 @@ export function OtpForm({ phone }: { phone: string }) {
                   className={cn(
                     'bg-surface flex h-14 items-center justify-center rounded-2xl border text-2xl font-semibold tabular-nums transition-colors duration-150',
                     invalid
-                      ? 'border-red-500/70'
+                      ? 'border-danger/70'
                       : active
                         ? 'border-accent'
                         : code[i]

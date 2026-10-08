@@ -48,7 +48,7 @@ export function SwitchRow({ label, icon: Icon, hint, initial, save }: RowProps) 
         </span>
         <Switch checked={on} onToggle={toggle} label={label} disabled={pending} />
       </div>
-      {note && <p className={cn('text-sm', error ? 'text-red-400' : 'text-muted')}>{note}</p>}
+      {note && <p className={cn('text-sm', error ? 'text-danger' : 'text-muted')}>{note}</p>}
     </div>
   )
 }

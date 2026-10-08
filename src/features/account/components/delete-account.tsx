@@ -13,7 +13,7 @@ import { deleteAccount } from '../actions'
 import { DELETE_CONFIRM_WORD, deleteAccountSchema } from '../schemas'
 
 // TODO(ui/shell): replace with the danger token once the shell branch adds it.
-const DANGER = 'bg-red-500'
+const DANGER = 'bg-danger-strong'
 
 // Danger zone on the own profile: type DELETE → the account and all its data are removed.
 export function DeleteAccount() {
@@ -44,15 +44,15 @@ export function DeleteAccount() {
   return (
     <section
       aria-labelledby="danger-zone"
-      className="flex flex-col gap-3 rounded-2xl border border-red-500/30 p-4"
+      className="border-danger/30 flex flex-col gap-3 rounded-2xl border p-4"
     >
-      <h2 id="danger-zone" className="text-sm font-medium text-red-400">
+      <h2 id="danger-zone" className="text-danger text-sm font-medium">
         {dict.account.dangerZone}
       </h2>
       {/* Outlined here; the filled red button is kept for the final, irreversible step. */}
       <Button
         variant="ghost"
-        className="border border-red-500/40 text-red-400 active:bg-red-500/10"
+        className="border-danger/40 text-danger active:bg-danger/10 border"
         onClick={() => setOpen(true)}
         fullWidth
       >

@@ -42,7 +42,7 @@ export function TermsConsent({ error, id = 'acceptTerms', ...input }: Props) {
             type="checkbox"
             aria-invalid={Boolean(error) || undefined}
             aria-describedby={error ? `${id}-msg` : undefined}
-            className="peer border-border bg-surface checked:border-accent checked:bg-accent focus-visible:ring-accent focus-visible:ring-offset-background size-6 cursor-pointer appearance-none rounded-lg border-2 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none aria-invalid:border-red-500"
+            className="peer border-border bg-surface checked:border-accent checked:bg-accent focus-visible:ring-accent focus-visible:ring-offset-background aria-invalid:border-danger size-6 cursor-pointer appearance-none rounded-lg border-2 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             {...input}
           />
           <Check
@@ -58,7 +58,7 @@ export function TermsConsent({ error, id = 'acceptTerms', ...input }: Props) {
         </label>
       </div>
       {error && (
-        <p id={`${id}-msg`} role="alert" className="text-sm text-red-400">
+        <p id={`${id}-msg`} role="alert" className="text-danger text-sm">
           {error}
         </p>
       )}

@@ -139,7 +139,7 @@ export function AnonChat({
           className="bg-background/95 border-border sticky bottom-0 z-20 -mx-4 flex flex-col gap-1 border-t px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur"
         >
           {error && (
-            <p role="alert" className="px-1 text-sm text-red-400">
+            <p role="alert" className="text-danger px-1 text-sm">
               {errorText(error)}
             </p>
           )}

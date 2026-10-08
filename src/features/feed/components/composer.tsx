@@ -103,7 +103,7 @@ export function Composer({
   )
 
   const errorLine = error && (
-    <p role="alert" className="px-1 text-sm text-red-400">
+    <p role="alert" className="text-danger px-1 text-sm">
       {errorText(error)}
     </p>
   )

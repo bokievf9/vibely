@@ -76,7 +76,7 @@ export function SessionBar({ session, active, pending, onReveal, onEnd, onNext }
           <Button
             variant="danger"
             // TODO(ui/shell): swap for the danger token once it lands.
-            className="bg-red-500"
+            className="bg-danger-strong"
             fullWidth
             loading={pending}
             onClick={async () => {
