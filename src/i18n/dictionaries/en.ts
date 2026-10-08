@@ -7,6 +7,7 @@ import { landingEn } from './landing/en'
 import { likesEn, settingsEn } from './settings/en'
 import { mediaEn } from './media/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
+import { usernameEn, usernameErrorsEn } from './username/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -23,6 +24,7 @@ export const en = {
   },
   errors: {
     ...callErrorsEn,
+    ...usernameErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -347,6 +349,7 @@ export const en = {
   tags: tagsEn,
   tagCategories: tagCategoriesEn,
   avatar: avatarEn,
+  username: usernameEn,
 }
 
 export type Dictionary = typeof en

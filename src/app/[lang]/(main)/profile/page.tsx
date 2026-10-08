@@ -53,6 +53,7 @@ async function OwnProfile() {
       <section className="flex flex-col gap-3">
         <OwnProfileHeader
           name={viewer.profile.displayName}
+          username={viewer.profile.username}
           age={card?.age ?? null}
           city={profile?.city ?? ''}
           verified={viewer.profile.verificationStatus === 'approved'}

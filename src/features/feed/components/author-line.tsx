@@ -68,6 +68,7 @@ export function AuthorLine({ identity, fallbackName, size = 32, nameClassName, c
         {a.verified && (
           <BadgeCheck className="text-accent size-4 shrink-0" aria-label={dict.feed.verified} />
         )}
+        {a.username && <span className="text-muted min-w-0 truncate text-xs">@{a.username}</span>}
         {children}
       </button>
       <AuthorSheet userId={a.id} name={a.name} open={open} onClose={() => setOpen(false)} />

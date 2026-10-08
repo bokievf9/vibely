@@ -61,6 +61,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
             <span className="flex min-w-0 items-center gap-1">
               <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
               <VerifiedBadge size={16} />
+              <span className="text-muted min-w-0 truncate text-xs">@{partner.username}</span>
             </span>
             <PartnerStatus matchId={matchId} />
           </span>

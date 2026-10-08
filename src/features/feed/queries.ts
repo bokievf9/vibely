@@ -76,7 +76,7 @@ export async function getAuthorCard(userId: string): Promise<AuthorCard | null> 
   const { data: p } = await supabase
     .from('profiles')
     .select(
-      'id, display_name, birth_date, bio, verification_status, profile_photos(storage_path, width, height, position)',
+      'id, display_name, username, birth_date, bio, verification_status, profile_photos(storage_path, width, height, position)',
     )
     .eq('id', userId)
     .maybeSingle()
@@ -86,6 +86,7 @@ export async function getAuthorCard(userId: string): Promise<AuthorCard | null> 
   return {
     id: p.id,
     name: p.display_name,
+    username: p.username,
     age: ageFromBirthDate(p.birth_date),
     verified: p.verification_status === 'approved',
     bio: p.bio ?? '',

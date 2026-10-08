@@ -10,10 +10,11 @@ const ROOM_HISTORY = 100
 type PartnerRow = {
   id: string
   display_name: string
+  username: string
   profile_photos: { storage_path: string; width: number; height: number; position: number }[]
 } | null
 
-const PARTNER = 'id, display_name, profile_photos(storage_path, width, height, position)'
+const PARTNER = 'id, display_name, username, profile_photos(storage_path, width, height, position)'
 
 async function toPartners(rows: PartnerRow[]): Promise<Map<string, Partner>> {
   const firstPhoto = (r: NonNullable<PartnerRow>) =>
@@ -29,6 +30,7 @@ async function toPartners(rows: PartnerRow[]): Promise<Map<string, Partner>> {
         {
           id: r.id,
           name: r.display_name,
+          username: r.username,
           photo: url && p ? { url, width: p.width, height: p.height } : null,
         },
       ]

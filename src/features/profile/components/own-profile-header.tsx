@@ -6,6 +6,7 @@ import type { OwnPhoto } from '../queries'
 
 type Props = {
   name: string
+  username: string
   age: number | null
   city: string
   verified: boolean
@@ -13,8 +14,8 @@ type Props = {
   t: Dictionary['avatar']
 }
 
-// Top of the own profile page: big round main photo, name, age, ✓ and city.
-export function OwnProfileHeader({ name, age, city, verified, mainPhoto, t }: Props) {
+// Top of the own profile page: big round main photo, name, age, ✓, @username and city.
+export function OwnProfileHeader({ name, username, age, city, verified, mainPhoto, t }: Props) {
   return (
     <div className="flex items-center gap-4">
       <Avatar photo={mainPhoto} alt={t.yourPhoto} size={88} className="ring-accent/40 ring-2" />
@@ -26,6 +27,7 @@ export function OwnProfileHeader({ name, age, city, verified, mainPhoto, t }: Pr
           </span>
           {verified && <VerifiedBadge size={22} />}
         </h2>
+        <p className="text-muted truncate text-sm">@{username}</p>
         {city && (
           <p className="text-muted flex items-center gap-1 text-sm">
             <MapPin className="size-4 shrink-0" aria-hidden />

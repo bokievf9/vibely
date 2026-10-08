@@ -8,6 +8,7 @@ import { landingMs } from './landing/ms'
 import { likesMs, settingsMs } from './settings/ms'
 import { mediaMs } from './media/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
+import { usernameMs, usernameErrorsMs } from './username/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -24,6 +25,7 @@ export const ms: Dictionary = {
   },
   errors: {
     ...callErrorsMs,
+    ...usernameErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -352,4 +354,5 @@ export const ms: Dictionary = {
   tags: tagsMs,
   tagCategories: tagCategoriesMs,
   avatar: avatarMs,
+  username: usernameMs,
 }
