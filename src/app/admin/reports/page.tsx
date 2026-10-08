@@ -4,6 +4,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { TARGET_LABELS } from '@/features/admin/labels'
 import { REASON_CODES, REPORT_TARGETS, reasonLabel } from '@/features/admin/report-labels'
 import { ReportQueue } from '@/features/admin/components/report-queue'
+import { getAdmin } from '@/features/admin/guard'
 import {
   FilterChips,
   Pager,
@@ -48,7 +49,7 @@ async function Queue({ searchParams }: Pick<PageProps<'/admin/reports'>, 'search
     reason: REASON_CODES.find((r) => r === one(sp.reason)) ?? null,
     page: pageParam(sp.page),
   }
-  const { cases, total } = await getReportQueue(filters)
+  const [{ cases, total }, admin] = await Promise.all([getReportQueue(filters), getAdmin()])
 
   const href = (next: Partial<Record<'status' | 'type' | 'reason' | 'page', string | null>>) => {
     const merged = {
@@ -95,7 +96,7 @@ async function Queue({ searchParams }: Pick<PageProps<'/admin/reports'>, 'search
       {!cases.length ? (
         <p className="text-muted">Открытых жалоб нет 🎉</p>
       ) : (
-        <ReportQueue cases={cases} />
+        <ReportQueue cases={cases} role={admin.role} />
       )}
       <Pager
         page={filters.page}

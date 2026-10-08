@@ -4,13 +4,10 @@ import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
-import {
-  notifyBanChanged,
-  notifyReportsResolved,
-  notifyVerificationDecided,
-} from '@/features/telegram/notify'
+import { notifyBanChanged, notifyVerificationDecided } from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
+import { resolveCase } from './report-actions'
 import {
   banSchema,
   contentSchema,
@@ -120,31 +117,8 @@ export async function setContentHidden(input: z.input<typeof contentSchema>) {
   ])
 }
 
-// One atomic RPC (20261009000161): the sanction and the closing of every open report on the
-// target happen in one transaction. The report queue uses resolveCase (report-actions.ts).
+// One atomic RPC (20261009000161) through resolveCase: the sanction and the closing of every
+// open report on the target happen in one transaction.
 export async function resolveReports(input: z.input<typeof resolveSchema>) {
-  const result = await moderate(resolveSchema, input, (d, admin) => [
-    createAdminClient().rpc('admin_resolve_case', {
-      p_admin: admin,
-      p_type: d.targetType,
-      p_target: d.targetId,
-      p_decision: d.decision,
-      p_reason: d.reason || undefined,
-      p_offender: d.decision === 'ban' ? d.offenderId : undefined,
-    }),
-  ])
-  const parsed = resolveSchema.safeParse(input)
-  if (result.ok && parsed.success) {
-    const d = parsed.data
-    const adminId = await requireAdmin()
-    notifyReportsResolved(d.targetType, d.targetId, adminId, RESOLVED_LABELS[d.decision])
-    if (d.decision === 'ban') notifyBanChanged(adminId, d.offenderId, true, d.reason)
-  }
-  return result
+  return resolveCase(input)
 }
-
-const RESOLVED_LABELS = {
-  dismiss: 'Отклонено: нарушения нет',
-  hide: '🙈 Скрыто',
-  ban: '🔨 Пользователь заблокирован',
-} as const

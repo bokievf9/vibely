@@ -39,7 +39,7 @@ set search_path = ''
 as $$
 #variable_conflict use_column
 begin
-  perform public.assert_admin(p_admin);
+  perform public.assert_admin_role(p_admin, 'viewer');
   if p_scope not in ('pending', 'verified', 'unverified', 'all') then
     raise exception 'Unknown scope %', p_scope using errcode = 'check_violation';
   end if;

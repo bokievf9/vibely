@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import { ShieldCheck } from 'lucide-react'
 import { PageSpinner } from '@/components/ui/spinner'
 import { AdminNav } from '@/features/admin/components/admin-nav'
-import { requireAdmin } from '@/features/admin/guard'
+import { getAdmin } from '@/features/admin/guard'
+import { ROLE_LABELS } from '@/features/admin/roles'
 import { geistSans } from '../fonts'
 import '../globals.css'
 
@@ -33,10 +34,11 @@ export default function AdminLayout({ children }: LayoutProps<'/admin'>) {
 
 // 404 for everyone who isn't in public.admins.
 async function AdminGate({ children }: { children: ReactNode }) {
-  await requireAdmin()
+  const { role } = await getAdmin()
   return (
     <>
-      <AdminNav />
+      <p className="text-muted -mt-3 text-xs">Роль: {ROLE_LABELS[role]}</p>
+      <AdminNav role={role} />
       <main className="flex flex-col gap-4">{children}</main>
     </>
   )

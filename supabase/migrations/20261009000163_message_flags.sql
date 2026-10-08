@@ -275,7 +275,7 @@ set search_path = ''
 as $$
 #variable_conflict use_column
 begin
-  perform public.assert_admin(p_admin);
+  perform public.assert_admin_role(p_admin, 'viewer');
   return query
   select s.user_id, p.display_name, p.username, s.score, s.flags, s.conversations, s.kinds,
     s.last_flag_at, p.banned_at is not null,

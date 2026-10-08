@@ -1,10 +1,15 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getLiveKitEnv } from '@/features/calls/server/env'
+import { closeCallRoom } from '@/features/calls/server/livekit'
+import { notifyBanChanged, notifyReportsResolved } from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
-import { requireAdmin } from './guard'
+import { adminWithRole } from './guard'
+import { DECISION_LABELS } from './report-labels'
 import {
   bulkDismissSchema,
   caseSchema,
@@ -17,8 +22,11 @@ const invalid = (issues: z.core.$ZodIssue[]): ActionResult<never> => ({
   error: issues[0]?.message ?? 'Неверные данные',
 })
 
+const noRole: ActionResult<never> = { ok: false, error: 'Нужна роль «Модератор» или выше' }
+
 // Postgres errors raised by the queue RPCs, in moderator language.
 function rpcError(error: { code?: string; message: string }): ActionResult<never> {
+  if (error.code === '42501') return { ok: false, error: 'Недостаточно прав для этого действия' }
   if (error.code === '55P03') return { ok: false, error: 'Жалобу уже взял другой модератор' }
   if (error.code === 'P0002' && /No open reports/.test(error.message))
     return { ok: false, error: 'Жалоба уже закрыта' }
@@ -26,11 +34,14 @@ function rpcError(error: { code?: string; message: string }): ActionResult<never
 }
 
 // One decision on a case: sanction and closing of every open report in one transaction
-// (admin_resolve_case). A deleted photo's file is removed from storage afterwards.
+// (admin_resolve_case). Bans follow the role rules (moderators 7 days, admins permanent). Calls the
+// ban ended get their LiveKit rooms closed, a deleted photo's file is removed from storage, and
+// the Telegram copy of the report is closed.
 export async function resolveCase(input: ResolveCaseInput): Promise<ActionResult> {
   const parsed = resolveCaseSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error.issues)
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return noRole
   const d = parsed.data
   const db = createAdminClient()
 
@@ -45,8 +56,17 @@ export async function resolveCase(input: ResolveCaseInput): Promise<ActionResult
   if (error) return rpcError(error)
 
   revalidatePath('/admin', 'layout')
-  const photoPath =
-    data && typeof data === 'object' && !Array.isArray(data) ? data.photo_path : undefined
+  const out = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+  const offender = typeof out.offender === 'string' ? out.offender : null
+  notifyReportsResolved(d.targetType, d.targetId, adminId, DECISION_LABELS[d.decision])
+  if (d.decision === 'ban' && offender) notifyBanChanged(adminId, offender, true, d.reason)
+  const endedCalls = Array.isArray(out.ended_calls)
+    ? out.ended_calls.filter((id): id is string => typeof id === 'string')
+    : []
+  const env = getLiveKitEnv()
+  if (env && endedCalls.length)
+    after(() => Promise.all(endedCalls.map((id) => closeCallRoom(env, id))))
+  const photoPath = out.photo_path
   if (typeof photoPath === 'string') {
     const { error: storageError } = await db.storage.from('profile-photos').remove([photoPath])
     if (storageError)
@@ -58,7 +78,8 @@ export async function resolveCase(input: ResolveCaseInput): Promise<ActionResult
 export async function claimCase(input: z.input<typeof caseSchema>): Promise<ActionResult> {
   const parsed = caseSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error.issues)
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return noRole
   const { error } = await createAdminClient().rpc('admin_claim_report', {
     p_admin: adminId,
     p_type: parsed.data.targetType,
@@ -72,7 +93,8 @@ export async function claimCase(input: z.input<typeof caseSchema>): Promise<Acti
 export async function releaseCase(input: z.input<typeof caseSchema>): Promise<ActionResult> {
   const parsed = caseSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error.issues)
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return noRole
   const { error } = await createAdminClient().rpc('admin_release_report', {
     p_admin: adminId,
     p_type: parsed.data.targetType,
@@ -90,7 +112,8 @@ export async function bulkDismiss(
 ): Promise<ActionResult<{ dismissed: number; skipped: number }>> {
   const parsed = bulkDismissSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error.issues)
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return noRole
   const { cases, reason } = parsed.data
   const { data, error } = await createAdminClient().rpc('admin_bulk_dismiss', {
     p_admin: adminId,

@@ -111,8 +111,8 @@ begin
 end;
 $$;
 
--- Unmatch / block deletes the match and (by cascade) its messages. Under an open report the chat
--- is evidence: archive it first. Messages already deleted for everyone are archived already.
+-- Unmatch / block deletes the match and (by cascade) its messages. Under an open report (or an
+-- evidence hold, 20261009000154) the chat is evidence: archive it first. Messages already deleted for everyone are archived already.
 create function public.matches_archive_reported_chat()
 returns trigger
 language plpgsql
@@ -120,7 +120,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if public.match_under_open_report(old.id) then
+  if public.match_under_open_report(old.id) or public.match_under_evidence_hold(old.id) then
     insert into public.message_deletions
       (message_id, match_id, sender_id, recipient_id, body, media_kind, media_path, media_mime,
        sent_at, cause)
@@ -141,8 +141,8 @@ create trigger matches_archive_reported_chat
 
 revoke execute on function public.matches_archive_reported_chat() from public, anon, authenticated;
 
--- Newest definition (was 20261008000131): kept while the match, the sender or the recipient is
--- under an open personal report.
+-- Newest definition (was 20261009000154, which added the evidence hold): kept while the match,
+-- the sender or the recipient is under an open personal report or an evidence hold.
 create or replace function public.retention_message_deletions(p_limit int default 200)
 returns table (message_id uuid, media_path text)
 language sql
@@ -160,11 +160,15 @@ as $$
         and public.report_is_personal(r.target_type)
         and r.subject_id in (d.sender_id, d.recipient_id)
     )
+    and not public.match_under_evidence_hold(d.match_id)
+    and not public.under_evidence_hold(d.sender_id)
+    and (d.recipient_id is null or not public.under_evidence_hold(d.recipient_id))
   order by d.deleted_at
   limit least(greatest(p_limit, 1), 1000);
 $$;
 
--- Newest definition (was 20261008000111): any open personal report about the selfie's owner.
+-- Newest definition (was 20261009000154, which added the evidence hold): any open personal report
+-- about the selfie's owner, or an evidence hold.
 create or replace function public.retention_selfies(p_limit int default 200)
 returns setof text
 language sql
@@ -185,6 +189,10 @@ as $$
       where r.resolved_at is null
         and public.report_is_personal(r.target_type)
         and r.subject_id::text = split_part(o.name, '/', 1)
+    )
+    and not exists (
+      select 1 from public.profiles p
+      where p.evidence_hold_at is not null and p.id::text = split_part(o.name, '/', 1)
     )
   order by o.created_at
   limit least(greatest(p_limit, 1), 1000);

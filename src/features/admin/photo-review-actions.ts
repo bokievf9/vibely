@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult } from '@/types/action-result'
-import { requireAdmin } from './guard'
+import { adminWithRole } from './guard'
 import { bulkDeletePhotosSchema, photoIdsSchema } from './report-schemas'
 
 // Pending photo review (/admin/photos). Each photo is logged on its own by the RPCs
@@ -14,7 +14,8 @@ export async function approvePhotos(
 ): Promise<ActionResult<{ approved: number }>> {
   const parsed = photoIdsSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'Неверные данные' }
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return { ok: false, error: 'Нужна роль «Модератор» или выше' }
   const { data, error } = await createAdminClient().rpc('admin_approve_photos', {
     p_admin: adminId,
     p_photos: parsed.data.photoIds,
@@ -32,7 +33,8 @@ export async function deletePhotos(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Неверные данные' }
   }
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return { ok: false, error: 'Нужна роль «Модератор» или выше' }
   const db = createAdminClient()
   const { data: paths, error } = await db.rpc('admin_delete_photos', {
     p_admin: adminId,

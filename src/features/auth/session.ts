@@ -12,6 +12,8 @@ export type Viewer = {
     verificationStatus: Enums<'verification_status'>
     photoCount: number
     banReason: string | null
+    // Temporary ban end (null: permanent or not banned).
+    bannedUntil: string | null
   } | null
 }
 
@@ -31,6 +33,15 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     .eq('id', id)
     .maybeSingle()
 
+  // A banned user: my_ban_status() first lifts the ban if a temporary one has expired
+  // (20261009000151), so the user is let back in on their next visit.
+  let ban = profile?.banned_at ? { reason: profile.ban_reason, until: null as string | null } : null
+  if (ban) {
+    const { data } = await supabase.rpc('my_ban_status')
+    const status = data?.[0]
+    ban = status?.banned_at ? { reason: status.ban_reason, until: status.banned_until } : null
+  }
+
   return {
     id,
     profile: profile && {
@@ -38,7 +49,8 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       username: profile.username,
       verificationStatus: profile.verification_status,
       photoCount: profile.profile_photos[0]?.count ?? 0,
-      banReason: profile.banned_at ? (profile.ban_reason ?? '—') : null,
+      banReason: ban ? (ban.reason ?? '—') : null,
+      bannedUntil: ban?.until ?? null,
     },
   }
 })

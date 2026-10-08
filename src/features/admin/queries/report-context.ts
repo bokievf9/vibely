@@ -1,6 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Enums } from '@/types/database.types'
+import { logAccess } from './access'
 import { getCallsBetween, getCallsByIds, type ReportCall } from './call-recordings'
 import { signUrls } from './storage'
 
@@ -172,6 +173,13 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     const target = targets.find((t) => t.targetId === s.id)
     const reporters = new Set(target?.reasons.map((r) => r.reporterId))
     const offenderId = [s.user_a, s.user_b].find((u) => !reporters.has(u)) ?? null
+    // The transcript is shown only after the view is logged (moderators; CLAUDE.md protocol).
+    const canRead = await logAccess(
+      'view.transcript',
+      'random_session',
+      [s.id],
+      'Жалоба на рандом-чат',
+    )
     const { data: messages } = await db
       .from('random_chat_messages')
       .select('body, created_at, sender_id, profiles(display_name)')
@@ -182,7 +190,7 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     out.set(`random_session:${s.id}`, {
       kind: 'random_session',
       offender: offenderId ? { id: offenderId, name: names.get(offenderId) ?? '—' } : null,
-      transcript: (messages ?? []).map((m) => ({
+      transcript: (canRead ? (messages ?? []) : []).map((m) => ({
         from: names.get(m.sender_id) ?? '—',
         body: m.body,
         at: m.created_at,

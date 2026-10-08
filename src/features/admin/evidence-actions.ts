@@ -3,7 +3,7 @@
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult } from '@/types/action-result'
-import { requireAdmin } from './guard'
+import { adminWithRole } from './guard'
 import { chatMediaSchema, evidenceSchema } from './report-schemas'
 
 // Evidence viewers of the report card (CLAUDE.md "Safety recording & data retention"). The
@@ -34,7 +34,8 @@ export async function openTranscript(
 ): Promise<ActionResult<TranscriptMessage[]>> {
   const parsed = evidenceSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'Неверные данные' }
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return { ok: false, error: 'Нужна роль «Модератор» или выше' }
   const { data, error } = await createAdminClient().rpc('admin_open_chat_transcript', {
     p_admin: adminId,
     p_type: parsed.data.targetType,
@@ -65,7 +66,8 @@ export async function openChatMedia(
 ): Promise<ActionResult<{ url: string; kind: 'image' | 'voice' | 'video'; mime: string }>> {
   const parsed = chatMediaSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'Неверные данные' }
-  const adminId = await requireAdmin()
+  const adminId = (await adminWithRole('moderator'))?.id
+  if (!adminId) return { ok: false, error: 'Нужна роль «Модератор» или выше' }
   const db = createAdminClient()
   const { data, error } = await db.rpc('admin_open_chat_media', {
     p_admin: adminId,

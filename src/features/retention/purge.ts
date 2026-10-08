@@ -17,6 +17,7 @@ export type RetentionReport = {
   chatMediaOrphans: number
   deletedMessages: number
   selfies: number
+  liftedBans: number
 }
 
 async function removeFiles(db: Admin, bucket: string, paths: string[]): Promise<number> {
@@ -92,9 +93,12 @@ async function purgeDeletedMessages(db: Admin): Promise<number> {
 
 export async function runRetention(): Promise<RetentionReport> {
   const db = createAdminClient()
+  // Backstop for pg_cron (20261009000151): lift temporary bans and mutes that have expired.
+  const { data: liftedBans, error: liftError } = await db.rpc('lift_expired_sanctions')
+  if (liftError) throw new Error(`retention: lift sanctions failed: ${liftError.message}`)
   const chatMediaExpired = await expireChatMedia(db)
   const chatMediaOrphans = await purgeListed(db, CHAT_MEDIA_BUCKET, 'retention_orphan_chat_media')
   const deletedMessages = await purgeDeletedMessages(db)
   const selfies = await purgeListed(db, 'selfies', 'retention_selfies')
-  return { chatMediaExpired, chatMediaOrphans, deletedMessages, selfies }
+  return { chatMediaExpired, chatMediaOrphans, deletedMessages, selfies, liftedBans }
 }

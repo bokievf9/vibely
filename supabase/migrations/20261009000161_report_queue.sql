@@ -12,8 +12,10 @@
 -- chat). It is filled in by a trigger, never by the client, and is what the evidence viewers and
 -- the retention rules use to know the "parties involved": the reporter and the subject.
 --
--- All admin_* functions take the moderator's id (p_admin), re-check it with assert_admin and are
--- callable only with the service role, like the moderation RPCs of 20261008000016.
+-- All admin_* functions take the panel member's id (p_admin) and are callable only with the service
+-- role. Roles (20261009000150): reading the queue and the history needs 'viewer'; claiming and
+-- deciding need 'moderator' (assert_admin); bans follow admin_ban_user (moderators 1..7 days,
+-- admins and owners permanent).
 
 -- No foreign key on subject_id on purpose: a second reports -> profiles relationship would make
 -- every existing PostgREST embed "reports ... profiles(...)" ambiguous and fail.
@@ -167,7 +169,7 @@ set search_path = ''
 as $$
 #variable_conflict use_column
 begin
-  perform public.assert_admin(p_admin);
+  perform public.assert_admin_role(p_admin, 'viewer');
   if p_status is not null and p_status not in ('open', 'in_review') then
     raise exception 'Unknown status %', p_status using errcode = 'check_violation';
   end if;
@@ -237,7 +239,7 @@ set search_path = ''
 as $$
 #variable_conflict use_column
 begin
-  perform public.assert_admin(p_admin);
+  perform public.assert_admin_role(p_admin, 'viewer');
   return query
   with decisions as (
     select r.target_type, r.target_id,
@@ -321,16 +323,22 @@ $$;
 -- every open report on the target happen in one transaction, or nothing happens.
 --   dismiss       no violation
 --   hide          posts and comments only
---   ban           p_offender defaults to the case subject; it may also be one of the reporters
+--   ban           p_offender defaults to the case subject; it may also be one of the reporters.
+--                 Through admin_ban_user (20261009000151): p_ban_days null = permanent for admins
+--                 and owners, 7 days for moderators; an explicit p_ban_days is checked there
+--                 (1..7 moderator, longer or permanent admin).
 --   delete_photo  photo cases only; returns the storage path so the caller removes the file
--- Returns {"closed": n, "decision": ..., "offender": uuid|null, "photo_path": text|null}.
+-- Returns {"closed": n, "decision": ..., "offender": uuid|null, "ban_days": int|null,
+--          "ended_calls": [uuid], "photo_path": text|null}. The caller closes the LiveKit rooms of
+-- ended_calls and removes the photo file.
 create function public.admin_resolve_case(
   p_admin    uuid,
   p_type     public.report_target,
   p_target   uuid,
   p_decision text,
   p_reason   text default null,
-  p_offender uuid default null
+  p_offender uuid default null,
+  p_ban_days int default null
 )
 returns jsonb
 language plpgsql
@@ -343,6 +351,8 @@ declare
   path    text;
   closed  int;
   note    text := nullif(btrim(p_reason), '');
+  days    int;
+  ended   uuid[] := '{}';
 begin
   perform public.assert_admin(p_admin);
   if p_decision is null or p_decision not in ('dismiss', 'hide', 'ban', 'delete_photo') then
@@ -388,7 +398,9 @@ begin
       ) then
         raise exception 'The offender must be a party of the case' using errcode = 'check_violation';
       end if;
-      perform public.admin_set_ban(p_admin, offender, true, note);
+      days := coalesce(p_ban_days,
+        case when public.admin_role_of(p_admin) >= 'admin' then null else 7 end);
+      ended := public.admin_ban_user(p_admin, offender, note, days);
     when 'delete_photo' then
       if p_type <> 'photo' then
         raise exception 'Only photo reports can delete a photo' using errcode = 'check_violation';
@@ -407,7 +419,7 @@ begin
     p_decision || coalesce(': ' || note, ''));
 
   return jsonb_build_object('closed', closed, 'decision', p_decision, 'offender', offender,
-    'photo_path', path);
+    'ban_days', days, 'ended_calls', to_jsonb(coalesce(ended, '{}')), 'photo_path', path);
 end;
 $$;
 
@@ -450,7 +462,7 @@ begin
     'admin_report_history(uuid, public.report_target, text, int, int)',
     'admin_claim_report(uuid, public.report_target, uuid)',
     'admin_release_report(uuid, public.report_target, uuid)',
-    'admin_resolve_case(uuid, public.report_target, uuid, text, text, uuid)',
+    'admin_resolve_case(uuid, public.report_target, uuid, text, text, uuid, int)',
     'admin_bulk_dismiss(uuid, jsonb, text)'
   ] loop
     execute format('revoke execute on function public.%s from public, anon, authenticated', fn);

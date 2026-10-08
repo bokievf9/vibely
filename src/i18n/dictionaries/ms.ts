@@ -13,6 +13,7 @@ import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
 import { reportsMs } from './reports/ms'
+import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -34,6 +35,7 @@ export const ms: Dictionary = {
   errors: {
     ...callErrorsMs,
     ...usernameErrorsMs,
+    ...sanctionErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -372,4 +374,5 @@ export const ms: Dictionary = {
   username: usernameMs,
   flows: flowsMs,
   reports: reportsMs,
+  sanctions: sanctionsMs,
 }

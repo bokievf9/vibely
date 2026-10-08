@@ -12,6 +12,7 @@ import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
 import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
+import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -33,6 +34,7 @@ export const en = {
   errors: {
     ...callErrorsEn,
     ...usernameErrorsEn,
+    ...sanctionErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -367,6 +369,7 @@ export const en = {
   username: usernameEn,
   flows: flowsEn,
   reports: reportsEn,
+  sanctions: sanctionsEn,
 }
 
 export type Dictionary = typeof en

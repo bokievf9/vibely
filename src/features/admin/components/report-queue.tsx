@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
 import { bulkDismiss } from '../report-actions'
 import type { ReportCase } from '../queries/reports'
+import { hasRole, type AdminRole } from '../roles'
 import { ReportCard } from './report-card'
 import { useModeration } from './use-moderation'
 
@@ -13,11 +14,14 @@ const keyOf = (c: Pick<ReportCase, 'targetType' | 'targetId'>) => `${c.targetTyp
 
 // The page of cases with multi-select: "Dismiss selected" closes each case on its own (each one
 // is logged); cases taken by another moderator are skipped.
-export function ReportQueue({ cases }: { cases: ReportCase[] }) {
+export function ReportQueue({ cases, role }: { cases: ReportCase[]; role: AdminRole }) {
+  const canAct = hasRole(role, 'moderator')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [notice, setNotice] = useState<string>()
   const { pending, error, run } = useModeration()
-  const selectable = cases.filter((c) => !(c.status === 'in_review' && !c.claimedBy?.me))
+  const selectable = (canAct ? cases : []).filter(
+    (c) => !(c.status === 'in_review' && !c.claimedBy?.me),
+  )
   // Cases resolved meanwhile drop out of the page: keep only what is still listed.
   const chosen = selectable.filter((c) => selected.has(keyOf(c)))
 
@@ -66,6 +70,7 @@ export function ReportQueue({ cases }: { cases: ReportCase[] }) {
           <li key={keyOf(c)}>
             <ReportCard
               group={c}
+              role={role}
               selected={selected.has(keyOf(c))}
               onSelect={selectable.includes(c) ? (on) => toggle(c, on) : undefined}
             />

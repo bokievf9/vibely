@@ -13,6 +13,7 @@ import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
 import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
+import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
@@ -34,6 +35,7 @@ export const ru: Dictionary = {
   errors: {
     ...callErrorsRu,
     ...usernameErrorsRu,
+    ...sanctionErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -370,4 +372,5 @@ export const ru: Dictionary = {
   username: usernameRu,
   flows: flowsRu,
   reports: reportsRu,
+  sanctions: sanctionsRu,
 }

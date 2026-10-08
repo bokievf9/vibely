@@ -1,14 +1,25 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { PageSpinner } from '@/components/ui/spinner'
+import { TrendsSection } from '@/features/admin/components/trends-section'
 import { getModerationStats } from '@/features/admin/queries/stats'
 
-export default function AdminHome() {
+export default function AdminHome({ searchParams }: PageProps<'/admin'>) {
   return (
-    <Suspense fallback={<PageSpinner />}>
-      <Stats />
-    </Suspense>
+    <>
+      <Suspense fallback={<PageSpinner />}>
+        <Stats />
+      </Suspense>
+      <Suspense fallback={<PageSpinner />}>
+        <Trends searchParams={searchParams} />
+      </Suspense>
+    </>
   )
+}
+
+async function Trends({ searchParams }: Pick<PageProps<'/admin'>, 'searchParams'>) {
+  const { days } = await searchParams
+  return <TrendsSection days={days === '30' ? 30 : 7} />
 }
 
 async function Stats() {

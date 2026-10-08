@@ -9,6 +9,7 @@ import { BAN_LABELS, TARGET_LABELS, presetsOf, readableReportReason } from '../l
 import { claimCase, releaseCase, resolveCase } from '../report-actions'
 import { STATUS_LABELS, slaOf, tierLabel } from '../report-labels'
 import type { ReportCase } from '../queries/reports'
+import { hasRole, type AdminRole } from '../roles'
 import { Badge, formatDate } from './badges'
 import { EvidencePanel } from './evidence-panel'
 import { ReasonDialog, textPresets } from './reason-dialog'
@@ -37,10 +38,13 @@ type Dialog = 'hide' | 'ban' | 'delete_photo' | null
 
 export function ReportCard({
   group,
+  role,
   selected = false,
   onSelect,
 }: {
   group: ReportCase
+  // Viewers only read; moderators ban for 7 days, admins and owners permanently (the RPC decides).
+  role: AdminRole
   selected?: boolean
   onSelect?: (selected: boolean) => void
 }) {
@@ -55,6 +59,8 @@ export function ReportCard({
     !context.hidden
   const canDeletePhoto = targetType === 'photo' && context?.kind === 'photo'
   const offender = context?.offender ?? null
+  const canAct = hasRole(role, 'moderator')
+  const banForever = hasRole(role, 'admin')
   const heldByOther = group.status === 'in_review' && group.claimedBy && !group.claimedBy.me
   const tier = tierLabel(group.tier)
   const sla = slaOf(group.ageMinutes)
@@ -113,7 +119,7 @@ export function ReportCard({
             : STATUS_LABELS.open}
         </Badge>
         <span className="ml-auto">
-          {group.claimedBy?.me ? (
+          {!canAct ? null : group.claimedBy?.me ? (
             <Button
               size="sm"
               variant="ghost"
@@ -147,7 +153,7 @@ export function ReportCard({
           </li>
         ))}
       </ul>
-      {offender && PERSONAL.has(targetType) && (
+      {canAct && offender && PERSONAL.has(targetType) && (
         <EvidencePanel
           targetType={targetType}
           targetId={targetId}
@@ -156,7 +162,9 @@ export function ReportCard({
         />
       )}
       <FormError message={dialog ? undefined : error} />
-      {heldByOther ? (
+      {!canAct ? (
+        <p className="text-muted text-sm">Роль «Наблюдатель»: только просмотр.</p>
+      ) : heldByOther ? (
         <p className="text-muted text-sm">
           Решение принимает {group.claimedBy?.name}. Жалоба вернётся в очередь через 30 минут без
           активности.
@@ -193,7 +201,7 @@ export function ReportCard({
           )}
           {offender && (
             <Button size="sm" variant="danger" onClick={() => setDialog('ban')} disabled={pending}>
-              <Ban className="size-4" /> Заблокировать
+              <Ban className="size-4" /> {banForever ? 'Заблокировать' : 'Заблокировать на 7 дней'}
             </Button>
           )}
         </div>
@@ -203,7 +211,7 @@ export function ReportCard({
         onClose={() => setDialog(null)}
         title={
           dialog === 'ban'
-            ? `Заблокировать ${offender?.name ?? ''}`
+            ? `Заблокировать ${offender?.name ?? ''}${banForever ? '' : ' на 7 дней'}`
             : dialog === 'delete_photo'
               ? 'Удалить фото'
               : 'Скрыть контент'
