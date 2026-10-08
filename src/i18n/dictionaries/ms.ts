@@ -171,7 +171,7 @@ export const ms: Dictionary = {
     pass: 'Langkau',
     km: '{km} km dari sini',
     showMe: 'Tunjukkan',
-    age: 'Umur: {min}–{max}',
+    age: 'Umur: {min}-{max}',
     distance: 'Jarak: sehingga {km} km',
     apply: 'Guna',
     matchTitle: 'Padanan!',
@@ -256,7 +256,7 @@ export const ms: Dictionary = {
     intro:
       'Bersembang tanpa nama dengan orang rawak yang disahkan. Jika kedua-dua setuju, profil boleh didedahkan.',
     lookingFor: 'Bersembang dengan',
-    age: 'Umur: {min}–{max}',
+    age: 'Umur: {min}-{max}',
     tags: 'Minat bersama (pilihan)',
     start: 'Cari seseorang',
     searching: 'Mencari seseorang…',

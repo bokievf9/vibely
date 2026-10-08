@@ -7,7 +7,7 @@ export const discoverEn = {
   emptyText: 'New people join every day. Meanwhile, try one of these:',
   widen: 'See more people',
   widerKm: '+{km} km → {count} more people',
-  widerAge: 'Age {min}–{max} → {count} more',
+  widerAge: 'Age {min}-{max} → {count} more',
   secondChance: 'Second chance',
   secondChanceHint: 'People you passed more than 2 weeks ago come back here.',
   random: 'Random chat',

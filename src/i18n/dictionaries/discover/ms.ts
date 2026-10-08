@@ -5,7 +5,7 @@ export const discoverMs: DiscoverDictionary = {
   emptyText: 'Orang baharu menyertai setiap hari. Sementara itu, cuba salah satu ini:',
   widen: 'Lihat lebih ramai orang',
   widerKm: '+{km} km → {count} orang lagi',
-  widerAge: 'Umur {min}–{max} → {count} lagi',
+  widerAge: 'Umur {min}-{max} → {count} lagi',
   secondChance: 'Peluang kedua',
   secondChanceHint: 'Orang yang anda langkau lebih 2 minggu lalu kembali di sini.',
   random: 'Sembang rawak',

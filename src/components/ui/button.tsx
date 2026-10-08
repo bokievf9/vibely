@@ -39,7 +39,9 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition select-none',
+        'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold select-none',
+        // Press feedback on touch-down, not on release (.claude/skills/emil-design-eng).
+        'transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.97]',
         'focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
         'disabled:pointer-events-none disabled:opacity-50',
         variants[variant],

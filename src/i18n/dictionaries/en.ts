@@ -168,7 +168,7 @@ export const en = {
     pass: 'Pass',
     km: '{km} km away',
     showMe: 'Show me',
-    age: 'Age: {min}–{max}',
+    age: 'Age: {min}-{max}',
     distance: 'Distance: up to {km} km',
     apply: 'Apply',
     matchTitle: "It's a match!",
@@ -251,7 +251,7 @@ export const en = {
     intro:
       'Chat anonymously with a random verified person. If you both agree, you can reveal your profiles.',
     lookingFor: 'Talk to',
-    age: 'Age: {min}–{max}',
+    age: 'Age: {min}-{max}',
     tags: 'Common interests (optional)',
     start: 'Find someone',
     searching: 'Looking for someone…',
