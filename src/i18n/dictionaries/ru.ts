@@ -1,5 +1,6 @@
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
+import { tagCategoriesRu, tagsRu } from './tags/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
@@ -302,26 +303,13 @@ export const ru: Dictionary = {
     randomRevealBody: 'Это совпадение! Напишите привет.',
   },
   soon: { title: 'Скоро', text: 'Этот раздел в разработке.' },
-  tags: {
-    sport: 'Спорт',
-    fitness: 'Фитнес',
-    travel: 'Путешествия',
-    movies: 'Кино',
-    series: 'Сериалы',
-    music: 'Музыка',
-    concerts: 'Концерты',
-    books: 'Книги',
-    gaming: 'Игры',
-    anime: 'Аниме',
-    cooking: 'Готовка',
-    coffee: 'Кофе',
-    art: 'Искусство',
-    photography: 'Фотография',
-    tech: 'Технологии',
-    startups: 'Стартапы',
-    nature: 'Природа',
-    pets: 'Животные',
-    dancing: 'Танцы',
-    psychology: 'Психология',
+  tagPicker: {
+    search: 'Поиск интересов',
+    selected: 'Выбрано {count}/{max}',
+    all: 'Все',
+    empty: 'Ничего не найдено',
+    clear: 'Очистить поиск',
   },
+  tags: tagsRu,
+  tagCategories: tagCategoriesRu,
 }

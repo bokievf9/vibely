@@ -1,22 +1,4 @@
-insert into public.tags (slug, label) values
-  ('sport', 'Спорт'),
-  ('fitness', 'Фитнес'),
-  ('travel', 'Путешествия'),
-  ('movies', 'Кино'),
-  ('series', 'Сериалы'),
-  ('music', 'Музыка'),
-  ('concerts', 'Концерты'),
-  ('books', 'Книги'),
-  ('gaming', 'Игры'),
-  ('anime', 'Аниме'),
-  ('cooking', 'Готовка'),
-  ('coffee', 'Кофе'),
-  ('art', 'Искусство'),
-  ('photography', 'Фотография'),
-  ('tech', 'Технологии'),
-  ('startups', 'Стартапы'),
-  ('nature', 'Природа'),
-  ('pets', 'Животные'),
-  ('dancing', 'Танцы'),
-  ('psychology', 'Психология')
-on conflict (slug) do nothing;
+-- Local-only data, applied after the migrations by `supabase db reset`.
+-- The interest catalog (tags) lives in supabase/migrations/20261008000050_tags_catalog.sql,
+-- because production receives data only through migrations.
+select 1;

@@ -1,4 +1,5 @@
 import { landingEn } from './landing/en'
+import { tagCategoriesEn, tagsEn } from './tags/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -299,28 +300,15 @@ export const en = {
     randomRevealBody: "It's a match! Say hi.",
   },
   soon: { title: 'Coming soon', text: 'This section is under construction.' },
-  tags: {
-    sport: 'Sports',
-    fitness: 'Fitness',
-    travel: 'Travel',
-    movies: 'Movies',
-    series: 'TV series',
-    music: 'Music',
-    concerts: 'Concerts',
-    books: 'Books',
-    gaming: 'Gaming',
-    anime: 'Anime',
-    cooking: 'Cooking',
-    coffee: 'Coffee',
-    art: 'Art',
-    photography: 'Photography',
-    tech: 'Tech',
-    startups: 'Startups',
-    nature: 'Nature',
-    pets: 'Pets',
-    dancing: 'Dancing',
-    psychology: 'Psychology',
-  } as Record<string, string>,
+  tagPicker: {
+    search: 'Search interests',
+    selected: 'Selected {count}/{max}',
+    all: 'All',
+    empty: 'Nothing found',
+    clear: 'Clear search',
+  },
+  tags: tagsEn,
+  tagCategories: tagCategoriesEn,
 }
 
 export type Dictionary = typeof en
