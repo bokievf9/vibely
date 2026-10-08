@@ -23,6 +23,7 @@ jobs:
       - run: npx next typegen
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test:sql
 
   deploy:
     needs: check

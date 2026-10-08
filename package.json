@@ -12,7 +12,8 @@
     "db:types": "supabase gen types typescript --local --schema public > src/types/database.types.ts",
     "db:reset": "supabase db reset",
     "fake:seed": "node --env-file=.env.local scripts/fake-users/seed.mjs",
-    "fake:delete": "node --env-file=.env.local scripts/fake-users/delete.mjs"
+    "fake:delete": "node --env-file=.env.local scripts/fake-users/delete.mjs",
+    "test:sql": "node tests/sql/run.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -34,6 +35,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-postgis": "^0.2.8",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
