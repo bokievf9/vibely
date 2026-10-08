@@ -25,7 +25,8 @@ export function Avatar({ photo, alt, size = 48, className }: Props) {
           width={size}
           height={size}
           sizes={`${size}px`}
-          className="size-full object-cover"
+          draggable={false}
+          className="size-full object-cover select-none"
         />
       ) : (
         <UserRound className="size-1/2" aria-hidden />

@@ -1,5 +1,6 @@
 'use client'
 
+import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 
 type SwitchProps = {
@@ -10,6 +11,7 @@ type SwitchProps = {
 }
 
 // iOS-style on/off switch. The label is for screen readers; the visible text sits next to it.
+// Pressing stretches the thumb toward the travel direction; release springs it across.
 export function Switch({ checked, onToggle, label, disabled }: SwitchProps) {
   return (
     <button
@@ -18,16 +20,24 @@ export function Switch({ checked, onToggle, label, disabled }: SwitchProps) {
       aria-checked={checked}
       aria-label={label}
       disabled={disabled}
-      onClick={onToggle}
+      onClick={() => {
+        haptic('light')
+        onToggle()
+      }}
       className={cn(
-        'relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50',
-        checked ? 'bg-accent' : 'bg-border',
+        'group relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ease-out disabled:opacity-50',
+        'focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+        // Invisible 44px hit area around the 28px track.
+        "before:absolute before:-inset-2 before:content-['']",
+        checked ? 'bg-accent' : 'bg-white/[0.14]',
       )}
     >
       <span
+        aria-hidden
         className={cn(
-          'absolute top-1 left-1 size-5 rounded-full bg-white transition-transform',
-          checked && 'translate-x-5',
+          'bg-foreground absolute top-1 left-1 h-5 w-5 rounded-full shadow-[0_2px_6px_rgb(0_0_0/0.35)]',
+          'ease-spring transition-[translate,width] duration-500 group-active:w-[26px]',
+          checked ? 'translate-x-5 group-active:translate-x-[14px]' : 'translate-x-0',
         )}
       />
     </button>

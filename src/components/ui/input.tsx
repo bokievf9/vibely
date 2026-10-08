@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react'
 import { cn } from '@/lib/utils'
 
 const base =
-  'bg-surface border-border placeholder:text-muted w-full rounded-2xl border px-4 text-base outline-none transition focus:border-accent aria-invalid:border-red-500 disabled:opacity-50'
+  'bg-surface border-border placeholder:text-muted w-full rounded-2xl border px-4 text-base outline-none transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent focus:ring-accent/20 focus:ring-4 aria-invalid:border-danger aria-invalid:focus:ring-danger/20 disabled:opacity-50'
 
 export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(base, 'h-12', className)} {...props} />
