@@ -27,6 +27,7 @@ function shutDown(l: Live | null) {
 }
 
 const TICK_MS = 100
+const METER_SAMPLES = 32
 
 const CONSTRAINTS: Record<RecordKind, MediaStreamConstraints> = {
   voice: { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } },
@@ -59,6 +60,8 @@ const deniedError = (kind: RecordKind): ErrorKey =>
 export function useRecorder(kind: RecordKind, onLimit: (r: Recording | null) => void) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [elapsedMs, setElapsedMs] = useState(0)
+  // Recent loudness samples (0..1, newest last) while recording voice: the live level meter.
+  const [levels, setLevels] = useState<number[]>([])
   const [stream, setStream] = useState<MediaStream | null>(null)
   const live = useRef<Live | null>(null)
   const limitRef = useRef(onLimit)
@@ -72,6 +75,7 @@ export function useRecorder(kind: RecordKind, onLimit: (r: Recording | null) => 
     setStream(null)
     setPhase('idle')
     setElapsedMs(0)
+    setLevels([])
   }
 
   // Leaving the chat mid-recording turns the mic/camera off.
@@ -149,13 +153,16 @@ export function useRecorder(kind: RecordKind, onLimit: (r: Recording | null) => 
       const elapsed = performance.now() - l.startedAt
       setElapsedMs(elapsed)
       const level = sample?.()
-      if (level !== undefined) l.levels.push(level)
+      if (level !== undefined) {
+        l.levels.push(level)
+        setLevels((prev) => [...prev.slice(1 - METER_SAMPLES), level])
+      }
       if (elapsed >= MAX_MS[kind]) void stop().then((r) => limitRef.current(r))
     }, TICK_MS)
     return null
   }
 
-  return { phase, elapsedMs, stream, prepare, record, stop, cancel: release }
+  return { phase, elapsedMs, levels, stream, prepare, record, stop, cancel: release }
 }
 
 const liveOf = (ref: { current: Live | null }) => ref.current

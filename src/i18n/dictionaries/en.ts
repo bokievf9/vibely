@@ -6,6 +6,7 @@ import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
 import { likesEn, settingsEn } from './settings/en'
 import { mediaEn } from './media/en'
+import { chatUiEn } from './chatui/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
 
@@ -310,6 +311,7 @@ export const en = {
   discover: discoverEn,
   media: mediaEn,
   calls: callsEn,
+  chatui: chatUiEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

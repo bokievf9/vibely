@@ -32,6 +32,7 @@ export function VideoCircle({ video, onError }: Props) {
 
   return (
     <span
+      data-media
       className="bg-background/30 relative block overflow-hidden rounded-full"
       style={{ width: SIZE_PX, height: SIZE_PX }}
     >
@@ -49,7 +50,7 @@ export function VideoCircle({ video, onError }: Props) {
           className="pointer-events-none size-full object-cover"
         />
       )}
-      <span className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] text-white tabular-nums">
+      <span className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-neutral-950/55 px-2 py-0.5 text-[11px] text-neutral-50 tabular-nums">
         <VolumeX className="size-3" aria-hidden /> {formatDuration(video.durationMs)}
       </span>
     </span>

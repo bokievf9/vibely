@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Mic, MicOff, PhoneOff, SwitchCamera, Video, VideoOff, Volume2 } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
+import { DECLINE_CLASS } from './call-colors'
 import type { CallKind } from '../types'
 import type { useLiveKitCall } from './use-livekit-call'
 
@@ -24,8 +25,12 @@ function RoundButton(props: {
       aria-pressed={props.active}
       onClick={props.onClick}
       className={cn(
-        'flex size-14 items-center justify-center rounded-full text-white transition active:scale-95',
-        props.danger ? 'bg-red-600' : props.active ? 'bg-white text-black' : 'bg-white/15',
+        'flex size-14 items-center justify-center rounded-full text-neutral-50 backdrop-blur transition-[transform,scale,background-color,color] duration-150 ease-out active:scale-95',
+        props.danger
+          ? DECLINE_CLASS
+          : props.active
+            ? 'bg-neutral-100 text-neutral-900'
+            : 'bg-neutral-50/15',
       )}
     >
       {props.children}
