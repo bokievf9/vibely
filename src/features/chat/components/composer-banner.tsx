@@ -28,7 +28,7 @@ export function ComposerBanner({ mode, author, onCancel }: Props) {
           id: message.id,
           senderId: message.senderId,
           body: message.body,
-          hasImage: !!message.image,
+          mediaKind: message.media?.kind ?? message.expiredMedia,
           deleted: !!message.deletedAt,
         }}
       />

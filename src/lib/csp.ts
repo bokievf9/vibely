@@ -39,7 +39,8 @@ export function buildCsp({ supabaseUrl, analyticsSrc, isDev = false }: CspInput)
     'img-src': ["'self'", 'blob:', 'data:', supabase.origin],
     'font-src': ["'self'"],
     'connect-src': ["'self'", supabase.origin, supabaseWs, ...analyticsConnect],
-    'media-src': ["'self'", 'blob:'],
+    // blob: = camera/mic preview while recording; Supabase = signed voice/video message URLs.
+    'media-src': ["'self'", 'blob:', supabase.origin],
     'frame-src': [TURNSTILE],
     'worker-src': ["'self'", 'blob:'],
     'manifest-src': ["'self'"],

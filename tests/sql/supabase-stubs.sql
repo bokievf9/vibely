@@ -19,7 +19,7 @@ create function realtime.topic() returns text language sql stable as $$ select c
 create function realtime.send(payload jsonb, event text, topic text, private boolean default true) returns void
   language sql security definer as $$ insert into realtime.messages (topic, event, payload, private) values (topic, event, payload, private) $$;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, created_at timestamptz default now());
 alter table storage.objects enable row level security;
 grant select, insert, update, delete on storage.objects to authenticated;
 create function storage.foldername(name text) returns text[] language sql immutable as $$

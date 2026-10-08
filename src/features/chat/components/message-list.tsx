@@ -29,7 +29,7 @@ const toPreview = (m: ChatMessage): ReplyPreview => ({
   id: m.id,
   senderId: m.senderId,
   body: m.body,
-  hasImage: !!m.image,
+  mediaKind: m.media?.kind ?? m.expiredMedia,
   deleted: !!m.deletedAt,
 })
 

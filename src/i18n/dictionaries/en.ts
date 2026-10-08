@@ -1,5 +1,6 @@
 import { aboutEn } from './about/en'
 import { landingEn } from './landing/en'
+import { mediaEn } from './media/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 
 export const en = {
@@ -63,6 +64,9 @@ export const en = {
     captchaFailed: 'Security check failed. Please try again.',
     photoSendFailed: 'Could not send the photo. Try again.',
     messageNotEditable: 'This message can no longer be edited',
+    mediaSendFailed: 'Could not send. Try again.',
+    micDenied: 'No microphone access. Allow it in your browser settings.',
+    recordingUnsupported: 'Recording is not supported in this browser.',
   },
   gender: { male: 'Man', female: 'Woman', other: 'Other' },
   auth: {
@@ -296,6 +300,8 @@ export const en = {
     lastUpdated: 'Last updated: {date}',
     contact: 'Questions or requests about your data? Email us at',
     consent: 'I am 18 or older and agree to the {terms} and the {privacy}',
+    consentRecording:
+      'For everyone’s safety, messages, photos, voice and video messages and calls are recorded and stored for up to 90 days. Only moderators handling a report can access them.',
     consentTerms: 'Terms of Use',
     consentPrivacy: 'Privacy Policy',
     home: 'Back to Vibely',
@@ -310,6 +316,7 @@ export const en = {
     deleteConfirm: 'Delete forever',
   },
   about: aboutEn,
+  media: mediaEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

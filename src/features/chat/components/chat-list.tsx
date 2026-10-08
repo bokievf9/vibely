@@ -9,12 +9,22 @@ import type { ChatPreview } from '../types'
 
 export function ChatList({ chats }: { chats: ChatPreview[] }) {
   const { dict, locale } = useI18n()
-  const previewText = (m: NonNullable<ChatPreview['lastMessage']>) =>
-    m.kind === 'deleted'
-      ? dict.chats.deleted
-      : m.kind === 'photo'
-        ? `📷 ${m.body ?? dict.chats.photo}`
-        : (m.body ?? '')
+  const previewText = (m: NonNullable<ChatPreview['lastMessage']>) => {
+    switch (m.kind) {
+      case 'deleted':
+        return dict.chats.deleted
+      case 'photo':
+        return `📷 ${m.body ?? dict.chats.photo}`
+      case 'voice':
+        return dict.media.previewVoice
+      case 'video':
+        return dict.media.previewVideo
+      case 'expired':
+        return m.body ?? dict.media.previewExpired
+      default:
+        return m.body ?? ''
+    }
+  }
   if (!chats.length) {
     return <EmptyState icon={MessagesSquare} title={dict.chats.empty} text={dict.chats.emptyHint} />
   }

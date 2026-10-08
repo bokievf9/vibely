@@ -1,11 +1,28 @@
-export type ChatImage = { path: string; url: string | null; width: number; height: number }
+export type MediaKind = 'image' | 'voice' | 'video'
+
+export type ChatImage = {
+  kind: 'image'
+  path: string
+  url: string | null
+  width: number
+  height: number
+}
+export type ChatVoice = {
+  kind: 'voice'
+  path: string
+  url: string | null
+  durationMs: number
+  waveform: number[] | null
+}
+export type ChatVideo = { kind: 'video'; path: string; url: string | null; durationMs: number }
+export type ChatMedia = ChatImage | ChatVoice | ChatVideo
 
 // Enough of a quoted message to render the reply header when the original isn't loaded.
 export type ReplyPreview = {
   id: string
   senderId: string
   body: string | null
-  hasImage: boolean
+  mediaKind: MediaKind | null
   deleted: boolean
 }
 
@@ -19,7 +36,9 @@ export type ChatMessage = {
   deletedAt: string | null
   replyTo: string | null
   reply: ReplyPreview | null
-  image: ChatImage | null
+  media: ChatMedia | null
+  // Kind of a media file purged after 90 days (retention): shown as a placeholder.
+  expiredMedia: MediaKind | null
 }
 
 export const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'] as const
@@ -36,7 +55,7 @@ export type Partner = {
   photo: { url: string; width: number; height: number } | null
 }
 
-export type PreviewKind = 'text' | 'photo' | 'deleted'
+export type PreviewKind = 'text' | 'photo' | 'voice' | 'video' | 'expired' | 'deleted'
 
 export type ChatPreview = {
   matchId: string

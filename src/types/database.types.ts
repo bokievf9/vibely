@@ -207,9 +207,15 @@ export type Database = {
           image_path: string | null
           image_width: number | null
           match_id: string
+          media_duration_ms: number | null
+          media_expired_at: string | null
+          media_kind: string | null
+          media_mime: string | null
+          media_path: string | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
+          waveform: number[] | null
         }
         Insert: {
           body?: string | null
@@ -221,9 +227,15 @@ export type Database = {
           image_path?: string | null
           image_width?: number | null
           match_id: string
+          media_duration_ms?: number | null
+          media_expired_at?: string | null
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
+          waveform?: number[] | null
         }
         Update: {
           body?: string | null
@@ -235,9 +247,15 @@ export type Database = {
           image_path?: string | null
           image_width?: number | null
           match_id?: string
+          media_duration_ms?: number | null
+          media_expired_at?: string | null
+          media_kind?: string | null
+          media_mime?: string | null
+          media_path?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
+          waveform?: number[] | null
         }
         Relationships: [
           {
@@ -1136,8 +1154,16 @@ export type Database = {
         Returns: undefined
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      match_under_open_report: { Args: { p_match: string }; Returns: boolean }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
+      retention_chat_media: {
+        Args: { p_limit?: number }
+        Returns: { message_id: string; path: string }[]
+      }
+      retention_mark_chat_media_expired: { Args: { p_ids: string[] }; Returns: number }
+      retention_orphan_chat_media: { Args: { p_limit?: number }; Returns: string[] }
+      retention_selfies: { Args: { p_limit?: number }; Returns: string[] }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
       randomizer_join: {
         Args: {

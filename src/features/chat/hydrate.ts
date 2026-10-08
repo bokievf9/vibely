@@ -3,6 +3,7 @@ import type { createClient } from '@/lib/supabase/server'
 import {
   MESSAGE_COLUMNS,
   REACTION_COLUMNS,
+  mediaKindOf,
   toChatMessage,
   toReactions,
   type MessageRow,
@@ -13,7 +14,7 @@ type Client = Awaited<ReturnType<typeof createClient>>
 
 const SIGNED_URL_TTL_S = 60 * 60
 
-// Signed URLs for chat photos, created with the user's own client: storage RLS only lets match
+// Signed URLs for chat media (photos, voice, video), created with the user's own client: storage RLS only lets match
 // participants read the match folder.
 export async function signChatPaths(supabase: Client, paths: string[]) {
   if (!paths.length) return new Map<string, string>()
@@ -29,11 +30,11 @@ const toPreview = (m: MessageRow): ReplyPreview => ({
   id: m.id,
   senderId: m.sender_id,
   body: m.body,
-  hasImage: !!m.image_path,
+  mediaKind: m.deleted_at ? null : mediaKindOf(m),
   deleted: !!m.deleted_at,
 })
 
-// Rows → messages with signed photo URLs and previews of quoted messages outside the page.
+// Rows → messages with signed media URLs and previews of quoted messages outside the page.
 export async function hydrateMessages(
   supabase: Client,
   rows: MessageRow[],
@@ -45,7 +46,7 @@ export async function hydrateMessages(
   const [urls, quoted] = await Promise.all([
     signChatPaths(
       supabase,
-      rows.flatMap((r) => r.image_path ?? []),
+      rows.flatMap((r) => r.media_path ?? []),
     ),
     missing.length
       ? supabase.from('messages').select(MESSAGE_COLUMNS).in('id', missing)
@@ -56,7 +57,7 @@ export async function hydrateMessages(
     const m = toChatMessage(r)
     return {
       ...m,
-      image: m.image && { ...m.image, url: urls.get(m.image.path) ?? null },
+      media: m.media && { ...m.media, url: urls.get(m.media.path) ?? null },
       reply: (r.reply_to && previews.get(r.reply_to)) || null,
     }
   })

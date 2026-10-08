@@ -43,3 +43,15 @@ export function getPushEnv(): PushEnv | null {
   pushCached = parsed.success ? parsed.data : null
   return pushCached
 }
+
+const cronEnvSchema = z.string().min(32)
+let cronCached: string | null | undefined
+
+// Shared secret of the scheduled jobs (POST /api/cron/*, sent by GitHub Actions as a Bearer
+// token). Optional: returns null (jobs disabled) unless CRON_SECRET is set, ≥ 32 characters.
+export function getCronSecret(): string | null {
+  if (cronCached !== undefined) return cronCached
+  const parsed = cronEnvSchema.safeParse(process.env.CRON_SECRET)
+  cronCached = parsed.success ? parsed.data : null
+  return cronCached
+}

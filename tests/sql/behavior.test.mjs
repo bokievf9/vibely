@@ -191,8 +191,9 @@ export async function run(db) {
   ok('deletion: audit log kept, admin nulled', (await su(`select admin_id from moderation_actions where action='test'`)).rows[0]?.admin_id === null)
   // random chat retention
   const sess = async (age) => (await su(`insert into random_chat_sessions (user_a, user_b, status, started_at, ended_at) values ($1,$2,'ended',now()-$3::interval,now()-$3::interval) returning id`, [U[0], U[2], age])).rows[0].id
-  const oldS = await sess('40 days'), reportedS = await sess('40 days'), newS = await sess('1 day')
-  for (const [s, age] of [[oldS, '40 days'], [reportedS, '40 days'], [newS, '1 day']])
+  // 90 days since 20261008000112 (a 40-day-old chat is now kept)
+  const oldS = await sess('100 days'), reportedS = await sess('100 days'), newS = await sess('40 days')
+  for (const [s, age] of [[oldS, '100 days'], [reportedS, '100 days'], [newS, '40 days']])
     await su(`insert into random_chat_messages (session_id, sender_id, body, created_at) values ($1,$2,'x',now()-$3::interval)`, [s, U[0], age])
   await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'random_session',$2,'оскорбления')`, [U[2], reportedS])
   ok('purge not callable by users', !!(await fails(() => as(U[0], `select purge_old_random_messages()`))))
@@ -473,6 +474,73 @@ export async function run(db) {
   ok('last_active_at: client cannot write it', !!(await fails(() => as(U[3], `update profiles set last_active_at = now() + interval '1 day' where id=$1`, [U[3]]))))
   ok('last_active_at: touch_last_active() works', !(await fails(() => as(U[3], `select touch_last_active()`))))
   ok("reaction: '' is accepted as remove", !(await fails(() => su(`select 1 where false`))) && (await su(`select pg_get_functiondef('public.set_message_reaction(uuid,text)'::regprocedure) d`)).rows[0].d.includes("nullif(p_emoji, '')"))
+  // chat media: voice messages, video circles, legacy image_path, 90-day retention
+  const media_uuid = (n) => `e${n}000000-0000-4000-8000-00000000000${n}`
+  const media_obj = (n, ext) => `${cm}/${media_uuid(n)}.${ext}`
+  const media_send = async (u, f) => (await as(u, `insert into messages (match_id, body, media_kind, media_path, media_mime, media_duration_ms, waveform, image_width, image_height)
+    values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`, [cm, f.body ?? null, f.kind, f.path, f.mime, f.ms ?? null, f.wave ?? null, f.w ?? null, f.h ?? null])).rows[0].id
+  await upload(C[0], media_obj(7, 'webp'))
+  await send(C[0], cm, null, { path: media_obj(7, 'webp'), w: 300, h: 400 })
+  const legacy = (await su(`select media_kind, media_path, media_mime from messages where image_path=$1`, [media_obj(7, 'webp')])).rows[0]
+  ok('media: legacy image_path insert mapped to media_*', legacy?.media_kind === 'image' && legacy?.media_mime === 'image/webp' && !!legacy?.media_path, JSON.stringify(legacy))
+  const media_bucket = (await su(`select file_size_limit l, allowed_mime_types t from storage.buckets where id='chat-media'`)).rows[0]
+  ok('media: bucket 15 MB, audio/video types', Number(media_bucket.l) === 15728640 && ['image/webp', 'audio/webm', 'audio/mp4', 'video/webm', 'video/mp4'].every((t) => media_bucket.t.includes(t)))
+  ok('media: .mp3 upload rejected', !!(await fails(() => upload(C[0], media_obj(1, 'mp3')))))
+  for (const [n, ext] of [[1, 'webm'], [2, 'm4a'], [3, 'mp4'], [4, 'webm'], [5, 'webm']]) await upload(C[0], media_obj(n, ext))
+  const voice = { kind: 'voice', path: media_obj(1, 'webm'), mime: 'audio/webm', ms: 5200, wave: '{0,10,55,100,40}' }
+  ok('media: voice wrong extension for mime rejected', !!(await fails(() => media_send(C[0], { ...voice, mime: 'audio/mp4' }))))
+  ok('media: voice over 120 s rejected', !!(await fails(() => media_send(C[0], { ...voice, ms: 130000 }))))
+  ok('media: voice without duration rejected', !!(await fails(() => media_send(C[0], { ...voice, ms: null }))))
+  ok('media: waveform peaks 0..100', !!(await fails(() => media_send(C[0], { ...voice, wave: '{0,101}' }))))
+  ok('media: not-uploaded file rejected', !!(await fails(() => media_send(C[0], { ...voice, path: media_obj(6, 'webm') }))))
+  const vErr = await fails(() => media_send(C[0], voice))
+  ok('media: voice message accepted', !vErr, vErr)
+  const media_voice = (await su(`select id, image_path, waveform from messages where media_path=$1`, [voice.path])).rows[0]
+  ok('media: voice keeps image_path null and the waveform', media_voice?.image_path === null && media_voice?.waveform?.length === 5)
+  ok('media: one message per file', !!(await fails(() => media_send(C[1], voice))))
+  ok('media: iOS m4a voice accepted', !(await fails(() => media_send(C[1], { ...voice, path: media_obj(2, 'm4a'), mime: 'audio/mp4', wave: null }))))
+  const video = { kind: 'video', path: media_obj(3, 'mp4'), mime: 'video/mp4', ms: 12000 }
+  ok('media: video over 60 s rejected', !!(await fails(() => media_send(C[0], { ...video, ms: 70000 }))))
+  ok('media: waveform only for voice', !!(await fails(() => media_send(C[0], { ...video, wave: '{1,2}' }))))
+  ok('media: image kind needs size', !!(await fails(() => media_send(C[0], { kind: 'image', path: media_obj(4, 'webm'), mime: 'image/webp' }))))
+  const vdErr = await fails(() => media_send(C[0], video))
+  ok('media: video circle accepted', !vdErr, vdErr)
+  ok('media: client cannot set media_expired_at', !!(await fails(() => as(C[0], `insert into messages (match_id, body, media_expired_at) values ($1,'x',now())`, [cm]))))
+  const media_del = await media_send(C[0], { kind: 'video', path: media_obj(4, 'webm'), mime: 'video/webm', ms: 3000 })
+  ok('media: delete returns the media path', (await as(C[0], `select delete_message($1) p`, [media_del])).rows[0].p === media_obj(4, 'webm'))
+  ok('media: delete clears media fields', (await su(`select media_kind is null and media_path is null and media_mime is null v from messages where id=$1`, [media_del])).rows[0].v === true)
+  // retention: chat media
+  const fn = (f) => su(`select has_function_privilege('authenticated', $1, 'execute') a, has_function_privilege('service_role', $1, 'execute') s`, [f])
+  for (const f of ['public.retention_chat_media(int)', 'public.retention_mark_chat_media_expired(uuid[])', 'public.retention_orphan_chat_media(int)', 'public.retention_selfies(int)']) {
+    const r = (await fn(f)).rows[0]
+    ok(`retention: ${f} service-role only`, r.a === false && r.s === true)
+  }
+  await su(`update messages set created_at = now() - interval '100 days' where id=$1`, [media_voice.id])
+  const due = async () => (await su(`select message_id from retention_chat_media(100)`)).rows.map((r) => r.message_id)
+  ok('retention: old voice is due, recent media not', JSON.stringify(await due()) === JSON.stringify([media_voice.id]))
+  const media_rep = (await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'user',$2,'abuse') returning id`, [C[0], C[1]])).rows[0].id
+  ok('retention: open report keeps the match media', (await due()).length === 0)
+  await su(`update reports set resolved_at = now() where id=$1`, [media_rep])
+  ok('retention: resolved report releases it', (await due()).length === 1)
+  const mark = async () => (await su(`select retention_mark_chat_media_expired($1) n`, [[media_voice.id]])).rows[0].n
+  ok('retention: not marked while the file exists', (await mark()) === 0)
+  await su(`delete from storage.objects where bucket_id='chat-media' and name=$1`, [voice.path])
+  ok('retention: marked once the file is gone', (await mark()) === 1)
+  const media_exp = (await as(C[1], `select media_kind, media_path, media_duration_ms, waveform, media_expired_at is not null e from messages where id=$1`, [media_voice.id])).rows[0]
+  ok('retention: expired placeholder keeps metadata', media_exp.media_kind === 'voice' && media_exp.media_path === null && media_exp.media_duration_ms === 5200 && media_exp.waveform === null && media_exp.e === true, JSON.stringify(media_exp))
+  ok('retention: expired media no longer due', (await due()).length === 0)
+  // retention: orphan uploads and selfies
+  await su(`update storage.objects set created_at = now() - interval '2 days' where bucket_id='chat-media' and name = any($1)`, [[media_obj(5, 'webm'), media_obj(3, 'mp4')]])
+  const orphans = (await su(`select retention_orphan_chat_media(100) n`)).rows.map((r) => r.n)
+  ok('retention: unreferenced upload is an orphan, sent one is not', orphans.includes(media_obj(5, 'webm')) && !orphans.includes(media_obj(3, 'mp4')), JSON.stringify(orphans))
+  await su(`update storage.objects set created_at = now() - interval '100 days' where bucket_id='selfies'`)
+  const selfies = async () => (await su(`select retention_selfies(100) n`)).rows.map((r) => r.n)
+  ok('retention: reviewed selfie older than 90 days is due', (await selfies()).includes(`${U[0]}/s.jpg`))
+  await su(`insert into storage.objects (bucket_id, name, created_at) values ('selfies', $1, now() - interval '100 days')`, [`${C[2]}/p.jpg`])
+  await su(`insert into verification_requests (user_id, selfie_path, challenge, status) values ($1,$2,'peace','pending')`, [C[2], `${C[2]}/p.jpg`])
+  ok('retention: pending selfie kept', !(await selfies()).includes(`${C[2]}/p.jpg`))
+  await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'user',$2,'fake')`, [C[1], U[0]])
+  ok('retention: selfie of a reported user kept', !(await selfies()).includes(`${U[0]}/s.jpg`))
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
