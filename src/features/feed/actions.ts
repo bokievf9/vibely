@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { notifyFeedReply } from '@/features/push/send'
 import { getFeedPage } from './queries'
 import type { FeedPage } from './types'
 
@@ -48,7 +49,9 @@ export async function createComment(postId: string, raw: string): Promise<UserRe
   if (body === 'messageEmpty' || body === 'messageTooLong') return fail(body)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_comment', { p_post_id: postId, p_body: body })
-  return error ? fail(rpcError(error.code)) : ok(data)
+  if (error) return fail(rpcError(error.code))
+  notifyFeedReply(data)
+  return ok(data)
 }
 
 export async function toggleLike(postId: string): Promise<UserResult<boolean>> {

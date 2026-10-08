@@ -293,6 +293,44 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_prefs: {
+        Row: {
+          feed_replies: boolean
+          likes: boolean
+          messages: boolean
+          new_matches: boolean
+          random_reveal: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          feed_replies?: boolean
+          likes?: boolean
+          messages?: boolean
+          new_matches?: boolean
+          random_reveal?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          feed_replies?: boolean
+          likes?: boolean
+          messages?: boolean
+          new_matches?: boolean
+          random_reveal?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notification_prefs_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       post_aliases: {
         Row: {
           alias_no: number
@@ -523,6 +561,7 @@ export type Database = {
           children: Database['public']['Enums']['children_plan'] | null
           city: string | null
           created_at: string
+          discoverable: boolean
           display_name: string
           drinking: Database['public']['Enums']['habit_frequency'] | null
           education: Database['public']['Enums']['education_level'] | null
@@ -552,6 +591,7 @@ export type Database = {
           children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
+          discoverable?: boolean
           display_name: string
           drinking?: Database['public']['Enums']['habit_frequency'] | null
           education?: Database['public']['Enums']['education_level'] | null
@@ -581,6 +621,7 @@ export type Database = {
           children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
+          discoverable?: boolean
           display_name?: string
           drinking?: Database['public']['Enums']['habit_frequency'] | null
           education?: Database['public']['Enums']['education_level'] | null
@@ -1051,6 +1092,7 @@ export type Database = {
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
       can_view_profile: { Args: { target: string }; Returns: boolean }
       chat_media_match: { Args: { object_name: string }; Returns: string }
+      count_incoming_likes: { Args: never; Returns: number }
       create_comment: {
         Args: { p_body: string; p_post_id: string }
         Returns: string
@@ -1067,6 +1109,40 @@ export type Database = {
           src: Database['public']['Enums']['match_source']
         }
         Returns: string
+      }
+      get_blocked_users: {
+        Args: never
+        Returns: {
+          blocked_at: string
+          display_name: string
+          id: string
+          photo: Json
+        }[]
+      }
+      get_incoming_likes: {
+        Args: { p_limit?: number }
+        Returns: {
+          age: number
+          bio: string
+          children: Database['public']['Enums']['children_plan']
+          city: string
+          display_name: string
+          distance_km: number
+          drinking: Database['public']['Enums']['habit_frequency']
+          education: Database['public']['Enums']['education_level']
+          height_cm: number
+          id: string
+          job_title: string
+          languages: Database['public']['Enums']['spoken_language'][]
+          liked_at: string
+          pets: Database['public']['Enums']['pets_status']
+          photos: Json
+          prompts: Json
+          relationship_goal: Database['public']['Enums']['relationship_goal']
+          religion: Database['public']['Enums']['religion']
+          smoking: Database['public']['Enums']['habit_frequency']
+          tags: string[]
+        }[]
       }
       get_random_messages: {
         Args: { p_before?: string; p_limit?: number; p_session_id: string }

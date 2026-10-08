@@ -132,7 +132,8 @@ export async function run(db) {
   ok('banned user hidden', (await as(U[0], `select count(*)::int c from profiles where id=$1`, [U[1]])).rows[0].c === 0)
   ok('banned user loses access', (await as(U[1], `select is_verified() v`)).rows[0].v === false)
   ok('banned user removed from queue', (await su(`select count(*)::int c from random_chat_queue where user_id=$1`, [U[1]])).rows[0].c === 0)
-  await as(U[1], `update profiles set is_active = true where id=$1`, [U[1]])
+  // is_active is server-only since 20261008000085: the update is rejected outright.
+  await fails(() => as(U[1], `update profiles set is_active = true where id=$1`, [U[1]]))
   ok('banned user cannot reactivate', (await su(`select is_active from profiles where id=$1`, [U[1]])).rows[0].is_active === false)
   ok('owner sees own ban', (await as(U[1], `select ban_reason from profiles where id=$1`, [U[1]])).rows[0]?.ban_reason === 'спам')
   await svc(`select admin_set_ban($1,$2,false)`, [A, U[1]])
@@ -495,6 +496,88 @@ export async function run(db) {
   const avatar_pos = (await su(`select id, position from profile_photos where profile_id=$1 order by position`, [U[0]])).rows
   ok('photo order: contiguous after delete', JSON.stringify(avatar_pos) === JSON.stringify([{ id: avatar_c, position: 0 }, { id: avatar_b, position: 1 }]), JSON.stringify(avatar_pos))
   ok('photo order: unique (profile, position) still enforced', !!(await fails(() => avatar_add(U[0], 'd', 1))))
+  // settings: pause profile, notification prefs, blocked users, "who liked you"
+  // Fresh users in Penang, far from everyone else: S0 (woman) and S1..S3 (men).
+  const S = ['5e000000-0000-4000-8000-000000000001', '5e000000-0000-4000-8000-000000000002',
+             '5e000000-0000-4000-8000-000000000003', '5e000000-0000-4000-8000-000000000004']
+  for (const [i, u] of S.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6017555000' + i])
+    await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, location)
+       values ($1,'1994-03-03',$2,$3,'SRID=4326;POINT(100.33 5.41)')`, ['Pg' + i, i === 0 ? 'female' : 'male', i === 0 ? '{male}' : '{female}'])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [S])
+  const settingsDeck = async (u) => (await as(u, `select id from get_swipe_candidates('{male}', 18, 99, 20)`)).rows.map((r) => r.id)
+  ok('settings: discoverable by default', (await settingsDeck(S[0])).includes(S[1]))
+  ok('settings: is_active not writable by users', !!(await fails(() => as(S[1], `update profiles set is_active=false where id=$1`, [S[1]]))))
+  await as(S[2], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('settings: cannot pause someone else', (await su(`select discoverable d from profiles where id=$1`, [S[1]])).rows[0].d === true)
+  await as(S[1], `select randomizer_join('{female}',18,99)`)
+  await as(S[1], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('settings: paused hidden from Discover', !(await settingsDeck(S[0])).includes(S[1]))
+  ok('settings: pausing leaves the random queue', (await su(`select count(*)::int c from random_chat_queue where user_id=$1`, [S[1]])).rows[0].c === 0)
+  const settingsMatch = (await su(`select ensure_match($1,$2,'swipe') id`, [S[0], S[3]])).rows[0].id
+  await as(S[3], `update profiles set discoverable=false where id=$1`, [S[3]])
+  ok('settings: paused profile still visible to its match', (await as(S[0], `select count(*)::int c from profiles where id=$1`, [S[3]])).rows[0].c === 1)
+  ok('settings: paused user can still chat', !(await fails(() => as(S[3], `insert into messages (match_id, body) values ($1,'still here')`, [settingsMatch]))))
+  await as(S[3], `update profiles set discoverable=true where id=$1`, [S[3]])
+  await su(`delete from matches where id=$1`, [settingsMatch])
+  // notification prefs
+  ok('prefs: owner creates row', !(await fails(() => as(S[0], `insert into notification_prefs (likes, messages) values (false, true)`))))
+  ok('prefs: cannot create for someone else', !!(await fails(() => as(S[1], `insert into notification_prefs (user_id, likes) values ($1, false)`, [S[0]]))))
+  await as(S[0], `update notification_prefs set feed_replies=false`)
+  const settingsPrefs = (await su(`select likes, messages, feed_replies, new_matches from notification_prefs where user_id=$1`, [S[0]])).rows[0]
+  ok('prefs: stored', JSON.stringify(settingsPrefs) === '{"likes":false,"messages":true,"feed_replies":false,"new_matches":true}', JSON.stringify(settingsPrefs))
+  ok('prefs: owner-only read', (await as(S[1], `select count(*)::int c from notification_prefs`)).rows[0].c === 0 &&
+     (await as(S[0], `select count(*)::int c from notification_prefs`)).rows[0].c === 1)
+  await as(S[1], `update notification_prefs set likes=true`)
+  ok('prefs: others cannot update', (await su(`select likes from notification_prefs where user_id=$1`, [S[0]])).rows[0].likes === false)
+  ok('prefs: no anon access', !!(await fails(async () => { await db.exec('reset role; set role anon;'); try { await db.query(`select * from notification_prefs`) } finally { await db.exec('reset role') } })))
+  // blocked users list + unblock
+  await as(S[0], `insert into blocks (blocked_id) values ($1)`, [S[2]])
+  await as(S[2], `insert into blocks (blocked_id) values ($1)`, [S[3]])
+  await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 600, 800, 0)`, [S[2], `${S[2]}/a.webp`])
+  const settingsBlocked = (await as(S[0], `select * from get_blocked_users()`)).rows
+  ok('blocked: lists own blocks with name and photo', settingsBlocked.length === 1 && settingsBlocked[0].display_name === 'Pg2' &&
+     settingsBlocked[0].photo?.path === `${S[2]}/a.webp` && !('location' in settingsBlocked[0]), JSON.stringify(settingsBlocked))
+  ok('blocked: never reveals who blocked you', (await as(S[3], `select count(*)::int c from get_blocked_users()`)).rows[0].c === 0)
+  ok('blocked: no anon access', (await su(`select has_function_privilege('anon', 'public.get_blocked_users()', 'execute') v`)).rows[0].v === false)
+  await as(S[3], `delete from blocks where blocked_id=$1`, [S[3]])
+  ok('blocked: cannot remove someone else\'s block', (await su(`select count(*)::int c from blocks where blocker_id=$1`, [S[2]])).rows[0].c === 1)
+  await as(S[0], `delete from blocks where blocked_id=$1`, [S[2]])
+  ok('blocked: unblock restores visibility', (await as(S[0], `select count(*)::int c from profiles where id=$1`, [S[2]])).rows[0].c === 1)
+  await su(`delete from blocks where blocker_id=$1`, [S[2]])
+  // who liked you
+  const likesOf = async (u) => (await as(u, `select * from get_incoming_likes()`)).rows
+  const likeCount = async (u) => (await as(u, `select count_incoming_likes() n`)).rows[0].n
+  await as(S[1], `update profiles set discoverable=true where id=$1`, [S[1]])
+  await as(S[1], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[0]])
+  await as(S[2], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[0]])
+  await as(S[3], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [S[0]])
+  const settingsIn = await likesOf(S[0])
+  ok('likes: shows people who liked you (not passes)', settingsIn.length === 2 && settingsIn.every((r) => [S[1], S[2]].includes(r.id)) && (await likeCount(S[0])) === 2, JSON.stringify(settingsIn.map((r) => r.id)))
+  ok('likes: card data without location', settingsIn.every((r) => !('location' in r) && r.distance_km !== null && Array.isArray(r.photos)) &&
+     !(await su(`select pg_get_function_result('public.get_incoming_likes(int)'::regprocedure) r`)).rows[0].r.includes('location'))
+  ok('likes: swipes table stays closed', (await as(S[0], `select count(*)::int c from swipes where swiped_id=$1`, [S[0]])).rows[0].c === 0)
+  ok('likes: likers see nothing about it', (await likesOf(S[1])).length === 0)
+  ok('likes: internal helper not callable', !!(await fails(() => as(S[0], `select * from incoming_like_ids()`))))
+  ok('likes: no anon access', (await su(`select has_function_privilege('anon', 'public.get_incoming_likes(int)', 'execute') v`)).rows[0].v === false)
+  await as(S[1], `update profiles set discoverable=false where id=$1`, [S[1]])
+  ok('likes: paused liker hidden', (await likesOf(S[0])).map((r) => r.id).join() === S[2])
+  await as(S[1], `update profiles set discoverable=true where id=$1`, [S[1]])
+  await as(S[0], `insert into blocks (blocked_id) values ($1)`, [S[1]])
+  ok('likes: blocked liker hidden', (await likeCount(S[0])) === 1)
+  await as(S[0], `delete from blocks where blocked_id=$1`, [S[1]])
+  await su(`update profiles set banned_at=now(), ban_reason='spam' where id=$1`, [S[1]])
+  ok('likes: banned liker hidden', (await likeCount(S[0])) === 1)
+  await su(`update profiles set banned_at=null, ban_reason=null, is_active=true where id=$1`, [S[1]])
+  await as(S[0], `insert into swipes (swiped_id, direction) values ($1,'like')`, [S[1]])
+  ok('likes: like back = instant match', (await su(`select count(*)::int c from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [S[0], S[1]])).rows[0].c === 1)
+  await as(S[0], `insert into swipes (swiped_id, direction) values ($1,'pass')`, [S[2]])
+  ok('likes: swiped likers leave the list', (await likeCount(S[0])) === 0)
+  await su(`update profiles set verification_status='pending' where id=$1`, [S[3]])
+  ok('likes: unverified caller rejected', !!(await fails(() => likesOf(S[3]))))
+  await su(`delete from auth.users where id=$1`, [S[0]])
+  ok('prefs: removed with the account', (await su(`select count(*)::int c from notification_prefs`)).rows[0].c === 0)
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
