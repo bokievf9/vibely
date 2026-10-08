@@ -33,6 +33,7 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
         <h1 className="text-2xl font-bold">
           {user.displayName}, {user.age}
         </h1>
+        <p className="text-muted -mt-1">@{user.username}</p>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <VerificationBadge status={user.verificationStatus} />
           {user.bannedAt && <BannedBadge />}

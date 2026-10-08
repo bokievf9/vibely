@@ -57,6 +57,7 @@ export function AuthorSheet({ userId, name, open, onClose }: Props) {
               <BadgeCheck className="text-accent size-5" aria-label={dict.feed.verified} />
             )}
           </p>
+          <p className="text-muted -mt-2 truncate text-sm">@{card.username}</p>
           {card.bio && <p className="text-sm whitespace-pre-wrap">{card.bio}</p>}
         </div>
       ) : failed ? (

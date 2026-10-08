@@ -5,6 +5,7 @@ import { getViewer } from '@/features/auth/session'
 import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
+import { SearchButton } from '@/features/username/components/search-button'
 import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,9 +33,12 @@ async function Deck() {
         maxKm: 50,
       }}
       headerActions={
-        <Suspense fallback={null}>
-          <LikesButton />
-        </Suspense>
+        <>
+          <SearchButton />
+          <Suspense fallback={null}>
+            <LikesButton />
+          </Suspense>
+        </>
       }
     />
   )

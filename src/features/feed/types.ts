@@ -7,6 +7,7 @@ export type FeedTab = (typeof FEED_TABS)[number]
 export type FeedAuthor = {
   id: string
   name: string
+  username: string | null
   age: number | null
   verified: boolean
   photoUrl: string | null
@@ -43,6 +44,7 @@ export type FeedPage = { posts: FeedPost[]; nextCursor: string | null }
 export type AuthorCard = {
   id: string
   name: string
+  username: string
   age: number | null
   verified: boolean
   bio: string

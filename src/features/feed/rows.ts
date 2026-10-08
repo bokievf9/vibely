@@ -9,6 +9,7 @@ type IdentityRow = Pick<
   | 'is_named'
   | 'author_id'
   | 'author_name'
+  | 'author_username'
   | 'author_age'
   | 'author_verified'
   | 'author_photo_path'
@@ -33,6 +34,8 @@ function toIdentity(r: IdentityRow, urls: Map<string, string>): FeedIdentity {
       author: {
         id: r.author_id,
         name: r.author_name,
+        // Only "As me" rows carry it (the views never expose it on anonymous rows).
+        username: r.author_username,
         age: r.author_age,
         verified: r.author_verified ?? false,
         photoUrl: (r.author_photo_path && urls.get(r.author_photo_path)) || null,

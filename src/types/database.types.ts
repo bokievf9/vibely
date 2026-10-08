@@ -789,10 +789,13 @@ export type Database = {
           referred_by: string | null
           relationship_goal: Database['public']['Enums']['relationship_goal'] | null
           religion: Database['public']['Enums']['religion'] | null
+          searchable_by_username: boolean
           show_last_seen: boolean
           smoking: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at: string | null
           updated_at: string
+          username: string
+          username_changed_at: string | null
           verification_status: Database['public']['Enums']['verification_status']
         }
         Insert: {
@@ -821,10 +824,13 @@ export type Database = {
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
+          searchable_by_username?: boolean
           show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
+          username: string
+          username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
         }
         Update: {
@@ -853,10 +859,13 @@ export type Database = {
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
+          searchable_by_username?: boolean
           show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
+          username?: string
+          username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
         }
         Relationships: [
@@ -1230,6 +1239,7 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           author_photo_path: string | null
+          author_username: string | null
           author_verified: boolean | null
           body: string | null
           comments_count: number | null
@@ -1254,6 +1264,7 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           author_photo_path: string | null
+          author_username: string | null
           author_verified: boolean | null
           body: string | null
           created_at: string | null
@@ -1296,6 +1307,7 @@ export type Database = {
           id: string
           open_reports: number
           phone: string
+          username: string
           verification_status: Database['public']['Enums']['verification_status']
         }[]
       }
@@ -1426,6 +1438,7 @@ export type Database = {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
+      generate_username: { Args: { p_name: string }; Returns: string }
       get_blocked_users: {
         Args: never
         Returns: {
@@ -1548,10 +1561,20 @@ export type Database = {
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
       match_under_open_report: { Args: { p_match: string }; Returns: boolean }
+      my_username: {
+        Args: never
+        Returns: {
+          changed_at: string
+          next_change_at: string
+          searchable: boolean
+          username: string
+        }[]
+      }
       new_people_alert_recipients: {
         Args: { p_profile: string }
         Returns: string[]
       }
+      normalize_username: { Args: { u: string }; Returns: string }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
       purge_old_random_messages: { Args: never; Returns: number }
@@ -1602,6 +1625,17 @@ export type Database = {
         Returns: string[]
       }
       retention_selfies: { Args: { p_limit?: number }; Returns: string[] }
+      search_profiles_by_username: {
+        Args: { lim?: number; q: string }
+        Returns: {
+          age: number
+          city: string
+          display_name: string
+          id: string
+          photo: Json
+          username: string
+        }[]
+      }
       set_call_permission: {
         Args: { p_allowed: boolean; p_match: string }
         Returns: undefined
@@ -1620,6 +1654,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_username: { Args: { p_username: string }; Returns: string }
       start_call: {
         Args: {
           p_kind: Database['public']['Enums']['call_kind']
@@ -1627,6 +1662,7 @@ export type Database = {
         }
         Returns: string
       }
+      suggest_username: { Args: { p_name: string }; Returns: string }
       swipe_candidate_pool: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -1643,6 +1679,9 @@ export type Database = {
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
       touch_last_active: { Args: never; Returns: undefined }
       unread_message_count: { Args: never; Returns: number }
+      username_base: { Args: { p_name: string }; Returns: string }
+      username_error: { Args: { u: string }; Returns: string }
+      username_status: { Args: { p_username: string }; Returns: string }
     }
     Enums: {
       call_kind: 'audio' | 'video'

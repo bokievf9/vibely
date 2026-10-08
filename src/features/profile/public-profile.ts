@@ -7,6 +7,7 @@ import { aboutFromRow, promptsFromRows, type AboutInput, type ProfilePrompt } fr
 export type PublicProfile = {
   id: string
   name: string
+  username: string
   age: number
   city: string | null
   bio: string | null
@@ -14,17 +15,24 @@ export type PublicProfile = {
   photos: { url: string; width: number; height: number }[]
   about: AboutInput
   prompts: ProfilePrompt[]
-  matchId: string
+  // Null when the viewer opened the profile from search and has not matched with this person.
+  matchId: string | null
+  // The viewer's earlier swipe on this person (search profiles offer "Like" only when null).
+  swiped: 'like' | 'pass' | null
 }
 
-// Full profile of someone the viewer has matched with (swipes or a mutual randomizer reveal).
-export async function getMatchedProfile(
+// Full profile of someone the viewer has matched with (swipes or a mutual randomizer reveal),
+// or, opened from people search, of a discoverable profile the viewer may see. RLS
+// (can_view_profile) already hides banned, unverified and blocked profiles; a paused profile
+// (discoverable = false) stays visible to its matches only.
+export async function getPublicProfile(
   userId: string,
   viewerId: string,
 ): Promise<PublicProfile | null> {
+  if (userId === viewerId) return null
   const supabase = await createClient()
   const [a, b] = [userId, viewerId].sort()
-  const [{ data: match }, { data: p }] = await Promise.all([
+  const [{ data: match }, { data: p }, { data: swipe }] = await Promise.all([
     supabase
       .from('matches')
       .select('id')
@@ -34,18 +42,25 @@ export async function getMatchedProfile(
     supabase
       .from('profiles')
       .select(
-        'id, display_name, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(storage_path, width, height, position), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
+        'id, display_name, username, discoverable, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(storage_path, width, height, position), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
       )
       .eq('id', userId)
       .maybeSingle(),
+    supabase
+      .from('swipes')
+      .select('direction')
+      .eq('swiper_id', viewerId)
+      .eq('swiped_id', userId)
+      .maybeSingle(),
   ])
-  if (!match || !p) return null
+  if (!p || (!match && !p.discoverable)) return null
 
   const photos = [...p.profile_photos].sort((x, y) => x.position - y.position)
   const urls = await signPhotoPaths(photos.map((ph) => ph.storage_path))
   return {
     id: p.id,
     name: p.display_name,
+    username: p.username,
     age: ageFromBirthDate(p.birth_date),
     city: p.city,
     bio: p.bio,
@@ -56,6 +71,7 @@ export async function getMatchedProfile(
     }),
     about: aboutFromRow(p),
     prompts: promptsFromRows(p.profile_prompts),
-    matchId: match.id,
+    matchId: match?.id ?? null,
+    swiped: swipe?.direction ?? null,
   }
 }

@@ -19,6 +19,8 @@ import {
   getNotificationPrefs,
   getPrivacySettings,
 } from '@/features/settings/queries'
+import { UsernameSettingsRows } from '@/features/username/components/username-settings'
+import { getUsernameSettings } from '@/features/username/queries'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 
@@ -54,14 +56,20 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked] = await Promise.all([
+  const [privacy, prefs, blocked, username] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
+    getUsernameSettings(),
   ])
 
   return (
     <div className="flex flex-col gap-8 px-4 pb-6">
+      {username && (
+        <SettingsSection title={dict.username.section}>
+          <UsernameSettingsRows initial={username} />
+        </SettingsSection>
+      )}
       <SettingsSection title={dict.settings.notifications}>
         <PushToggle />
         <NotificationPrefsRows initial={prefs} />

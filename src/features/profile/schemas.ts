@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Constants } from '@/types/database.types'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { ageFromBirthDate } from '@/lib/utils'
+import { usernameSchema } from '@/features/username/schemas'
 import { aboutSchema, promptsSchema } from './about-schemas'
 
 const e = (key: ErrorKey) => ({ error: key })
@@ -43,12 +44,17 @@ export const profileSchema = editableProfileSchema.extend({
 
 export type ProfileInput = z.infer<typeof profileSchema>
 
-// Onboarding also requires the 18+ / Terms / Privacy consent (stored as terms_accepted_at).
+// Onboarding also requires the 18+ / Terms / Privacy consent (stored as terms_accepted_at) and
+// the username (prefilled with a suggestion from the name; changed later in Settings).
 export const newProfileSchema = profileSchema.extend({
   acceptTerms: z.boolean().refine((v) => v, e('termsRequired')),
+  username: usernameSchema,
 })
-// The edit form shares the field so both forms have the same shape; it is ignored there.
-export const profileFormSchema = profileSchema.extend({ acceptTerms: z.boolean() })
+// The edit form shares these fields so both forms have the same shape; they are ignored there.
+export const profileFormSchema = profileSchema.extend({
+  acceptTerms: z.boolean(),
+  username: z.string(),
+})
 
 export type NewProfileInput = z.infer<typeof newProfileSchema>
 export type EditableProfileInput = z.infer<typeof editableProfileSchema>

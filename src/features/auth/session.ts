@@ -8,6 +8,7 @@ export type Viewer = {
   id: string
   profile: {
     displayName: string
+    username: string
     verificationStatus: Enums<'verification_status'>
     photoCount: number
     banReason: string | null
@@ -24,7 +25,9 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, verification_status, banned_at, ban_reason, profile_photos(count)')
+    .select(
+      'display_name, username, verification_status, banned_at, ban_reason, profile_photos(count)',
+    )
     .eq('id', id)
     .maybeSingle()
 
@@ -32,6 +35,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     id,
     profile: profile && {
       displayName: profile.display_name,
+      username: profile.username,
       verificationStatus: profile.verification_status,
       photoCount: profile.profile_photos[0]?.count ?? 0,
       banReason: profile.banned_at ? (profile.ban_reason ?? '—') : null,

@@ -6,6 +6,7 @@ import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { claimReferralFromCookie } from '@/features/referrals/claim'
+import { usernameErrorKey } from '@/features/username/errors'
 import {
   editableProfileSchema,
   newProfileSchema,
@@ -64,10 +65,13 @@ export async function createProfile(input: NewProfileInput): Promise<UserResult>
   if (!viewer) return fail('unauthorized')
   if (viewer.profile) return ok(undefined)
 
-  const { displayName, birthDate, gender, interestedIn, bio, city, tagIds, location } = parsed.data
+  const { displayName, username, birthDate, gender, interestedIn, bio, city, tagIds, location } =
+    parsed.data
   const supabase = await createClient()
   const { error } = await supabase.from('profiles').insert({
     display_name: sanitizeText(displayName),
+    // Normalised and checked again by the database (format, reserved names, uniqueness).
+    username,
     birth_date: birthDate,
     gender,
     interested_in: interestedIn,
@@ -77,7 +81,12 @@ export async function createProfile(input: NewProfileInput): Promise<UserResult>
     // Consent was validated above; the database stamps its own clock.
     terms_accepted_at: new Date().toISOString(),
   })
-  if (error) return fail(error.code === '23514' ? 'tooYoung' : 'profileSaveFailed')
+  if (error) {
+    const usernameError = usernameErrorKey(error)
+    if (usernameError)
+      return { ok: false, error: usernameError, fieldErrors: { username: [usernameError] } }
+    return fail(error.code === '23514' ? 'tooYoung' : 'profileSaveFailed')
+  }
 
   await replaceTags(tagIds, viewer.id)
   await claimReferralFromCookie()

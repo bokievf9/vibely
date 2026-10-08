@@ -52,6 +52,7 @@ export type MessagePage = { messages: ChatMessage[]; reactions: Reaction[]; hasM
 export type Partner = {
   id: string
   name: string
+  username: string
   photo: { url: string; width: number; height: number } | null
 }
 
