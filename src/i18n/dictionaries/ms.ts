@@ -10,6 +10,7 @@ import { likesMs, settingsMs } from './settings/ms'
 import { mediaMs } from './media/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
+import { flowsMs } from './flowsui/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -366,4 +367,5 @@ export const ms: Dictionary = {
   tagCategories: tagCategoriesMs,
   avatar: avatarMs,
   username: usernameMs,
+  flows: flowsMs,
 }

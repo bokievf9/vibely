@@ -27,7 +27,8 @@ export function ContentMenu({ type, id, isMine, onDelete, onDeleted }: Props) {
       <button
         type="button"
         aria-label={isMine ? dict.feed.delete : dict.safety.report}
-        className="text-muted -m-2 p-2"
+        // 44px hit area; the negative margin keeps the visual 16px icon where it was.
+        className="text-muted active:text-foreground -m-3 flex size-11 shrink-0 items-center justify-center rounded-full transition-colors active:bg-white/5"
         onClick={() => setOpen(isMine ? 'confirm' : 'report')}
       >
         {isMine ? <Trash2 className="size-4" /> : <EllipsisVertical className="size-4" />}
@@ -37,6 +38,8 @@ export function ContentMenu({ type, id, isMine, onDelete, onDeleted }: Props) {
           <p>{dict.feed.deleteConfirm}</p>
           <Button
             variant="danger"
+            // TODO(ui/shell): swap for the danger token once it lands.
+            className="bg-red-500"
             fullWidth
             loading={pending}
             onClick={() =>

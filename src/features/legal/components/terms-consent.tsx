@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, type ComponentProps } from 'react'
+import { Check } from 'lucide-react'
 import { LocaleLink, useI18n } from '@/i18n/client'
 
 type Props = ComponentProps<'input'> & { error?: string }
@@ -16,7 +17,8 @@ export function TermsConsent({ error, id = 'acceptTerms', ...input }: Props) {
       href={href}
       target="_blank"
       rel="noopener"
-      className="text-accent font-medium underline underline-offset-2"
+      // Inline padding grows the tap area without moving the text.
+      className="text-accent py-1.5 font-medium underline underline-offset-2"
     >
       {label}
     </LocaleLink>
@@ -30,15 +32,26 @@ export function TermsConsent({ error, id = 'acceptTerms', ...input }: Props) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-start gap-3">
-        <input
-          id={id}
-          type="checkbox"
-          aria-invalid={Boolean(error) || undefined}
-          aria-describedby={error ? `${id}-msg` : undefined}
-          className="accent-accent mt-0.5 size-5 shrink-0"
-          {...input}
-        />
-        <label htmlFor={id} className="text-sm leading-relaxed">
+        {/* 44px tap area around a 24px box, in the app's own radius instead of the native one. */}
+        <label
+          htmlFor={id}
+          className="relative -m-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center"
+        >
+          <input
+            id={id}
+            type="checkbox"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? `${id}-msg` : undefined}
+            className="peer border-border bg-surface checked:border-accent checked:bg-accent focus-visible:ring-accent focus-visible:ring-offset-background size-6 cursor-pointer appearance-none rounded-lg border-2 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none aria-invalid:border-red-500"
+            {...input}
+          />
+          <Check
+            className="pointer-events-none absolute size-4 text-white opacity-0 transition-opacity duration-150 peer-checked:opacity-100"
+            strokeWidth={3}
+            aria-hidden
+          />
+        </label>
+        <label htmlFor={id} className="pt-px text-sm leading-relaxed">
           {parts}
           {/* Safety recording notice (CLAUDE.md protocol): part of what the user agrees to. */}
           <span className="text-muted mt-1 block text-xs">{dict.legal.consentRecording}</span>

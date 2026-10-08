@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
+import { animate, useReducedMotion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
+import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { toggleLike } from '../actions'
+import { formatCount } from './format-count'
 
-// Optimistic like; rolls back if the server refuses.
+// Optimistic like; rolls back if the server refuses. Liking pops the heart (spring, so a fast
+// double tap retargets instead of restarting) and gives a light haptic on Android.
 export function LikeButton({
   postId,
   liked,
@@ -16,13 +20,26 @@ export function LikeButton({
   liked: boolean
   count: number
 }) {
-  const { dict } = useI18n()
+  const { dict, locale } = useI18n()
   const [state, setState] = useState({ liked, count })
   const [, startTransition] = useTransition()
+  const heart = useRef<SVGSVGElement>(null)
+  const reduce = useReducedMotion()
 
   const toggle = () => {
     const prev = state
-    setState({ liked: !prev.liked, count: prev.count + (prev.liked ? -1 : 1) })
+    const next = !prev.liked
+    setState({ liked: next, count: prev.count + (next ? 1 : -1) })
+    if (next) {
+      haptic('light')
+      if (heart.current && !reduce) {
+        animate(
+          heart.current,
+          { transform: ['scale(0.7)', 'scale(1)'] },
+          { type: 'spring', duration: 0.4, bounce: 0.4 },
+        )
+      }
+    }
     startTransition(async () => {
       const result = await toggleLike(postId)
       if (!result.ok) setState(prev)
@@ -34,14 +51,18 @@ export function LikeButton({
       type="button"
       onClick={toggle}
       aria-pressed={state.liked}
-      aria-label={dict.feed.like}
+      aria-label={`${dict.feed.like}: ${state.count}`}
       className={cn(
-        'flex items-center gap-1.5 text-sm',
+        '-ml-2.5 flex h-11 min-w-11 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors active:bg-white/5',
         state.liked ? 'text-accent' : 'text-muted',
       )}
     >
-      <Heart className={cn('size-5', state.liked && 'fill-current')} aria-hidden />
-      <span className="tabular-nums">{state.count}</span>
+      <Heart
+        ref={heart}
+        className={cn('size-5 shrink-0', state.liked && 'fill-current')}
+        aria-hidden
+      />
+      <span className="tabular-nums">{formatCount(state.count, locale)}</span>
     </button>
   )
 }

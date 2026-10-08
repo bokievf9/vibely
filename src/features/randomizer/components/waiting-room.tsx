@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 import { SearchX, Shuffle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
@@ -83,12 +82,11 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-      >
-        <Shuffle className="text-accent size-16" aria-hidden />
-      </motion.div>
+      {/* CSS spin: runs on the compositor, keeps turning while the JS thread polls and pings. */}
+      <div className="relative flex size-24 items-center justify-center" aria-hidden>
+        <span className="border-accent/15 border-t-accent absolute inset-0 animate-spin rounded-full border-[3px] [animation-duration:1.4s]" />
+        <Shuffle className="text-accent size-9" />
+      </div>
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-semibold" role="status">
           {dict.random.searching}

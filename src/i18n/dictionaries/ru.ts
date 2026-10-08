@@ -10,6 +10,7 @@ import { likesRu, settingsRu } from './settings/ru'
 import { mediaRu } from './media/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
+import { flowsRu } from './flowsui/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
@@ -364,4 +365,5 @@ export const ru: Dictionary = {
   tagCategories: tagCategoriesRu,
   avatar: avatarRu,
   username: usernameRu,
+  flows: flowsRu,
 }
