@@ -19,6 +19,7 @@ export const settingsEn = {
     'You won’t appear in Discover or in “Who liked you”. Your matches and chats stay. Random chat pairs you only when you search yourself.',
   blocked: 'Blocked users',
   blockedEmpty: 'You haven’t blocked anyone.',
+  blockedEmptyHint: 'When you block someone from a chat or a profile, they show up here.',
   unblock: 'Unblock',
   unblockConfirm:
     'Unblock {name}? You will be able to see each other again. A removed match is not restored.',

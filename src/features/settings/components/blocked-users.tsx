@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { ShieldCheck } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
@@ -30,7 +31,15 @@ export function BlockedUsers({ initial }: { initial: BlockedUser[] }) {
     })
 
   if (users.length === 0) {
-    return <p className="text-muted p-4 text-sm">{dict.settings.blockedEmpty}</p>
+    return (
+      <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
+        <span className="bg-background flex size-14 items-center justify-center rounded-full">
+          <ShieldCheck className="text-muted size-7" aria-hidden />
+        </span>
+        <p className="font-medium">{dict.settings.blockedEmpty}</p>
+        <p className="text-muted max-w-xs text-sm">{dict.settings.blockedEmptyHint}</p>
+      </div>
+    )
   }
 
   return (
@@ -40,7 +49,12 @@ export function BlockedUsers({ initial }: { initial: BlockedUser[] }) {
           <li key={user.id} className="flex items-center gap-3 px-4 py-3">
             <Avatar photo={user.photo} alt={user.name} size={40} />
             <span className="min-w-0 flex-1 truncate font-medium">{user.name}</span>
-            <Button variant="secondary" size="sm" onClick={() => setConfirm(user)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-11 shrink-0 px-4"
+              onClick={() => setConfirm(user)}
+            >
               {dict.settings.unblock}
             </Button>
           </li>

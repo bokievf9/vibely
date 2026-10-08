@@ -8,6 +8,7 @@ import { likesEn, settingsEn } from './settings/en'
 import { mediaEn } from './media/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
+import { flowsEn } from './flowsui/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -350,6 +351,7 @@ export const en = {
   tagCategories: tagCategoriesEn,
   avatar: avatarEn,
   username: usernameEn,
+  flows: flowsEn,
 }
 
 export type Dictionary = typeof en

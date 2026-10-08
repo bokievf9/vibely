@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch'
 import { publicEnv } from '@/lib/env'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
+import { pressableRow } from '@/features/settings/components/switch-row'
 import { usePush } from '../use-push'
 
 // Settings → Notifications: this device's push subscription. Hidden when Web Push is not
@@ -30,17 +31,20 @@ function Toggle() {
             ? dict.push.failed
             : dict.push.hint
 
+  const toggle = () => void (on ? disable() : enable())
+
   return (
-    <div className="flex flex-col gap-1.5 p-4">
+    <div {...pressableRow(toggle, !available || busy)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 font-medium">
-          <Bell className="size-5" aria-hidden /> {dict.push.toggle}
+        <span className="flex min-w-0 items-center gap-2 font-medium">
+          <Bell className="size-5 shrink-0" aria-hidden />
+          <span className="min-w-0">{dict.push.toggle}</span>
         </span>
         <Switch
           checked={on}
           label={dict.push.toggle}
           disabled={!available || busy}
-          onToggle={() => void (on ? disable() : enable())}
+          onToggle={toggle}
         />
       </div>
       <p className={cn('text-sm', failed ? 'text-red-400' : 'text-muted')}>{note}</p>

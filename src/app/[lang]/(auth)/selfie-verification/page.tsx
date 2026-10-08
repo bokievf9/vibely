@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { Clock } from 'lucide-react'
 import { FormError } from '@/components/ui/field'
-import { PageSpinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer, nextStepFor } from '@/features/auth/session'
@@ -20,7 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function SelfieVerificationPage() {
   return (
     <section>
-      <Suspense fallback={<PageSpinner />}>
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-5" aria-hidden>
+            <Skeleton className="h-24" />
+            <Skeleton className="aspect-[3/4] rounded-3xl" />
+          </div>
+        }
+      >
         <VerificationStep />
       </Suspense>
     </section>
@@ -48,7 +55,7 @@ async function VerificationStep() {
   const rejection = await getLatestRejection(viewer.id)
   return (
     <>
-      <StepHeader title={dict.verification.title} subtitle={dict.verification.subtitle} />
+      <StepHeader step={3} title={dict.verification.title} subtitle={dict.verification.subtitle} />
       {rejection && (
         <div className="mb-5">
           <FormError

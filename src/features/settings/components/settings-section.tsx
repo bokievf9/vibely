@@ -17,7 +17,7 @@ export function SettingsSection({
       <div
         className={cn(
           card
-            ? 'bg-surface border-border divide-border flex flex-col divide-y rounded-2xl border'
+            ? 'bg-surface border-border divide-border flex flex-col divide-y overflow-hidden rounded-2xl border'
             : 'flex flex-col gap-3',
         )}
       >

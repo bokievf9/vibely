@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
@@ -24,9 +25,16 @@ export function SearchingNow({ className }: { className?: string }) {
     }
   }, [])
 
-  if (count === null) return null
+  // Same line height before the first answer, so the filters below do not jump when it arrives.
+  if (count === null) {
+    return (
+      <div className={cn('flex h-5 items-center', className)} aria-hidden>
+        <Skeleton className="h-3.5 w-44 rounded-full" />
+      </div>
+    )
+  }
   return (
-    <p className={cn('text-muted flex items-center gap-1.5 text-sm', className)}>
+    <p className={cn('text-muted flex min-h-5 items-center gap-1.5 text-sm', className)}>
       <span className="relative flex size-2" aria-hidden>
         <span className="bg-accent absolute inline-flex size-full animate-ping rounded-full opacity-60" />
         <span className="bg-accent relative inline-flex size-2 rounded-full" />
