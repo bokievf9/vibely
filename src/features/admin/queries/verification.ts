@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ageFromBirthDate } from '@/lib/utils'
 import { CHALLENGES, isChallengeId } from '@/features/verification/challenges'
 import { requireAdmin } from '../guard'
+import { logAccess } from './access'
 import { signProfilePhotos, signUrls, type SignedPhoto } from './storage'
 
 export type PendingVerification = {
@@ -30,10 +31,19 @@ export async function getPendingVerifications(limit = 20): Promise<PendingVerifi
     .limit(limit)
   if (!data) return []
 
-  const selfies = await signUrls(
-    'selfies',
-    data.map((r) => r.selfie_path),
+  // Logged before the selfies are signed (CLAUDE.md access protocol).
+  const logged = await logAccess(
+    'view.selfie',
+    'user',
+    data.map((r) => r.user_id),
+    'Очередь верификации',
   )
+  const selfies = logged
+    ? await signUrls(
+        'selfies',
+        data.map((r) => r.selfie_path),
+      )
+    : new Map<string, string>()
   return Promise.all(
     data.map(async (r) => ({
       id: r.id,

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { readableBan } from '@/features/admin/labels'
 import type { ResolveInput } from '@/features/admin/schemas'
 import { resolveSchema } from '@/features/admin/schemas'
+import { hasRole, type AdminRole } from '@/features/admin/roles'
 import type { TgUser } from './protocol'
 
 // Moderation from Telegram runs the same RPCs as the admin panel, with the id of the moderator
@@ -142,19 +143,49 @@ export async function setBanAs(
       message: banned ? 'Уже заблокирован' : 'Не заблокирован',
     }
   }
-  const { error } = await db.rpc('admin_set_ban', {
-    p_admin: adminId,
-    p_user: userId,
-    p_banned: banned,
-    p_reason: banned ? reason : undefined,
-  })
+  const { error } = banned
+    ? await banAs(adminId, userId, reason)
+    : await db.rpc('admin_set_ban', { p_admin: adminId, p_user: userId, p_banned: false })
   if (error) {
     console.error('[telegram] ban failed:', error.code)
-    return { ok: false, already: false, message: 'Не получилось, попробуйте в админке' }
+    return failure(error.code)
   }
   refresh()
   return { ok: true }
 }
+
+// Bans from Telegram follow the panel's role rules (20261009000151): admins and owners ban
+// permanently, moderators can ban for at most 7 days. Unbans need admin; the RPC enforces it.
+const MODERATOR_BAN_DAYS = 7
+
+async function banAs(adminId: string, userId: string, reason: string | undefined) {
+  const db = createAdminClient()
+  const { data } = await db.from('admins').select('role').eq('user_id', adminId).maybeSingle()
+  const role = (data?.role ?? 'viewer') as AdminRole
+  if (hasRole(role, 'admin')) {
+    return db.rpc('admin_set_ban', {
+      p_admin: adminId,
+      p_user: userId,
+      p_banned: true,
+      p_reason: reason,
+    })
+  }
+  return db.rpc('admin_ban_user', {
+    p_admin: adminId,
+    p_user: userId,
+    p_reason: reason ?? 'other',
+    p_days: MODERATOR_BAN_DAYS,
+  })
+}
+
+const failure = (code: string | undefined): Outcome => ({
+  ok: false,
+  already: false,
+  message:
+    code === '42501'
+      ? 'Недостаточно прав для этого действия'
+      : 'Не получилось, попробуйте в админке',
+})
 
 // Open reports on one target (0: someone already resolved them).
 export async function openReportCount(
@@ -210,13 +241,7 @@ export async function resolveReportGroupAs(adminId: string, input: ResolveInput)
       break
     case 'ban':
       steps.push(
-        () =>
-          db.rpc('admin_set_ban', {
-            p_admin: adminId,
-            p_user: d.offenderId,
-            p_banned: true,
-            p_reason: d.reason,
-          }),
+        () => banAs(adminId, d.offenderId, d.reason),
         () => resolve(`Пользователь заблокирован: ${readableBan(d.reason)}`),
       )
       break
@@ -225,7 +250,7 @@ export async function resolveReportGroupAs(adminId: string, input: ResolveInput)
     const { error } = await step()
     if (error) {
       console.error('[telegram] resolve failed:', error.code)
-      return { ok: false, already: false, message: 'Не получилось, попробуйте в админке' }
+      return failure(error.code)
     }
   }
   refresh()

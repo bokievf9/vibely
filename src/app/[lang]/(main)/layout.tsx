@@ -5,6 +5,7 @@ import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer, nextStepFor } from '@/features/auth/session'
 import { CallLayerGate } from '@/features/calls/components/call-layer-gate'
 import { InstallPrompt } from '@/features/pwa/components/install-prompt'
+import { SanctionNotice } from '@/features/sanctions/components/sanction-notice'
 
 // Every (main) route requires a verified user. RLS enforces the same rule in the database.
 export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
@@ -19,6 +20,9 @@ export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
       <BottomNav />
       <Suspense fallback={null}>
         <CallLayerGate />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SanctionNotice />
       </Suspense>
     </>
   )

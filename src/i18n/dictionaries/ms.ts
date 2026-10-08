@@ -12,6 +12,7 @@ import { chatUiMs } from './chatui/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
+import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -33,6 +34,7 @@ export const ms: Dictionary = {
   errors: {
     ...callErrorsMs,
     ...usernameErrorsMs,
+    ...sanctionErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -370,4 +372,5 @@ export const ms: Dictionary = {
   avatar: avatarMs,
   username: usernameMs,
   flows: flowsMs,
+  sanctions: sanctionsMs,
 }

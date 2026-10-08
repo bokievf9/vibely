@@ -19,6 +19,7 @@ const cursorSchema = z
 // Postgres errors raised by the feed RPCs.
 function rpcError(code: string | undefined): ErrorKey {
   if (code === 'P0429') return 'rateLimited'
+  if (code === 'VS001') return 'muted'
   if (code === '42501') return 'unauthorized'
   if (code === 'P0002') return 'notFound'
   return 'generic'
