@@ -1126,6 +1126,8 @@ export async function run(db) {
     await su(`update profiles set verification_status='approved' where id=$1`, [X])
     const post = (await as(X, `select create_post('tg post') id`)).rows[0].id
     await as(R1, `insert into reports (target_type, target_id, reason) values ('post', $1, 'underage: looks 15')`, [post])
+    // Same-microsecond inserts would make "latest" a coin flip.
+    await su(`update reports set created_at = created_at - interval '1 minute' where target_id=$1`, [post])
     await as(R2, `insert into reports (target_type, target_id, reason) values ('post', $1, 'spam')`, [post])
     await as(R3, `insert into reports (target_type, target_id, reason) values ('user', $1, 'fake')`, [X])
     const sum = (await su(`select * from telegram_report_summary('post', $1)`, [post])).rows[0]
