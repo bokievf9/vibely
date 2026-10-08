@@ -49,6 +49,9 @@ export const ru: Dictionary = {
     messageTooLong: 'Сообщение слишком длинное',
     reasonTooShort: 'Опишите проблему (минимум 3 символа)',
     alreadyReported: 'Вы уже пожаловались на это',
+    termsRequired: 'Подтвердите, что вам есть 18 лет и вы принимаете Условия и Политику',
+    deleteConfirmMismatch: 'Введите слово точно как показано',
+    accountDeleteFailed: 'Не удалось удалить аккаунт. Попробуйте ещё раз.',
   },
   gender: { male: 'Мужчина', female: 'Женщина', other: 'Другое' },
   auth: {
@@ -212,6 +215,26 @@ export const ru: Dictionary = {
     endConfirm: 'Завершить чат? Вернуться в него будет нельзя.',
     ended: 'Чат завершён.',
     next: 'Найти нового',
+  },
+  legal: {
+    privacy: 'Политика конфиденциальности',
+    terms: 'Условия использования',
+    section: 'Правовая информация',
+    lastUpdated: 'Обновлено: {date}',
+    contact: 'Вопросы или запросы о ваших данных? Пишите на',
+    consent: 'Мне есть 18 лет, и я принимаю {terms} и {privacy}',
+    consentTerms: 'Условия использования',
+    consentPrivacy: 'Политику конфиденциальности',
+    home: 'Вернуться в Vibely',
+  },
+  account: {
+    dangerZone: 'Опасная зона',
+    delete: 'Удалить аккаунт',
+    deleteTitle: 'Удалить аккаунт?',
+    deleteWarning:
+      'Профиль, фото, мэтчи, сообщения и посты будут удалены навсегда. Это нельзя отменить.',
+    deleteType: 'Введите {word} для подтверждения',
+    deleteConfirm: 'Удалить навсегда',
   },
   soon: { title: 'Скоро', text: 'Этот раздел в разработке.' },
   tags: {

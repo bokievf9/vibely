@@ -420,6 +420,7 @@ export type Database = {
           is_active: boolean
           last_active_at: string
           location: unknown
+          terms_accepted_at: string | null
           updated_at: string
           verification_status: Database['public']['Enums']['verification_status']
         }
@@ -437,6 +438,7 @@ export type Database = {
           is_active?: boolean
           last_active_at?: string
           location?: unknown
+          terms_accepted_at?: string | null
           updated_at?: string
           verification_status?: Database['public']['Enums']['verification_status']
         }
@@ -454,6 +456,7 @@ export type Database = {
           is_active?: boolean
           last_active_at?: string
           location?: unknown
+          terms_accepted_at?: string | null
           updated_at?: string
           verification_status?: Database['public']['Enums']['verification_status']
         }
@@ -927,6 +930,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
       randomizer_join: {

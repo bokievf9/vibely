@@ -7,11 +7,11 @@ import { fail, ok, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import {
   editableProfileSchema,
+  newProfileSchema,
   photoSchema,
-  profileSchema,
   type EditableProfileInput,
+  type NewProfileInput,
   type PhotoInput,
-  type ProfileInput,
 } from './schemas'
 
 function invalid(error: z.ZodError): UserResult<never> {
@@ -27,8 +27,8 @@ async function replaceTags(tagIds: number[], userId: string) {
     await supabase.from('profile_tags').insert(tagIds.map((tag_id) => ({ tag_id })))
 }
 
-export async function createProfile(input: ProfileInput): Promise<UserResult> {
-  const parsed = profileSchema.safeParse(input)
+export async function createProfile(input: NewProfileInput): Promise<UserResult> {
+  const parsed = newProfileSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error)
   const viewer = await getViewer()
   if (!viewer) return fail('unauthorized')
@@ -44,6 +44,8 @@ export async function createProfile(input: ProfileInput): Promise<UserResult> {
     bio: sanitizeText(bio) || null,
     city: sanitizeText(city) || null,
     location: location ? toPoint(location) : null,
+    // Consent was validated above; the database stamps its own clock.
+    terms_accepted_at: new Date().toISOString(),
   })
   if (error) return fail(error.code === '23514' ? 'tooYoung' : 'profileSaveFailed')
 

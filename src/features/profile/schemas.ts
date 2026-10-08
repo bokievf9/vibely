@@ -38,6 +38,15 @@ export const profileSchema = editableProfileSchema.extend({
 })
 
 export type ProfileInput = z.infer<typeof profileSchema>
+
+// Onboarding also requires the 18+ / Terms / Privacy consent (stored as terms_accepted_at).
+export const newProfileSchema = profileSchema.extend({
+  acceptTerms: z.boolean().refine((v) => v, e('termsRequired')),
+})
+// The edit form shares the field so both forms have the same shape; it is ignored there.
+export const profileFormSchema = profileSchema.extend({ acceptTerms: z.boolean() })
+
+export type NewProfileInput = z.infer<typeof newProfileSchema>
 export type EditableProfileInput = z.infer<typeof editableProfileSchema>
 
 export const photoSchema = z.object({

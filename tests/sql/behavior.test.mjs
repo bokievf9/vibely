@@ -153,6 +153,52 @@ export async function run(db) {
   ok('revoke forces re-verification', (await su(`select verification_status v from profiles where id=$1`, [U[2]])).rows[0].v === 'unverified')
   ok('find users by phone', (await svc(`select * from admin_find_users($1,'+60 12345 6783')`, [A])).rows.map(r => r.id).join() === U[3])
   ok('audit log: 6 actions', (await su(`select string_agg(action, ',' order by created_at, action) a, count(*)::int c from moderation_actions`)).rows[0].c === 6, JSON.stringify((await su(`select array_agg(action) a from moderation_actions`)).rows[0]))
+  // consent at sign-up
+  const D = '77777777-7777-7777-7777-777777777777'
+  await su(`insert into auth.users(id, phone) values ($1, '60123450007')`, [D])
+  await as(D, `insert into profiles (display_name,birth_date,gender,interested_in,terms_accepted_at) values ('Del','1990-01-01','female','{male}','2000-01-01')`)
+  ok('terms: server clock wins', (await su(`select terms_accepted_at > now() - interval '1 minute' v from profiles where id=$1`, [D])).rows[0].v === true)
+  ok('terms: not updatable by client', !!(await fails(() => as(D, `update profiles set terms_accepted_at = now() where id=$1`, [D]))))
+  // account deletion: every trace of the user goes, other users' data stays consistent
+  await su(`update profiles set verification_status='approved' where id=$1`, [D])
+  await su(`insert into verification_requests (user_id, selfie_path, challenge, status) values ($1, $2, 'ok', 'approved')`, [D, `${D}/s.jpg`])
+  const op = (await as(U[0], `select create_post('пост для удаления') id`)).rows[0].id
+  await as(D, `select toggle_post_like($1)`, [op]); await as(D, `select create_comment($1,'bye')`, [op])
+  const dp = (await as(D, `select create_post('мой пост') id`)).rows[0].id
+  await as(U[0], `select create_comment($1,'hi')`, [dp])
+  await su(`insert into blocks (blocker_id, blocked_id) values ($1,$2)`, [U[0], D])
+  await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'user',$2,'фейк'),($2,'user',$3,'спам')`, [U[2], D, U[3]])
+  await as(D, `insert into swipes (swiped_id, direction) values ($1,'like')`, [U[3]])
+  await as(U[3], `insert into swipes (swiped_id, direction) values ($1,'like') on conflict do nothing`, [D])
+  const dm = (await su(`select id from matches where $1 in (user_a, user_b)`, [D])).rows[0]
+  ok('deletion setup: match exists', !!dm)
+  await as(D, `insert into messages (match_id, body) values ($1,'hey')`, [dm.id])
+  const ds = (await su(`insert into random_chat_sessions (user_a, user_b, status, ended_at) values ($1,$2,'ended',now()) returning id`, [D, U[0]])).rows[0].id
+  await su(`insert into random_chat_messages (session_id, sender_id, body) values ($1,$2,'anon')`, [ds, D])
+  await su(`insert into admins values ($1)`, [D])
+  await su(`insert into moderation_actions (admin_id, action, target_type, target_id) values ($1,'test','user',$2)`, [D, U[3]])
+  const delErr = await fails(() => su(`delete from auth.users where id=$1`, [D]))
+  ok('account deletion succeeds', !delErr, delErr)
+  const left = (await su(`select
+      (select count(*) from profiles where id=$1) + (select count(*) from posts where author_id=$1)
+    + (select count(*) from comments where author_id=$1) + (select count(*) from post_likes where user_id=$1)
+    + (select count(*) from blocks where $1 in (blocker_id, blocked_id)) + (select count(*) from reports where reporter_id=$1)
+    + (select count(*) from swipes where $1 in (swiper_id, swiped_id)) + (select count(*) from matches where $1 in (user_a, user_b))
+    + (select count(*) from random_chat_sessions where $1 in (user_a, user_b)) + (select count(*) from verification_requests where user_id=$1)
+    + (select count(*) from admins where user_id=$1) as n`, [D])).rows[0].n
+  ok('deletion: no rows left', Number(left) === 0, String(left))
+  ok('deletion: counters on others\' posts updated', JSON.stringify((await su(`select likes_count, comments_count from posts where id=$1`, [op])).rows[0]) === '{"likes_count":0,"comments_count":0}')
+  ok('deletion: audit log kept, admin nulled', (await su(`select admin_id from moderation_actions where action='test'`)).rows[0]?.admin_id === null)
+  // random chat retention
+  const sess = async (age) => (await su(`insert into random_chat_sessions (user_a, user_b, status, started_at, ended_at) values ($1,$2,'ended',now()-$3::interval,now()-$3::interval) returning id`, [U[0], U[2], age])).rows[0].id
+  const oldS = await sess('40 days'), reportedS = await sess('40 days'), newS = await sess('1 day')
+  for (const [s, age] of [[oldS, '40 days'], [reportedS, '40 days'], [newS, '1 day']])
+    await su(`insert into random_chat_messages (session_id, sender_id, body, created_at) values ($1,$2,'x',now()-$3::interval)`, [s, U[0], age])
+  await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1,'random_session',$2,'оскорбления')`, [U[2], reportedS])
+  ok('purge not callable by users', !!(await fails(() => as(U[0], `select purge_old_random_messages()`))))
+  ok('purge deletes old unreported messages', (await su(`select purge_old_random_messages() n`)).rows[0].n === 1)
+  const kept = (await su(`select s.id, count(m.id)::int c from random_chat_sessions s left join random_chat_messages m on m.session_id=s.id where s.id = any($1) group by s.id`, [[oldS, reportedS, newS]])).rows
+  ok('purge: old session gone, reported and recent kept', kept.length === 2 && kept.every(r => r.c === 1 && r.id !== oldS), JSON.stringify(kept))
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

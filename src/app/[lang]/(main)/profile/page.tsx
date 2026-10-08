@@ -1,9 +1,10 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Pencil } from 'lucide-react'
+import { ChevronRight, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { PageSpinner } from '@/components/ui/spinner'
+import { DeleteAccount } from '@/features/account/components/delete-account'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
@@ -52,7 +53,23 @@ async function OwnProfile() {
         <h2 className="text-muted text-sm font-medium">{dict.profile.language}</h2>
         <LanguageSwitcher />
       </section>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-muted text-sm font-medium">{dict.legal.section}</h2>
+        <ul className="bg-surface border-border divide-border divide-y rounded-2xl border">
+          {(['terms', 'privacy'] as const).map((doc) => (
+            <li key={doc}>
+              <Link
+                href={localePath(locale, `/${doc}`)}
+                className="flex h-12 items-center justify-between px-4"
+              >
+                {dict.legal[doc]} <ChevronRight className="text-muted size-5" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
       <SignOutButton />
+      <DeleteAccount />
     </div>
   )
 }

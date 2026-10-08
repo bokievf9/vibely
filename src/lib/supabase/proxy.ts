@@ -7,6 +7,8 @@ import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
 
 const AUTH_ROUTES = ['/login', '/verify-otp']
+// Reachable signed in or out (legal pages are linked from the sign-up flow and app stores).
+const PUBLIC_ROUTES = ['/privacy', '/terms']
 
 function matches(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
@@ -53,7 +55,7 @@ export async function updateSession(request: NextRequest) {
   const isSignedIn = Boolean(data?.claims)
   const lang = locale ?? preferredLocale(request)
 
-  if (!isSignedIn && !matches(rest, AUTH_ROUTES)) {
+  if (!isSignedIn && !matches(rest, AUTH_ROUTES) && !matches(rest, PUBLIC_ROUTES)) {
     return redirectWithCookies(request, response, localePath(lang, '/login'))
   }
   if (isSignedIn && matches(rest, AUTH_ROUTES)) {

@@ -10,7 +10,8 @@ import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n, useLocaleRouter } from '@/i18n/client'
 import { createProfile, updateProfile } from '../actions'
 import type { OwnProfile, Tag } from '../queries'
-import { MAX_TAGS, profileSchema, type ProfileInput } from '../schemas'
+import { TermsConsent } from '@/features/legal/components/terms-consent'
+import { MAX_TAGS, newProfileSchema, profileFormSchema, type NewProfileInput } from '../schemas'
 import { GenderPicker } from './gender-picker'
 import { LocationButton } from './location-button'
 import { TagPicker } from './tag-picker'
@@ -23,8 +24,8 @@ export function ProfileForm({ tags, initial }: Props) {
   const errorText = useErrorText()
   const router = useLocaleRouter()
   const [serverError, setServerError] = useState<string>()
-  const { register, control, handleSubmit, setError, formState } = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+  const { register, control, handleSubmit, setError, formState } = useForm<NewProfileInput>({
+    resolver: zodResolver(initial ? profileFormSchema : newProfileSchema),
     defaultValues: {
       interestedIn: [],
       bio: '',
@@ -33,6 +34,7 @@ export function ProfileForm({ tags, initial }: Props) {
       location: null,
       displayName: '',
       birthDate: '',
+      acceptTerms: false,
       ...initial,
     },
   })
@@ -44,7 +46,7 @@ export function ProfileForm({ tags, initial }: Props) {
     if (result.ok) return initial ? router.push('/profile') : router.refresh()
     setServerError(result.error)
     Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) =>
-      setError(field as keyof ProfileInput, { message: messages[0] }),
+      setError(field as keyof NewProfileInput, { message: messages[0] }),
     )
   })
 
@@ -118,6 +120,9 @@ export function ProfileForm({ tags, initial }: Props) {
           )}
         />
       </Field>
+      {!initial && (
+        <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
+      )}
       <FormError message={errorText(serverError)} />
       <Button type="submit" loading={isSubmitting} fullWidth>
         {initial ? dict.common.save : dict.common.continue}

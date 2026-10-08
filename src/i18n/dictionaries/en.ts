@@ -47,6 +47,9 @@ export const en = {
     messageTooLong: 'The message is too long',
     reasonTooShort: 'Describe the problem (at least 3 characters)',
     alreadyReported: 'You have already reported this',
+    termsRequired: 'Please confirm you are 18+ and accept the Terms and Privacy Policy',
+    deleteConfirmMismatch: 'Type the word exactly as shown',
+    accountDeleteFailed: 'Could not delete your account. Try again.',
   },
   gender: { male: 'Man', female: 'Woman', other: 'Other' },
   auth: {
@@ -209,6 +212,26 @@ export const en = {
     endConfirm: 'End this chat? You will not be able to return to it.',
     ended: 'The chat has ended.',
     next: 'Find someone new',
+  },
+  legal: {
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Use',
+    section: 'Legal',
+    lastUpdated: 'Last updated: {date}',
+    contact: 'Questions or requests about your data? Email us at',
+    consent: 'I am 18 or older and agree to the {terms} and the {privacy}',
+    consentTerms: 'Terms of Use',
+    consentPrivacy: 'Privacy Policy',
+    home: 'Back to Vibely',
+  },
+  account: {
+    dangerZone: 'Danger zone',
+    delete: 'Delete account',
+    deleteTitle: 'Delete your account?',
+    deleteWarning:
+      'This permanently deletes your profile, photos, matches, messages and posts. It cannot be undone.',
+    deleteType: 'Type {word} to confirm',
+    deleteConfirm: 'Delete forever',
   },
   soon: { title: 'Coming soon', text: 'This section is under construction.' },
   tags: {

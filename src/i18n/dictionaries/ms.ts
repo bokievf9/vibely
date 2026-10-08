@@ -49,6 +49,9 @@ export const ms: Dictionary = {
     messageTooLong: 'Mesej terlalu panjang',
     reasonTooShort: 'Terangkan masalah (sekurang-kurangnya 3 aksara)',
     alreadyReported: 'Anda sudah melaporkan perkara ini',
+    termsRequired: 'Sila sahkan anda berumur 18+ dan menerima Terma serta Dasar Privasi',
+    deleteConfirmMismatch: 'Taip perkataan tepat seperti yang ditunjukkan',
+    accountDeleteFailed: 'Akaun tidak dapat dipadam. Cuba lagi.',
   },
   gender: { male: 'Lelaki', female: 'Perempuan', other: 'Lain-lain' },
   auth: {
@@ -215,6 +218,26 @@ export const ms: Dictionary = {
     endConfirm: 'Tamatkan sembang ini? Anda tidak boleh kembali kepadanya.',
     ended: 'Sembang telah tamat.',
     next: 'Cari orang baharu',
+  },
+  legal: {
+    privacy: 'Dasar Privasi',
+    terms: 'Terma Penggunaan',
+    section: 'Undang-undang',
+    lastUpdated: 'Kemas kini terakhir: {date}',
+    contact: 'Ada soalan atau permintaan tentang data anda? E-mel kami di',
+    consent: 'Saya berumur 18 tahun ke atas dan bersetuju dengan {terms} dan {privacy}',
+    consentTerms: 'Terma Penggunaan',
+    consentPrivacy: 'Dasar Privasi',
+    home: 'Kembali ke Vibely',
+  },
+  account: {
+    dangerZone: 'Zon bahaya',
+    delete: 'Padam akaun',
+    deleteTitle: 'Padam akaun anda?',
+    deleteWarning:
+      'Ini akan memadam profil, foto, padanan, mesej dan hantaran anda secara kekal. Ia tidak boleh dibatalkan.',
+    deleteType: 'Taip {word} untuk mengesahkan',
+    deleteConfirm: 'Padam selama-lamanya',
   },
   soon: { title: 'Akan datang', text: 'Bahagian ini sedang dibina.' },
   tags: {
