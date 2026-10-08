@@ -10,18 +10,74 @@ export type Database = {
     Tables: {
       admins: {
         Row: {
+          added_by: string | null
           created_at: string
+          role: Database['public']['Enums']['admin_role']
           user_id: string
         }
         Insert: {
+          added_by?: string | null
           created_at?: string
+          role?: Database['public']['Enums']['admin_role']
           user_id: string
         }
         Update: {
+          added_by?: string | null
           created_at?: string
+          role?: Database['public']['Enums']['admin_role']
           user_id?: string
         }
         Relationships: []
+      }
+      appeals: {
+        Row: {
+          body: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          sanction: string
+          sanction_at: string | null
+          sanction_reason: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          sanction?: string
+          sanction_at?: string | null
+          sanction_reason?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          sanction?: string
+          sanction_at?: string | null
+          sanction_reason?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'appeals_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
       }
       blocks: {
         Row: {
@@ -535,6 +591,33 @@ export type Database = {
           },
         ]
       }
+      phone_blocklist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          phone: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          phone: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          phone?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       post_aliases: {
         Row: {
           alias_no: number
@@ -766,6 +849,7 @@ export type Database = {
         Row: {
           ban_reason: string | null
           banned_at: string | null
+          banned_until: string | null
           bio: string | null
           birth_date: string
           calls_consent_at: string | null
@@ -776,6 +860,9 @@ export type Database = {
           display_name: string
           drinking: Database['public']['Enums']['habit_frequency'] | null
           education: Database['public']['Enums']['education_level'] | null
+          evidence_hold_at: string | null
+          evidence_hold_by: string | null
+          evidence_hold_reason: string | null
           gender: Database['public']['Enums']['gender']
           height_cm: number | null
           id: string
@@ -785,11 +872,14 @@ export type Database = {
           languages: Database['public']['Enums']['spoken_language'][] | null
           last_active_at: string
           location: unknown
+          mute_reason: string | null
+          muted_until: string | null
           pets: Database['public']['Enums']['pets_status'] | null
           referred_by: string | null
           relationship_goal: Database['public']['Enums']['relationship_goal'] | null
           religion: Database['public']['Enums']['religion'] | null
           searchable_by_username: boolean
+          shadow_banned: boolean
           show_last_seen: boolean
           smoking: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at: string | null
@@ -801,6 +891,7 @@ export type Database = {
         Insert: {
           ban_reason?: string | null
           banned_at?: string | null
+          banned_until?: string | null
           bio?: string | null
           birth_date: string
           calls_consent_at?: string | null
@@ -811,6 +902,9 @@ export type Database = {
           display_name: string
           drinking?: Database['public']['Enums']['habit_frequency'] | null
           education?: Database['public']['Enums']['education_level'] | null
+          evidence_hold_at?: string | null
+          evidence_hold_by?: string | null
+          evidence_hold_reason?: string | null
           gender: Database['public']['Enums']['gender']
           height_cm?: number | null
           id?: string
@@ -820,11 +914,14 @@ export type Database = {
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
           location?: unknown
+          mute_reason?: string | null
+          muted_until?: string | null
           pets?: Database['public']['Enums']['pets_status'] | null
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
           searchable_by_username?: boolean
+          shadow_banned?: boolean
           show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
@@ -836,6 +933,7 @@ export type Database = {
         Update: {
           ban_reason?: string | null
           banned_at?: string | null
+          banned_until?: string | null
           bio?: string | null
           birth_date?: string
           calls_consent_at?: string | null
@@ -846,6 +944,9 @@ export type Database = {
           display_name?: string
           drinking?: Database['public']['Enums']['habit_frequency'] | null
           education?: Database['public']['Enums']['education_level'] | null
+          evidence_hold_at?: string | null
+          evidence_hold_by?: string | null
+          evidence_hold_reason?: string | null
           gender?: Database['public']['Enums']['gender']
           height_cm?: number | null
           id?: string
@@ -855,11 +956,14 @@ export type Database = {
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
           location?: unknown
+          mute_reason?: string | null
+          muted_until?: string | null
           pets?: Database['public']['Enums']['pets_status'] | null
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
           searchable_by_username?: boolean
+          shadow_banned?: boolean
           show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
@@ -1184,6 +1288,82 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_notes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      user_warnings: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          note: string | null
+          reason: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          note?: string | null
+          reason: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          note?: string | null
+          reason?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_warnings_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       verification_requests: {
         Row: {
           challenge: string
@@ -1294,9 +1474,65 @@ export type Database = {
     }
     Functions: {
       accept_calls_notice: { Args: never; Returns: string }
+      acknowledge_warning: {
+        Args: {
+          p_id: string
+        }
+        Returns: undefined
+      }
+      admin_add_note: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_body: string
+        }
+        Returns: string
+      }
+      admin_ban_user: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_reason: string
+          p_days?: number
+        }
+        Returns: string[]
+      }
+      admin_block_phone: {
+        Args: {
+          p_admin: string
+          p_phone: string
+          p_user?: string
+          p_reason?: string
+        }
+        Returns: string
+      }
+      admin_decide_appeal: {
+        Args: {
+          p_admin: string
+          p_appeal: string
+          p_accept: boolean
+          p_note?: string
+        }
+        Returns: undefined
+      }
+      admin_delete_note: {
+        Args: {
+          p_admin: string
+          p_note: string
+        }
+        Returns: undefined
+      }
       admin_delete_photo: {
         Args: { p_admin: string; p_photo: string; p_reason: string }
         Returns: string
+      }
+      admin_export_user: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_reference: string
+        }
+        Returns: Json
       }
       admin_find_users: {
         Args: { p_admin: string; p_limit?: number; p_query?: string }
@@ -1311,9 +1547,48 @@ export type Database = {
           verification_status: Database['public']['Enums']['verification_status']
         }[]
       }
+      admin_get_phone: {
+        Args: {
+          p_admin: string
+          p_user: string
+        }
+        Returns: string
+      }
+      admin_list_team: {
+        Args: {
+          p_admin: string
+        }
+        Returns: {
+          user_id: string
+          role: Database['public']['Enums']['admin_role']
+          display_name: string
+          username: string
+          phone: string
+          added_by: string
+          created_at: string
+        }[]
+      }
+      admin_log_access: {
+        Args: {
+          p_admin: string
+          p_action: string
+          p_type: string
+          p_targets: string[]
+          p_reason?: string
+        }
+        Returns: undefined
+      }
       admin_open_call_recording: {
         Args: { p_admin: string; p_call: string; p_reason?: string }
         Returns: string
+      }
+      admin_remove_member: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_reason?: string
+        }
+        Returns: undefined
       }
       admin_resolve_reports: {
         Args: {
@@ -1323,6 +1598,13 @@ export type Database = {
           p_type: Database['public']['Enums']['report_target']
         }
         Returns: number
+      }
+      admin_resolve_user: {
+        Args: {
+          p_admin: string
+          p_query: string
+        }
+        Returns: string
       }
       admin_review_verification: {
         Args: {
@@ -1335,6 +1617,14 @@ export type Database = {
       }
       admin_revoke_verification: {
         Args: { p_admin: string; p_reason: string; p_user: string }
+        Returns: undefined
+      }
+      admin_revoke_warning: {
+        Args: {
+          p_admin: string
+          p_warning: string
+          p_reason?: string
+        }
         Returns: undefined
       }
       admin_set_ban: {
@@ -1357,6 +1647,74 @@ export type Database = {
         Returns: undefined
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      admin_set_evidence_hold: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_on: boolean
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      admin_set_member_role: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_role: Database['public']['Enums']['admin_role']
+        }
+        Returns: undefined
+      }
+      admin_set_mute: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_hours: number
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      admin_set_shadow_ban: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_on: boolean
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      admin_stats: {
+        Args: {
+          p_admin: string
+          p_days?: number
+        }
+        Returns: Json
+      }
+      admin_unban_user: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      admin_unblock_phone: {
+        Args: {
+          p_admin: string
+          p_id: string
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      admin_warn_user: {
+        Args: {
+          p_admin: string
+          p_user: string
+          p_reason: string
+          p_note?: string
+          p_days?: number
+        }
+        Returns: string
+      }
       answer_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
@@ -1545,6 +1903,10 @@ export type Database = {
       is_malaysian_mobile: { Args: { phone: string }; Returns: boolean }
       is_match_participant: { Args: { m: string }; Returns: boolean }
       is_verified: { Args: never; Returns: boolean }
+      lift_expired_sanctions: {
+        Args: never
+        Returns: number
+      }
       log_moderation: {
         Args: {
           p_action: string
@@ -1561,6 +1923,27 @@ export type Database = {
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
       match_under_open_report: { Args: { p_match: string }; Returns: boolean }
+      my_appeal: {
+        Args: never
+        Returns: {
+          id: string
+          status: string
+          created_at: string
+          decided_at: string
+        }[]
+      }
+      my_ban_status: {
+        Args: never
+        Returns: {
+          banned_at: string
+          ban_reason: string
+          banned_until: string
+        }[]
+      }
+      my_sanctions: {
+        Args: never
+        Returns: Json
+      }
       my_username: {
         Args: never
         Returns: {
@@ -1663,6 +2046,12 @@ export type Database = {
         Returns: string
       }
       suggest_username: { Args: { p_name: string }; Returns: string }
+      submit_appeal: {
+        Args: {
+          p_body: string
+        }
+        Returns: string
+      }
       swipe_candidate_pool: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -1684,6 +2073,7 @@ export type Database = {
       username_status: { Args: { p_username: string }; Returns: string }
     }
     Enums: {
+      admin_role: 'viewer' | 'moderator' | 'admin' | 'owner'
       call_kind: 'audio' | 'video'
       call_recording_status: 'none' | 'pending' | 'recording' | 'ready' | 'failed' | 'purged'
       call_status: 'ringing' | 'active' | 'ended' | 'missed' | 'declined'
@@ -1842,6 +2232,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role: ['viewer', 'moderator', 'admin', 'owner'],
       call_kind: ['audio', 'video'],
       call_recording_status: ['none', 'pending', 'recording', 'ready', 'failed', 'purged'],
       call_status: ['ringing', 'active', 'ended', 'missed', 'declined'],

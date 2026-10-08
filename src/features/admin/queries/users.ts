@@ -9,6 +9,7 @@ import {
   type ProfilePrompt,
 } from '@/features/profile/about-schemas'
 import { requireAdmin } from '../guard'
+import { logAccess } from './access'
 import { signProfilePhotos, signUrls, type SignedPhoto } from './storage'
 
 export type UserRow = Database['public']['Functions']['admin_find_users']['Returns'][number]
@@ -25,7 +26,6 @@ export async function findUsers(query: string): Promise<UserRow[]> {
 
 export type UserDetail = {
   id: string
-  phone: string | null
   displayName: string
   username: string
   age: number
@@ -63,8 +63,7 @@ export async function getUserDetail(userId: string): Promise<UserDetail | null> 
     .maybeSingle()
   if (!p) return null
 
-  const [auth, verifications, reports, posts] = await Promise.all([
-    db.auth.admin.getUserById(userId),
+  const [verifications, reports, posts] = await Promise.all([
     db
       .from('verification_requests')
       .select('id, status, selfie_path, rejection_reason, created_at')
@@ -80,11 +79,17 @@ export async function getUserDetail(userId: string): Promise<UserDetail | null> 
       .limit(50),
     db.from('posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),
   ])
-  const selfies = await signUrls('selfies', verifications.data?.map((v) => v.selfie_path) ?? [])
+  // Selfies are shown only after the view is logged (CLAUDE.md access protocol). The phone number
+  // is not loaded here: it is revealed on demand (revealPhone, logged as view.phone).
+  const selfiePaths = verifications.data?.map((v) => v.selfie_path) ?? []
+  const selfies =
+    selfiePaths.length &&
+    (await logAccess('view.selfie', 'user', [userId], 'Карточка пользователя'))
+      ? await signUrls('selfies', selfiePaths)
+      : new Map<string, string>()
 
   return {
     id: p.id,
-    phone: auth.data.user?.phone ? `+${auth.data.user.phone}` : null,
     displayName: p.display_name,
     username: p.username,
     age: ageFromBirthDate(p.birth_date),

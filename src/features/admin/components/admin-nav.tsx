@@ -2,25 +2,45 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Flag, History, Images, LayoutDashboard, ScanFace, Users } from 'lucide-react'
+import {
+  FileText,
+  Flag,
+  History,
+  Images,
+  LayoutDashboard,
+  PhoneOff,
+  Scale,
+  ScanFace,
+  UserCog,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { hasRole, type AdminRole } from '../roles'
 
-const LINKS = [
+type NavLink = { href: string; label: string; icon: LucideIcon; min?: AdminRole }
+
+// One entry per section; `min` hides it from lower roles (the page itself checks again).
+// To add a section, append a line here.
+const LINKS: NavLink[] = [
   { href: '/admin', label: 'Обзор', icon: LayoutDashboard },
   { href: '/admin/verification', label: 'Верификация', icon: ScanFace },
   { href: '/admin/reports', label: 'Жалобы', icon: Flag },
+  { href: '/admin/appeals', label: 'Апелляции', icon: Scale },
   { href: '/admin/photos', label: 'Фото', icon: Images },
   { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/content', label: 'Контент', icon: FileText },
   { href: '/admin/log', label: 'Журнал', icon: History },
-] as const
+  { href: '/admin/blocklist', label: 'Блок-лист', icon: PhoneOff, min: 'admin' },
+  { href: '/admin/team', label: 'Команда', icon: UserCog, min: 'owner' },
+]
 
-export function AdminNav() {
+export function AdminNav({ role }: { role: AdminRole }) {
   const pathname = usePathname()
   return (
     <nav aria-label="Разделы модерации" className="-mx-4 overflow-x-auto px-4">
       <ul className="flex gap-2">
-        {LINKS.map(({ href, label, icon: Icon }) => {
+        {LINKS.filter((l) => !l.min || hasRole(role, l.min)).map(({ href, label, icon: Icon }) => {
           const active = href === '/admin' ? pathname === href : pathname.startsWith(href)
           return (
             <li key={href}>
