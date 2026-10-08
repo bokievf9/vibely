@@ -59,6 +59,7 @@ export function InstallPrompt() {
       {mode && (
         <motion.aside
           aria-label={dict.pwa.installTitle}
+          data-install-prompt
           className="bg-surface border-border fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl border p-4 shadow-lg"
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

@@ -47,6 +47,7 @@ function NavBar({ activePath, unread }: { activePath: string | null; unread: num
 
   return (
     <nav
+      data-tabbar
       aria-label="Vibely"
       className="bg-background/90 border-border fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >

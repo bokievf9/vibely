@@ -1035,6 +1035,21 @@ export async function run(db) {
     ok('admin: not callable by users', !!(await fails(() => as(N[5], `select * from admin_find_users($1, 'x', 5)`, [N[5]]))))
   })()
   void ko
+
+  // ===== batch-4: admin sanctions (only that branch edits between these markers) =====
+
+  // ===== end admin sanctions =====
+
+
+  // ===== batch-4: admin reports & evidence =====
+
+  // ===== end admin reports & evidence =====
+
+
+  // ===== batch-4: telegram =====
+
+  // ===== end telegram =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

@@ -91,3 +91,13 @@ button,
     animation-iteration-count: infinite !important;
   }
 }
+
+/* Immersive screens (chat room, call, full-screen viewers) render an element with [data-immersive]:
+   the tab bar, its bottom padding and the install banner go away while it is mounted. */
+body:has([data-immersive]) [data-tabbar],
+body:has([data-immersive]) [data-install-prompt] {
+  display: none;
+}
+body:has([data-immersive]) [data-main] {
+  padding-bottom: 0;
+}

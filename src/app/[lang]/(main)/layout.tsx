@@ -10,7 +10,10 @@ import { InstallPrompt } from '@/features/pwa/components/install-prompt'
 export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      <main
+        data-main
+        className="mx-auto flex w-full max-w-md flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))]"
+      >
         <Suspense fallback={<PageSpinner />}>
           <VerifiedGate>{children}</VerifiedGate>
         </Suspense>
