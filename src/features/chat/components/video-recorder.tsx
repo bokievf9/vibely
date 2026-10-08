@@ -110,8 +110,8 @@ export function VideoRecorder({ onClose, onDone, onError }: Props) {
       >
         <span
           className={cn(
-            'bg-red-500 transition-all',
-            recording ? 'size-7 rounded-md' : 'size-14 rounded-full',
+            'size-14 bg-red-500 transition-[border-radius,transform] duration-200 ease-out',
+            recording ? 'scale-50 rounded-xl' : 'rounded-full',
           )}
         />
       </button>

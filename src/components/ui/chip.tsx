@@ -5,7 +5,8 @@ type ChipProps = Omit<ComponentProps<'button'>, 'type'> & { selected?: boolean }
 
 export function chipClassName(selected: boolean, className?: string) {
   return cn(
-    'inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium transition select-none',
+    'inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium select-none',
+    'transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97]',
     selected
       ? 'border-accent bg-accent/15 text-accent'
       : 'border-border bg-surface text-foreground active:bg-border',

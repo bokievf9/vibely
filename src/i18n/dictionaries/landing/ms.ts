@@ -11,7 +11,6 @@ export const landingMs: LandingDictionary = {
     subtitle:
       'Setiap profil disemak oleh moderator manusia melalui swafoto langsung. Tiada bot, tiada akaun palsu.',
     cta: 'Mula sekarang',
-    note: 'Percuma semasa beta · 18+ · Nombor Malaysia sahaja',
   },
   featuresTitle: 'Tiga cara untuk berkenalan',
   features: {
@@ -59,7 +58,7 @@ export const landingMs: LandingDictionary = {
     },
   ],
   ctaTitle: 'Bersedia untuk kenal orang sebenar?',
-  ctaButton: 'Daftar dengan telefon anda',
+  ctaNote: 'Percuma semasa beta. 18+. Nombor Malaysia sahaja.',
   footer: {
     privacy: 'Dasar privasi',
     terms: 'Terma penggunaan',
