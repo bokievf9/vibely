@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "db:types": "supabase gen types typescript --local --schema public > src/types/database.types.ts",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "fake:seed": "node --env-file=.env.local scripts/fake-users/seed.mjs",
+    "fake:delete": "node --env-file=.env.local scripts/fake-users/delete.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
