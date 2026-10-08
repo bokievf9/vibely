@@ -1,4 +1,5 @@
 import { aboutEn } from './about/en'
+import { feedEn } from './feed/en'
 import { landingEn } from './landing/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 
@@ -235,26 +236,7 @@ export const en = {
     block: 'Block',
     blockConfirm: 'Block {name}? You will no longer see each other and your match will be removed.',
   },
-  feed: {
-    title: 'Feed',
-    anonymousNote: 'Posts are anonymous. Nobody sees who wrote them.',
-    placeholder: 'Share something anonymously…',
-    publish: 'Post',
-    newPosts: 'New posts',
-    empty: 'No posts yet',
-    emptyHint: 'Be the first to share something.',
-    loadMore: 'Show more',
-    comments: 'Comments',
-    noComments: 'No comments yet',
-    commentPlaceholder: 'Comment anonymously…',
-    author: 'Author',
-    anonymous: 'Anonymous #{n}',
-    you: 'you',
-    delete: 'Delete',
-    deleteConfirm: 'Delete this? It cannot be undone.',
-    like: 'Like',
-    post: 'Post',
-  },
+  feed: feedEn,
   random: {
     title: 'Random chat',
     intro:

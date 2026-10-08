@@ -51,7 +51,7 @@ export async function run(db) {
   const post = (await as(U[0], `select create_post('анонимный пост') id`)).rows[0].id
   ok('posts table closed', !!(await fails(() => as(U[1], `select * from posts`))))
   const fp = (await as(U[1], `select * from feed_posts`)).rows
-  ok('feed view hides author', fp.length === 1 && !('author_id' in fp[0]) && fp[0].is_mine === false)
+  ok('feed view hides author', fp.length === 1 && fp[0].author_id === null && fp[0].author_name === null && fp[0].is_mine === false)
   ok('author sees is_mine', (await as(U[0], `select is_mine from feed_posts`)).rows[0].is_mine === true)
   await as(U[1], `select create_comment($1,'c1')`, [post]); await as(U[2], `select create_comment($1,'c2')`, [post])
   await as(U[1], `select create_comment($1,'c3')`, [post]); await as(U[0], `select create_comment($1,'op')`, [post])
@@ -473,6 +473,85 @@ export async function run(db) {
   ok('last_active_at: client cannot write it', !!(await fails(() => as(U[3], `update profiles set last_active_at = now() + interval '1 day' where id=$1`, [U[3]]))))
   ok('last_active_at: touch_last_active() works', !(await fails(() => as(U[3], `select touch_last_active()`))))
   ok("reaction: '' is accepted as remove", !(await fails(() => su(`select 1 where false`))) && (await su(`select pg_get_functiondef('public.set_message_reaction(uuid,text)'::regprocedure) d`)).rows[0].d.includes("nullif(p_emoji, '')"))
+  // feed identity (B + A): named/anonymous posts & comments, pseudonyms, city tab, push throttle, retention
+  const FB = ['fb000000-0000-4000-8000-000000000001', 'fb000000-0000-4000-8000-000000000002',
+              'fb000000-0000-4000-8000-000000000003', 'fb000000-0000-4000-8000-000000000004']
+  const fbCity = ['Kuala Lumpur', ' kuala lumpur ', 'Penang', null]
+  for (const [i, u] of FB.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6012888000' + i])
+    await as(u, `insert into profiles (display_name,birth_date,gender,interested_in,city) values ($1,'1995-01-01','female','{male}',$2)`, ['FeedB' + i, fbCity[i]])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [FB])
+  await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 600, 800, 0)`, [FB[0], `${FB[0]}/feedb.jpg`])
+  const fbPost = async (u, body, named) => (await as(u, `select create_post($1, $2) id`, [body, named])).rows[0].id
+  const fbAnon = await fbPost(FB[0], 'feedb anon', false)
+  const fbNamed = await fbPost(FB[0], 'feedb named', true)
+  const fbLegacy = (await as(FB[3], `select create_post('feedb legacy') id`)).rows[0].id
+  ok('feedb: one-arg create_post still anonymous', (await su(`select is_named from posts where id=$1`, [fbLegacy])).rows[0].is_named === false)
+  const fpRow = async (u, id) => (await as(u, `select * from feed_posts where id=$1`, [id])).rows[0]
+  const a1 = await fpRow(FB[1], fbAnon)
+  ok('feedb: anonymous post exposes no identity', a1.is_named === false && a1.author_id === null && a1.author_name === null &&
+     a1.author_age === null && a1.author_photo_path === null && a1.author_verified === null && Number.isInteger(a1.anon_adj), JSON.stringify(a1))
+  const n1 = await fpRow(FB[1], fbNamed)
+  ok('feedb: named post shows author', n1.is_named === true && n1.author_id === FB[0] && n1.author_name === 'FeedB0' &&
+     n1.author_age >= 30 && n1.author_verified === true && n1.author_photo_path === `${FB[0]}/feedb.jpg` && n1.anon_adj === null, JSON.stringify(n1))
+  ok('feedb: views have no city column', (await su(`select count(*)::int c from information_schema.columns where table_name in ('feed_posts','post_comments') and column_name like '%city' and column_name <> 'same_city'`)).rows[0].c === 0)
+  ok('feedb: same_city for viewer in same city', a1.same_city === true && (await fpRow(FB[2], fbAnon)).same_city === false && (await fpRow(FB[3], fbAnon)).same_city === false)
+  ok('feedb: engagement column', a1.engagement === 0)
+  // banned / blocked authors lose their identity
+  await su(`update profiles set banned_at = now(), ban_reason = 'feedb' where id=$1`, [FB[0]])
+  const nb = await fpRow(FB[1], fbNamed)
+  ok('feedb: banned author shown anonymously', nb.is_named === false && nb.author_id === null && nb.author_name === null && Number.isInteger(nb.anon_adj), JSON.stringify(nb))
+  await su(`update profiles set banned_at = null, ban_reason = null, is_active = true where id=$1`, [FB[0]])
+  await as(FB[2], `insert into blocks (blocked_id) values ($1)`, [FB[0]])
+  ok('feedb: blocked author shown anonymously', (await fpRow(FB[2], fbNamed)).author_id === null && (await fpRow(FB[1], fbNamed)).author_id === FB[0])
+  await as(FB[2], `delete from blocks where blocked_id=$1`, [FB[0]])
+  // comments: pseudonyms
+  const fbComment = (u, post, body, named = false) => as(u, `select create_comment($1,$2,$3)`, [post, body, named])
+  await fbComment(FB[1], fbAnon, 'x1'); await fbComment(FB[2], fbAnon, 'x2'); await fbComment(FB[1], fbAnon, 'x3')
+  await fbComment(FB[0], fbAnon, 'op'); await fbComment(FB[1], fbAnon, 'x4 named', true)
+  const tcRows = (await as(FB[3], `select * from post_comments where post_id=$1`, [fbAnon])).rows
+  const tc = ['x1', 'x2', 'x3', 'op', 'x4 named'].map((b) => tcRows.find((r) => r.body === b))
+  const pn = (r) => `${r.anon_adj}/${r.anon_noun}/${r.anon_color}`
+  ok('feedb: pseudonym stable within a post', pn(tc[0]) === pn(tc[2]) && pn(tc[0]) !== pn(tc[1]), JSON.stringify(tc.map(pn)))
+  ok('feedb: OP comment uses the post pseudonym', tc[3].is_op === true && pn(tc[3]) === pn(a1))
+  ok('feedb: anonymous comments expose no author', tc.slice(0, 4).every((c) => c.author_id === null && c.author_name === null && c.is_named === false))
+  ok('feedb: named comment shows author, hides alias', tc[4].is_named === true && tc[4].author_id === FB[1] && tc[4].author_name === 'FeedB1' &&
+     tc[4].alias_no === null && tc[4].anon_adj === null && tc[4].is_op === false, JSON.stringify(tc[4]))
+  const others = []
+  for (let i = 0; i < 3; i++) {
+    const p = await fbPost(FB[3], 'feedb other ' + i, false)
+    await fbComment(FB[1], p, 'y')
+    others.push(pn((await as(FB[2], `select * from post_comments where post_id=$1`, [p])).rows[0]))
+  }
+  ok('feedb: pseudonym differs across posts', new Set([pn(tc[0]), ...others]).size > 1, JSON.stringify(others))
+  await fbComment(FB[0], fbNamed, 'op anon on named')
+  await fbComment(FB[0], fbNamed, 'op named on named', true)
+  const ncRows = (await as(FB[1], `select * from post_comments where post_id=$1`, [fbNamed])).rows
+  const nc = ['op anon on named', 'op named on named'].map((b) => ncRows.find((r) => r.body === b))
+  ok('feedb: OP marker on named post', nc[0].is_op === true && nc[1].is_op === true && nc[1].author_id === FB[0])
+  ok('feedb: no raw author on anonymous rows', (await as(FB[1], `select count(*)::int c from post_comments where author_id is not null and not is_named`)).rows[0].c === 0 &&
+     (await as(FB[1], `select count(*)::int c from feed_posts where author_id is not null and not is_named`)).rows[0].c === 0)
+  // push throttle
+  const cid = async (post, body) => (await su(`select id from comments where post_id=$1 and body=$2`, [post, body])).rows[0].id
+  ok('feedb: claim_comment_push not for users', !!(await fails(() => as(FB[1], `select claim_comment_push($1)`, [FB[0]]))))
+  const claim = async (id) => (await su(`select claim_comment_push($1) a`, [id])).rows[0].a
+  ok('feedb: first reply notifies the author', (await claim(await cid(fbAnon, 'x1'))) === FB[0])
+  ok('feedb: at most one push per 10 minutes', (await claim(await cid(fbAnon, 'x2'))) === null)
+  ok('feedb: own comment never notifies', (await claim(await cid(fbNamed, 'op anon on named'))) === null)
+  await su(`update posts set last_comment_push_at = now() - interval '11 minutes' where id=$1`, [fbAnon])
+  ok('feedb: notifies again after 10 minutes', (await claim(await cid(fbAnon, 'x3'))) === FB[0])
+  // retention: 90 days, unless under an open report
+  const fbOld = (await su(`insert into posts (author_id, body, created_at) values ($1,'feedb old', now() - interval '91 days') returning id`, [FB[3]])).rows[0].id
+  const fbKept = (await su(`insert into posts (author_id, body, created_at) values ($1,'feedb old reported', now() - interval '91 days') returning id`, [FB[3]])).rows[0].id
+  const fbOldC = (await su(`insert into comments (post_id, author_id, alias_no, body, created_at) values ($1,$2,1,'feedb old c', now() - interval '91 days') returning id`, [fbAnon, FB[1]])).rows[0].id
+  await as(FB[1], `insert into reports (target_type, target_id, reason) values ('post', $1, 'feedb reason')`, [fbKept])
+  ok('feedb: purge not for users', !!(await fails(() => as(FB[1], `select purge_old_feed_content()`))))
+  ok('feedb: purge deletes old content', (await su(`select purge_old_feed_content() n`)).rows[0].n === 2)
+  ok('feedb: old post and comment gone, reported and recent kept',
+     (await su(`select count(*)::int c from posts where id=$1`, [fbOld])).rows[0].c === 0 &&
+     (await su(`select count(*)::int c from comments where id=$1`, [fbOldC])).rows[0].c === 0 &&
+     (await su(`select count(*)::int c from posts where id = any($1)`, [[fbKept, fbAnon, fbNamed]])).rows[0].c === 3)
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

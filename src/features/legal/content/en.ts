@@ -35,9 +35,10 @@ export const en: LegalContent = {
         ],
       },
       {
-        heading: '4. Anonymous feed',
+        heading: '4. Feed',
         paragraphs: [
-          'Other users never see who wrote a post or a comment in the feed. We do store the author internally, so that you can delete your own posts and so that moderators can act on reports (for example, block an account that posts abuse).',
+          'Each post and comment in the feed is anonymous unless you choose "As me". Anonymous content shows only a random nickname for that thread (for example "Purple Durian"); other users never see who wrote it. With "As me", other verified users see your name, age, main photo and verification badge, and can open a short read-only profile card (never your location). Others may see that a post comes from their city, but never which city.',
+          'We store the author of every post and comment internally, so that you can delete your own content and so that moderators can act on reports (for example, block an account that posts abuse). Feed posts and comments are deleted automatically after 90 days, unless they are part of an open report.',
         ],
       },
       {

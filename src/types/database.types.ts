@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           id: string
           is_hidden: boolean
+          is_named: boolean
           post_id: string
         }
         Insert: {
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
           post_id: string
         }
         Update: {
@@ -82,6 +84,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
           post_id?: string
         }
         Relationships: [
@@ -381,6 +384,8 @@ export type Database = {
           created_at: string
           id: string
           is_hidden: boolean
+          is_named: boolean
+          last_comment_push_at: string | null
           likes_count: number
         }
         Insert: {
@@ -390,6 +395,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
+          last_comment_push_at?: string | null
           likes_count?: number
         }
         Update: {
@@ -399,6 +406,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_hidden?: boolean
+          is_named?: boolean
+          last_comment_push_at?: string | null
           likes_count?: number
         }
         Relationships: [
@@ -932,41 +941,43 @@ export type Database = {
     Views: {
       feed_posts: {
         Row: {
+          anon_adj: number | null
+          anon_color: number | null
+          anon_noun: number | null
+          author_age: number | null
+          author_id: string | null
+          author_name: string | null
+          author_photo_path: string | null
+          author_verified: boolean | null
           body: string | null
           comments_count: number | null
           created_at: string | null
+          engagement: number | null
           id: string | null
           is_liked_by_me: boolean | null
           is_mine: boolean | null
+          is_named: boolean | null
           likes_count: number | null
-        }
-        Insert: {
-          body?: string | null
-          comments_count?: number | null
-          created_at?: string | null
-          id?: string | null
-          is_liked_by_me?: never
-          is_mine?: never
-          likes_count?: number | null
-        }
-        Update: {
-          body?: string | null
-          comments_count?: number | null
-          created_at?: string | null
-          id?: string | null
-          is_liked_by_me?: never
-          is_mine?: never
-          likes_count?: number | null
+          same_city: boolean | null
         }
         Relationships: []
       }
       post_comments: {
         Row: {
           alias_no: number | null
+          anon_adj: number | null
+          anon_color: number | null
+          anon_noun: number | null
+          author_age: number | null
+          author_id: string | null
+          author_name: string | null
+          author_photo_path: string | null
+          author_verified: boolean | null
           body: string | null
           created_at: string | null
           id: string | null
           is_mine: boolean | null
+          is_named: boolean | null
           is_op: boolean | null
           post_id: string | null
         }
@@ -1051,11 +1062,12 @@ export type Database = {
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
       can_view_profile: { Args: { target: string }; Returns: boolean }
       chat_media_match: { Args: { object_name: string }; Returns: string }
+      claim_comment_push: { Args: { p_comment_id: string }; Returns: string | null }
       create_comment: {
-        Args: { p_body: string; p_post_id: string }
+        Args: { p_body: string; p_named?: boolean; p_post_id: string }
         Returns: string
       }
-      create_post: { Args: { p_body: string }; Returns: string }
+      create_post: { Args: { p_body: string; p_named?: boolean }; Returns: string }
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
       delete_message: { Args: { p_id: string }; Returns: string }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
@@ -1068,6 +1080,8 @@ export type Database = {
         }
         Returns: string
       }
+      feed_pseudonym: { Args: { p_alias: number; p_post: string }; Returns: number[] }
+      feed_viewer_city: { Args: never; Returns: string }
       get_random_messages: {
         Args: { p_before?: string; p_limit?: number; p_session_id: string }
         Returns: {
@@ -1136,6 +1150,7 @@ export type Database = {
         Returns: undefined
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      purge_old_feed_content: { Args: never; Returns: number }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }

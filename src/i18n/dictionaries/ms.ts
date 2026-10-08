@@ -1,4 +1,5 @@
 import { aboutMs } from './about/ms'
+import { feedMs } from './feed/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
@@ -240,26 +241,7 @@ export const ms: Dictionary = {
     blockConfirm:
       'Sekat {name}? Anda tidak akan melihat satu sama lain lagi dan padanan akan dibuang.',
   },
-  feed: {
-    title: 'Suapan',
-    anonymousNote: 'Siaran adalah tanpa nama. Tiada siapa tahu siapa penulisnya.',
-    placeholder: 'Kongsi sesuatu tanpa nama…',
-    publish: 'Siar',
-    newPosts: 'Siaran baharu',
-    empty: 'Belum ada siaran',
-    emptyHint: 'Jadilah yang pertama berkongsi.',
-    loadMore: 'Tunjuk lagi',
-    comments: 'Komen',
-    noComments: 'Belum ada komen',
-    commentPlaceholder: 'Komen tanpa nama…',
-    author: 'Penulis',
-    anonymous: 'Tanpa Nama #{n}',
-    you: 'anda',
-    delete: 'Padam',
-    deleteConfirm: 'Padam ini? Tindakan ini tidak boleh dibatalkan.',
-    like: 'Suka',
-    post: 'Siaran',
-  },
+  feed: feedMs,
   random: {
     title: 'Sembang rawak',
     intro:

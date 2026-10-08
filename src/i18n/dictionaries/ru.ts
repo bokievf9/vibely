@@ -1,4 +1,5 @@
 import { aboutRu } from './about/ru'
+import { feedRu } from './feed/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
@@ -237,26 +238,7 @@ export const ru: Dictionary = {
     block: 'Заблокировать',
     blockConfirm: 'Заблокировать {name}? Вы больше не увидите друг друга, мэтч удалится.',
   },
-  feed: {
-    title: 'Лента',
-    anonymousNote: 'Посты анонимны. Никто не видит, кто их написал.',
-    placeholder: 'Поделитесь чем-нибудь анонимно…',
-    publish: 'Опубликовать',
-    newPosts: 'Новые посты',
-    empty: 'Пока нет постов',
-    emptyHint: 'Будьте первым.',
-    loadMore: 'Показать ещё',
-    comments: 'Комментарии',
-    noComments: 'Пока нет комментариев',
-    commentPlaceholder: 'Анонимный комментарий…',
-    author: 'Автор',
-    anonymous: 'Аноним #{n}',
-    you: 'вы',
-    delete: 'Удалить',
-    deleteConfirm: 'Удалить? Это нельзя отменить.',
-    like: 'Нравится',
-    post: 'Пост',
-  },
+  feed: feedRu,
   random: {
     title: 'Рандом-чат',
     intro:
