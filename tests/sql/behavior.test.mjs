@@ -1809,7 +1809,7 @@ export async function run(db) {
     ok('blind: aliases stable per session', (await bs(M1, s1)).partner_alias === m1v.partner_alias)
     ok('blind: fresh session is active, undecided', m1v.state === 'active' && m1v.my_decision === null && m1v.id === s1)
     ok('blind: get_blind_session columns', JSON.stringify(Object.keys(m1v).sort()) ===
-       '["common_tags","id","match_id","my_alias","my_decision","my_side","partner","partner_alias","started_at","state"]', JSON.stringify(Object.keys(m1v)))
+       '["common_tags","event_id","id","match_id","my_alias","my_decision","my_side","partner","partner_alias","started_at","state"]', JSON.stringify(Object.keys(m1v)))
     const leaks = (row) => { const j = JSON.stringify(row); return j.includes(F1) || j.includes(M1) || j.includes('Nurul') || j.includes('Hafiz') }
     ok('blind: no profile data or ids before connect', m1v.partner === null && m1v.match_id === null && !leaks(m1v) && !leaks(f1v))
     const old = (await as(M1, `select * from get_random_session()`)).rows[0]
@@ -1955,6 +1955,205 @@ export async function run(db) {
   })()
 
   // ===== end blind dating =====
+
+  // ===== Blind Dating Night (20261009000210) =====
+  // State transitions by the clock, event-only pairing, relaxed filters, auto re-queue after a
+  // Pass, reminders and the push job, admin roles and logging; non-event joins unchanged.
+  await (async () => {
+    const E = ['e7e00000-0000-4000-8000-000000000001', 'e7e00000-0000-4000-8000-000000000002',
+               'e7e00000-0000-4000-8000-000000000003', 'e7e00000-0000-4000-8000-000000000004',
+               'e7e00000-0000-4000-8000-000000000005', 'e7e00000-0000-4000-8000-000000000006',
+               'e7e00000-0000-4000-8000-000000000007', 'e7e00000-0000-4000-8000-000000000008']
+    const [M1, F1, F2, M2, F3, VIEW, ADM, UNV] = E
+    for (const [i, u] of E.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013888000' + i])
+    // Ages (2026): M1 1996 (30), F1 1997 (29), F2 1986 (40), M2 1998 (28), F3 1984 (42), VIEW/ADM 1990 (36)
+    for (const [u, name, g, w, bd] of [[M1, 'Ev Hafiz', 'male', '{female}', '1996-04-04'], [F1, 'Ev Nurul', 'female', '{male}', '1997-04-04'],
+      [F2, 'Ev Mei', 'female', '{male}', '1986-04-04'], [M2, 'Ev Ravi', 'male', '{female}', '1998-04-04'], [F3, 'Ev Siti', 'female', '{male}', '1984-04-04'],
+      [VIEW, 'Ev Viewer', 'male', '{female}', '1990-04-04'], [ADM, 'Ev Admin', 'male', '{female}', '1990-04-04'], [UNV, 'Ev Unverified', 'male', '{female}', '1990-04-04']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,$2,$3,$4,'Melaka','SRID=4326;POINT(102.25 2.19)')`, [name, bd, g, w])
+    await su(`update profiles set verification_status='approved' where id = any($1) and id <> $2`, [E, UNV])
+    await su(`insert into admins (user_id, role) values ($1, 'viewer'), ($2, 'admin')`, [VIEW, ADM])
+    await su(`delete from random_chat_queue`)
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const upsert = (admin, args) => svc(`select admin_upsert_event($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) id`,
+      [admin, args.id ?? null, args.en ?? 'Night', args.ms ?? 'Malam', args.ru ?? 'Вечер', args.theme ?? null, args.starts, args.ends, args.recurrence ?? null, args.status ?? 'scheduled'])
+    const tick = async () => (await svc(`select event_tick() t`)).rows[0].t
+    const current = async (u) => (await as(u, `select * from get_current_event()`)).rows[0]
+    const join = async (u, ev, genders = '{female}', min = 18, max = 99, tags = '{}') => (await as(u, `select randomizer_join($1, $2, $3, $4, $5) s`, [genders, min, max, tags, ev])).rows[0].s
+    const queue = async (ev) => (await su(`select user_id, event_id, min_age, max_age, want_tags from random_chat_queue where event_id is not distinct from $1 order by enqueued_at`, [ev])).rows
+    const logs = async (action) => (await su(`select admin_id, target_id, reason from moderation_actions where action=$1 order by created_at`, [action])).rows
+    const plus = (min) => `now() + interval '${min} minutes'`
+    const at = async (expr) => (await su(`select ${expr} t`)).rows[0].t
+
+    // --- admin: roles, validation, logging
+    ok('events: viewer cannot create', !!(await fails(async () => upsert(VIEW, { starts: await at(plus(60)), ends: await at(plus(120)) }))))
+    ok('events: end before start rejected', !!(await fails(async () => upsert(ADM, { starts: await at(plus(120)), ends: await at(plus(60)) }))))
+    ok('events: too short rejected', !!(await fails(async () => upsert(ADM, { starts: await at(plus(60)), ends: await at(plus(65)) }))))
+    ok('events: scheduled start in the past rejected', !!(await fails(async () => upsert(ADM, { starts: await at(plus(-5)), ends: await at(plus(60)) }))))
+    const ev1 = (await upsert(ADM, { en: 'Friday Night', theme: 'Coffee lovers', starts: await at(plus(60)), ends: await at(plus(120)), recurrence: 'weekly' })).rows[0].id
+    ok('events: admin creates', !!ev1)
+    const created = await logs('event.create')
+    ok('events: creation logged', created.length === 1 && created[0].admin_id === ADM && created[0].target_id === ev1 && created[0].reason.includes('Friday Night') && created[0].reason.includes('weekly'), JSON.stringify(created))
+    ok('events: tables closed to clients', !!(await fails(() => as(M1, `select * from scheduled_events`))) && !!(await fails(() => as(M1, `select * from event_reminders`))) && !!(await fails(() => as(M1, `select * from event_participants`))))
+    ok('events: clients cannot call admin or job RPCs', !!(await fails(() => as(ADM, `select admin_list_events($1)`, [ADM]))) && !!(await fails(() => as(M1, `select event_tick()`))) && !!(await fails(() => as(M1, `select event_push_due()`))))
+    const draft = (await upsert(ADM, { en: 'Draft', starts: await at(plus(30)), ends: await at(plus(90)), status: 'draft' })).rows[0].id
+    const list = (await svc(`select * from admin_list_events($1)`, [VIEW])).rows
+    ok('events: viewer lists events', list.length === 2 && list[0].id === ev1 && list[0].status === 'scheduled' && list[0].theme === 'Coffee lovers' && list[0].recurrence === 'weekly')
+
+    // --- upcoming: what clients see, reminders
+    const c1 = await current(M1)
+    ok('events: get_current_event shows the next scheduled one (not the draft)', c1?.id === ev1 && c1.status === 'scheduled' && c1.in_room === 0 && c1.joined === 0 && c1.reminded === false && c1.title_ru === 'Вечер' && !!c1.server_now, JSON.stringify(c1))
+    ok('events: remind on', (await as(M1, `select event_remind($1, true) r`, [ev1])).rows[0].r === true && (await current(M1)).reminded === true)
+    ok('events: remind idempotent', (await as(M1, `select event_remind($1, true) r`, [ev1])).rows[0].r === true && (await su(`select count(*)::int c from event_reminders where event_id=$1`, [ev1])).rows[0].c === 1)
+    ok('events: reminders are per user', (await current(F1)).reminded === false)
+    ok('events: remind off', (await as(M1, `select event_remind($1, false) r`, [ev1])).rows[0].r === false && (await current(M1)).reminded === false)
+    ok('events: remind on a draft rejected', !!(await fails(() => as(M1, `select event_remind($1, true)`, [draft]))))
+    ok('events: unverified cannot remind', !!(await fails(() => as(UNV, `select event_remind($1, true)`, [ev1]))))
+    await as(M1, `select event_remind($1, true)`, [ev1]); await as(F1, `select event_remind($1, true)`, [ev1])
+    ok('events: joining an upcoming event rejected', !!(await fails(() => join(M1, ev1))))
+    ok('events: joining a draft rejected', !!(await fails(() => join(M1, draft))))
+
+    // --- push job: nothing yet, then the 15-minute reminder, once
+    ok('events: no push due an hour ahead', (await svc(`select * from event_push_due()`)).rows.length === 0)
+    await su(`update scheduled_events set starts_at = ${plus(10)}, ends_at = ${plus(70)} where id=$1`, [ev1])
+    const due = (await svc(`select * from event_push_due()`)).rows
+    ok('events: reminder due within 15 minutes', due.length === 2 && due.every((d) => d.kind === 'reminder' && d.event_id === ev1 && d.title_en === 'Friday Night') && due.map((d) => d.user_id).sort().join() === [M1, F1].sort().join(), JSON.stringify(due))
+    ok('events: reminder sent once', (await svc(`select * from event_push_due()`)).rows.length === 0)
+    await as(F2, `select event_remind($1, true)`, [ev1])
+    ok('events: a late reminder goes to the new subscriber only', (await svc(`select * from event_push_due()`)).rows.map((d) => d.user_id).join() === F2)
+
+    // --- the clock: scheduled -> live, without and with the tick
+    await su(`update scheduled_events set starts_at = ${plus(-1)} where id=$1`, [ev1])
+    ok('events: live by the clock before the tick', (await current(M1)).status === 'live')
+    const t1 = await tick()
+    ok('events: tick flips to live', t1.started === 1 && t1.ended === 0 && (await su(`select status from scheduled_events where id=$1`, [ev1])).rows[0].status === 'live')
+    const startDue = (await svc(`select * from event_push_due()`)).rows
+    ok('events: "starts now" push to every subscriber, once', startDue.length === 3 && startDue.every((d) => d.kind === 'start') && (await svc(`select * from event_push_due()`)).rows.length === 0, JSON.stringify(startDue))
+    ok('events: remind on a live event rejected', !!(await fails(() => as(M2, `select event_remind($1, true)`, [ev1]))))
+
+    // --- event-only pairing
+    ok('events: first event join waits', (await join(M1, ev1)) === null)
+    const q1 = await queue(ev1)
+    ok('events: queue row carries the event and relaxed age band (30 +/- 10)', q1.length === 1 && q1[0].user_id === M1 && q1[0].min_age === 20 && q1[0].max_age === 40 && q1[0].want_tags.length === 0, JSON.stringify(q1))
+    // F1 (29, wants men) fits M1 both ways, but the pools never mix.
+    ok('events: a normal join does not pair with the event pool', (await join(F1, null, '{male}')) === null && (await queue(null)).length === 1)
+    ok('events: an event join does not pair with the normal pool', (await join(M2, ev1)) === null && (await queue(ev1)).length === 2)
+    await as(F1, `select randomizer_leave()`)
+    ok('events: joined count = people who entered', (await current(F1)).joined === 2 && (await current(F1)).in_room === 2)
+    // F2 is 40: within M1's band (20-40) and M1 (30) within hers (30-50); her own strict filters are
+    // ignored. M2 (28) waits longer than nobody: M1 came first and is the FIFO pick.
+    const s1 = await join(F2, ev1, '{male}', 45, 50, '{1}')
+    ok('events: event join pairs inside the pool, ignoring the strict age and tag filters', !!s1)
+    const sess = s1 && (await su(`select user_a, user_b, event_id from random_chat_sessions where id=$1`, [s1])).rows[0]
+    ok('events: session tagged with the event, FIFO partner', sess?.event_id === ev1 && sess.user_a === M1 && sess.user_b === F2, JSON.stringify(sess))
+    ok('events: get_blind_session returns event_id', (await as(M1, `select event_id from get_blind_session()`)).rows[0].event_id === ev1)
+    ok('events: room counts a pair as two', (await current(F1)).in_room === 3)
+    // The band holds both ways: F3 (42, band 32-52) would take M2 (28)? No: 28 < 32. And M2's band
+    // 18-38 excludes 42.
+    ok('events: outside the +/- 10 band does not pair', (await join(F3, ev1, '{male}')) === null && (await queue(ev1)).length === 2)
+    // Gender still applies: VIEW (36) fits F3's band but wants men.
+    ok('events: gender filter still applies', (await join(VIEW, ev1, '{male}')) === null)
+    await as(VIEW, `select randomizer_leave()`)
+    ok('events: blocks still apply', await (async () => {
+      await as(F3, `insert into blocks (blocked_id) values ($1)`, [ADM])
+      const r = (await join(ADM, ev1)) === null
+      await su(`delete from blocks where blocker_id=$1`, [F3]); await as(ADM, `select randomizer_leave()`)
+      return r
+    })())
+    ok('events: pairing records participants', (await su(`select count(*)::int c from event_participants where event_id=$1`, [ev1])).rows[0].c === 6)
+
+    // --- auto re-queue after a Pass (both sides), not after a match, not outside events
+    await as(M1, `select randomizer_send($1,'hi')`, [s1])
+    const p1 = (await as(F2, `select blind_decide($1, false) r`, [s1])).rows[0].r
+    const q2 = await queue(ev1)
+    ok('events: pass re-queues both into the event pool', p1.state === 'passed' && q2.map((q) => q.user_id).sort().join() === [M1, F2, M2, F3].sort().join() && q2.every((q) => q.event_id === ev1), JSON.stringify(q2))
+    ok('events: re-queued row has the relaxed band', q2.find((q) => q.user_id === F2).min_age === 30 && q2.find((q) => q.user_id === F2).max_age === 50)
+    ok('events: client re-join after a pass is idempotent', await (async () => {
+      // M1 re-joins: M2 (gender) and F3 (42, outside 20-40) are skipped, F2 fits: paired again
+      const s = await join(M1, ev1)
+      return !!s && (await su(`select user_b from random_chat_sessions where id=$1`, [s])).rows[0].user_b === M1
+    })())
+    const s2 = (await as(M1, `select id from get_blind_session()`)).rows[0].id
+    await as(F2, `select blind_decide($1, true)`, [s2])
+    const m2 = (await as(M1, `select blind_decide($1, true) r`, [s2])).rows[0].r
+    ok('events: a match inside the event works as usual', m2.state === 'matched' && !!m2.match_id && (await su(`select source from matches where id=$1`, [m2.match_id])).rows[0].source === 'randomizer')
+    ok('events: a match does not re-queue', !(await queue(ev1)).some((q) => [M1, F2].includes(q.user_id)))
+    await su(`delete from matches where id=$1`, [m2.match_id])
+    // Outside events: a pass never re-queues
+    await su(`delete from random_chat_queue`)
+    await join(M2, null); const s3 = await join(F1, null, '{male}')
+    await as(M2, `select blind_decide($1, false)`, [s3])
+    ok('events: a normal pass does not re-queue', (await queue(null)).length === 0)
+
+    // --- stats
+    const st = (await svc(`select admin_event_stats($1, $2) s`, [VIEW, ev1])).rows[0].s
+    ok('events: stats (viewer)', st.joined === 6 && st.pairs === 2 && st.matches === 1 && st.reminders === 3 && st.status === 'live', JSON.stringify(st))
+
+    // --- editing: a live event keeps its start; a moved upcoming event resets the reminder stamps
+    const ev2 = (await upsert(ADM, { en: 'Later', starts: await at(plus(30)), ends: await at(plus(90)) })).rows[0].id
+    await as(M1, `select event_remind($1, true)`, [ev2])
+    await su(`update event_reminders set reminder_sent_at = now() where event_id=$1`, [ev2])
+    await upsert(ADM, { id: ev2, en: 'Later 2', starts: await at(plus(45)), ends: await at(plus(90)) })
+    const e2 = (await su(`select title_en, reminder_sent_at from scheduled_events e join event_reminders r on r.event_id = e.id where e.id=$1`, [ev2])).rows[0]
+    ok('events: edit saved and reminder stamps reset', e2.title_en === 'Later 2' && e2.reminder_sent_at === null && (await logs('event.update')).length >= 1)
+    ok('events: viewer cannot edit', !!(await fails(async () => upsert(VIEW, { id: ev2, starts: await at(plus(45)), ends: await at(plus(90)) }))))
+    const before = (await su(`select starts_at, status from scheduled_events where id=$1`, [ev1])).rows[0]
+    await upsert(ADM, { id: ev1, en: 'Friday Night!', theme: 'Coffee lovers', starts: await at(plus(500)), ends: await at(plus(40)), recurrence: 'weekly', status: 'draft' })
+    const after = (await su(`select title_en, starts_at, status from scheduled_events where id=$1`, [ev1])).rows[0]
+    ok('events: a live event keeps its start and status', after.title_en === 'Friday Night!' && +after.starts_at === +before.starts_at && after.status === 'live', JSON.stringify(after))
+    ok('events: a live event cannot end in the past', !!(await fails(async () => upsert(ADM, { id: ev1, starts: await at(plus(500)), ends: await at(plus(-1)) }))))
+
+    // --- ending: queue closed, sessions continue, weekly occurrence created once
+    await su(`delete from random_chat_queue`)
+    await join(M1, ev1); const s4 = await join(F2, ev1, '{male}'); await join(M2, ev1)
+    ok('events: setup for the end', !!s4 && (await queue(ev1)).length === 1)
+    await su(`update scheduled_events set ends_at = ${plus(-1)} where id=$1`, [ev1])
+    ok('events: ended by the clock before the tick', (await current(F1))?.id !== ev1)
+    ok('events: joining an ended event rejected', !!(await fails(() => join(F3, ev1, '{male}'))))
+    const t2 = await tick()
+    const endedRow = (await su(`select status, ended_at, stats_joined, stats_pairs, stats_matches from scheduled_events where id=$1`, [ev1])).rows[0]
+    ok('events: tick ends it and freezes stats', t2.ended === 1 && t2.created === 1 && endedRow.status === 'ended' && !!endedRow.ended_at && endedRow.stats_joined === 6 && endedRow.stats_pairs === 3 && endedRow.stats_matches === 1, JSON.stringify(endedRow))
+    ok('events: event queue closed', (await queue(ev1)).length === 0)
+    ok('events: sessions in progress continue', (await su(`select status from random_chat_sessions where id=$1`, [s4])).rows[0].status === 'active')
+    const next = (await su(`select * from scheduled_events where parent_id=$1`, [ev1])).rows[0]
+    const prev = (await su(`select starts_at, ends_at from scheduled_events where id=$1`, [ev1])).rows[0]
+    ok('events: next weekly occurrence', !!next && next.status === 'scheduled' && next.recurrence === 'weekly' && next.title_en === 'Friday Night!' && next.theme === 'Coffee lovers' && next.created_by === ADM &&
+       +next.starts_at === +prev.starts_at + 7 * 86400_000 && +next.ends_at === +prev.ends_at + 7 * 86400_000, JSON.stringify(next))
+    ok('events: tick is idempotent', (await tick()).created === 0 && (await su(`select count(*)::int c from scheduled_events where parent_id=$1`, [ev1])).rows[0].c === 1)
+    const p4 = (await as(M1, `select blind_decide($1, false) r`, [s4])).rows[0].r
+    ok('events: pass after the end does not re-queue', p4.state === 'passed' && (await queue(ev1)).length === 0)
+    ok('events: editing an ended event rejected', !!(await fails(async () => upsert(ADM, { id: ev1, starts: await at(plus(45)), ends: await at(plus(90)) }))))
+    ok('events: cancelling an ended event rejected', !!(await fails(() => svc(`select admin_cancel_event($1, $2)`, [ADM, ev1]))))
+
+    // --- cancel: a live event closes its queue; the series stops
+    const ev3 = (await upsert(ADM, { en: 'Cancelled Night', starts: await at(plus(5)), ends: await at(plus(60)), recurrence: 'weekly' })).rows[0].id
+    await su(`update scheduled_events set starts_at = ${plus(-1)} where id=$1`, [ev3])
+    await tick()
+    await join(F3, ev3, '{male}')
+    ok('events: viewer cannot cancel', !!(await fails(() => svc(`select admin_cancel_event($1, $2)`, [VIEW, ev3]))))
+    await svc(`select admin_cancel_event($1, $2, $3)`, [ADM, ev3, 'host sick'])
+    const c3 = (await su(`select status from scheduled_events where id=$1`, [ev3])).rows[0]
+    ok('events: cancelled, queue closed, logged', c3.status === 'cancelled' && (await queue(ev3)).length === 0 && (await logs('event.cancel')).some((l) => l.target_id === ev3 && l.reason === 'Cancelled Night: host sick'))
+    await su(`update scheduled_events set ends_at = ${plus(-1)} where id=$1`, [ev3])
+    await tick()
+    ok('events: a cancelled series spawns nothing', (await su(`select count(*)::int c from scheduled_events where parent_id=$1`, [ev3])).rows[0].c === 0)
+    ok('events: get_current_event skips ended and cancelled', [ev2, next.id].includes((await current(M1))?.id))
+
+    // --- retention: participant and reminder rows go 90 days after the end, stats stay
+    await su(`update scheduled_events set ended_at = now() - interval '91 days' where id=$1`, [ev1])
+    await tick()
+    ok('events: participants and reminders purged after 90 days', (await su(`select count(*)::int c from event_participants where event_id=$1`, [ev1])).rows[0].c === 0 &&
+       (await su(`select count(*)::int c from event_reminders where event_id=$1`, [ev1])).rows[0].c === 0 &&
+       (await su(`select stats_joined from scheduled_events where id=$1`, [ev1])).rows[0].stats_joined === 6)
+
+    // --- notification preference column
+    ok('events: notification pref column, default on', (await as(M1, `insert into notification_prefs (events) values (false) returning events`)).rows[0].events === false &&
+       (await su(`select column_default d from information_schema.columns where table_name='notification_prefs' and column_name='events'`)).rows[0].d === 'true')
+    ok('events: anon cannot call the client RPCs', (await su(`select has_function_privilege('anon', 'public.get_current_event()', 'execute') a,
+       has_function_privilege('anon', 'public.event_remind(uuid, boolean)', 'execute') b`)).rows.every((r) => !r.a && !r.b))
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end Blind Dating Night =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail
