@@ -1,13 +1,13 @@
 // Short vibration on meaningful moments only: swipe commit, match, like, reply threshold, voice lock.
 // Android only; iOS Safari has no Vibration API, so this silently does nothing there.
-const PATTERNS: Record<string, number | number[]> = {
+export type HapticKind = 'light' | 'medium' | 'success' | 'warning'
+
+const PATTERNS: Record<HapticKind, number | number[]> = {
   light: 8,
   medium: 16,
   success: [10, 40, 18],
   warning: [24, 60, 24],
 }
-
-export type HapticKind = 'light' | 'medium' | 'success' | 'warning'
 
 export function haptic(kind: HapticKind = 'light') {
   try {
