@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { DeleteAccount } from '@/features/account/components/delete-account'
+import { PasswordSettingsRows } from '@/features/auth/components/password-settings'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
+import { getHasPassword } from '@/features/auth/password-queries'
 import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
@@ -57,11 +59,12 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username] = await Promise.all([
+  const [privacy, prefs, blocked, username, hasPassword] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
     getUsernameSettings(),
+    getHasPassword(),
   ])
 
   return (
@@ -71,6 +74,12 @@ async function Settings() {
           <UsernameSettingsRows initial={username} />
         </SettingsSection>
       )}
+      <SettingsSection title={dict.password.section}>
+        <PasswordSettingsRows
+          initial={hasPassword}
+          username={username?.username ?? viewer.profile.username}
+        />
+      </SettingsSection>
       <SettingsSection title={dict.settings.notifications}>
         <PushToggle />
         <NotificationPrefsRows initial={prefs} />

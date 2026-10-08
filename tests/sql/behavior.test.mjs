@@ -1707,6 +1707,71 @@ export async function run(db) {
 
   // ===== end telegram =====
 
+  // ===== password login (20261009000180) =====
+  await (async () => {
+    const W = ['7d000000-0000-4000-8000-000000000001', '7d000000-0000-4000-8000-000000000002',
+               '7d000000-0000-4000-8000-000000000003']
+    const [P0, P1, P2] = W
+    for (const [i, u] of W.entries()) await su(`insert into auth.users(id, phone, encrypted_password) values ($1, $2, $3)`,
+      [u, '6013777000' + i, i === 2 ? '' : '$2a$10$fakehashfakehashfakehashfakehashfakehashfakehashfake'])
+    for (const [i, u] of W.entries()) await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location, username)
+       values ($1,'1994-04-04','male','{female}','Melaka','SRID=4326;POINT(102.25 2.19)', $2)`, ['Pw' + i, 'pwtest' + i])
+    const check = async (name, ip = null) => (await su(`select * from password_login_check($1, $2::inet)`, [name, ip])).rows[0]
+    const record = (name, ip, success) => su(`select password_login_record($1, $2::inet, $3)`, [name, ip, success])
+    const anon = async (sql) => { await db.exec('reset role; set role anon'); try { return await db.query(sql) } finally { await db.exec('reset role') } }
+    // lookup
+    const c0 = await check('pwtest0')
+    ok('password: username maps to the E.164 phone', c0.limited === false && c0.phone === '+60137770000', JSON.stringify(c0))
+    ok('password: lookup normalises @ and case', (await check('  @PwTest1 ')).phone === '+60137770001')
+    ok('password: no phone without a password', (await check('pwtest2')).phone === null)
+    const unknown = await check('nobody_here')
+    ok('password: unknown username looks like no password', unknown.limited === false && unknown.phone === null)
+    ok('password: clients cannot look up or record', !!(await fails(() => as(P0, `select * from password_login_check('pwtest1', null)`))) &&
+       !!(await fails(() => anon(`select * from password_login_check('pwtest1', null)`))) &&
+       !!(await fails(() => as(P0, `select password_login_record('pwtest1', null, false)`))))
+    ok('password: attempts table closed to clients', !!(await fails(() => as(P0, `select * from password_login_attempts`))) &&
+       !!(await fails(() => anon(`select * from password_login_attempts`))))
+    // per-username limit: 5 failures in 15 minutes
+    for (let i = 0; i < 4; i++) await record('pwtest0', '10.0.0.' + (i + 1), false)
+    ok('password: 4 failures still allowed', (await check('pwtest0')).limited === false)
+    await record('@PWTEST0', '10.0.0.9', false)
+    const locked = await check('pwtest0')
+    ok('password: 5th failure locks the username (no phone returned)', locked.limited === true && locked.phone === null)
+    ok('password: other usernames unaffected', (await check('pwtest1')).limited === false)
+    await record('ghost_user', null, false); await record('ghost_user', null, false); await record('ghost_user', null, false)
+    await record('ghost_user', null, false); await record('ghost_user', null, false)
+    ok('password: unknown usernames lock the same way', (await check('ghost_user')).limited === true)
+    await su(`update password_login_attempts set created_at = now() - interval '16 minutes' where username = 'pwtest0'`)
+    ok('password: failures older than 15 minutes expire', (await check('pwtest0')).limited === false)
+    // per-IP limit: 20 failures in 15 minutes, across usernames
+    for (let i = 0; i < 19; i++) await record('spray' + i, '203.0.113.7', false)
+    ok('password: 19 failures from one IP allowed', (await check('pwtest1', '203.0.113.7')).limited === false)
+    await record('spray19', '203.0.113.7', false)
+    ok('password: 20th failure locks the IP', (await check('pwtest1', '203.0.113.7')).limited === true)
+    ok('password: other IPs and unknown IP unaffected', (await check('pwtest1', '203.0.113.8')).limited === false &&
+       (await check('pwtest1', null)).limited === false)
+    // success clears the username's failures, purge drops day-old rows
+    for (let i = 0; i < 3; i++) await record('pwtest1', '198.51.100.1', false)
+    await record('pwtest1', '198.51.100.1', true)
+    ok('password: success clears the username failures', (await su(`select count(*)::int c from password_login_attempts where username='pwtest1'`)).rows[0].c === 0)
+    await su(`insert into password_login_attempts (username, ip, created_at) values ('old_one', '192.0.2.1', now() - interval '25 hours')`)
+    await record('someone', null, false)
+    ok('password: rows older than a day are purged', (await su(`select count(*)::int c from password_login_attempts where username='old_one'`)).rows[0].c === 0)
+    ok('password: username length capped', (await su(`select password_login_record($1, null, false)`, ['x'.repeat(100)]).then(() => true)) &&
+       (await su(`select max(char_length(username))::int m from password_login_attempts`)).rows[0].m <= 40)
+    // own password state
+    ok('password: my_has_password', (await as(P0, `select my_has_password() h`)).rows[0].h === true &&
+       (await as(P2, `select my_has_password() h`)).rows[0].h === false)
+    ok('password: anon cannot read or remove', !!(await fails(() => anon(`select my_has_password()`))) &&
+       !!(await fails(() => anon(`select remove_my_password()`))))
+    ok('password: remove returns true', (await as(P0, `select remove_my_password() r`)).rows[0].r === true)
+    ok('password: removed for the caller only', (await as(P0, `select my_has_password() h`)).rows[0].h === false &&
+       (await as(P1, `select my_has_password() h`)).rows[0].h === true &&
+       (await su(`select encrypted_password e from auth.users where id=$1`, [P0])).rows[0].e === '')
+    ok('password: removed account no longer resolves', (await check('pwtest0')).phone === null)
+  })()
+  // ===== end password login =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

@@ -7,7 +7,7 @@ create schema extensions;
 create schema realtime;
 create schema storage;
 grant usage on schema public, auth, extensions, realtime, storage to anon, authenticated, service_role;
-create table auth.users (id uuid primary key, phone text);
+create table auth.users (id uuid primary key, phone text, encrypted_password text);
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create table realtime.messages (id bigserial primary key, topic text, extension text default 'broadcast',
