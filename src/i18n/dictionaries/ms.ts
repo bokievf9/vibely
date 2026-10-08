@@ -12,6 +12,7 @@ import { chatUiMs } from './chatui/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
+import { reportsMs } from './reports/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 
 export const ms: Dictionary = {
@@ -372,5 +373,6 @@ export const ms: Dictionary = {
   avatar: avatarMs,
   username: usernameMs,
   flows: flowsMs,
+  reports: reportsMs,
   sanctions: sanctionsMs,
 }

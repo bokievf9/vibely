@@ -1,7 +1,6 @@
 import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { readableBan } from '@/features/admin/labels'
 import type { ResolveInput } from '@/features/admin/schemas'
 import { resolveSchema } from '@/features/admin/schemas'
 import { hasRole, type AdminRole } from '@/features/admin/roles'
@@ -202,56 +201,31 @@ export async function openReportCount(
 }
 
 // One decision on a report group, same semantics as resolveReports() in
-// src/features/admin/actions.ts. This is the single place to switch to the atomic resolve RPC
-// (admin reports branch, migrations 160-169) once it lands: replace the body below with one
-// rpc() call and map its "already resolved" result to { already: true }.
+// src/features/admin/actions.ts: one atomic RPC (admin_resolve_case, 20261009000161) applies the
+// sanction and closes every open report, or does nothing. "Already resolved" (P0002) and "taken
+// by another moderator in the panel" (55P03) come back as { already: true }.
 export async function resolveReportGroupAs(adminId: string, input: ResolveInput): Promise<Outcome> {
   const parsed = resolveSchema.safeParse(input)
   if (!parsed.success) return { ok: false, already: false, message: 'Неверные данные' }
   const d = parsed.data
-  if ((await openReportCount(d.targetType, d.targetId)) === 0) {
+
+  const { error } = await createAdminClient().rpc('admin_resolve_case', {
+    p_admin: adminId,
+    p_type: d.targetType,
+    p_target: d.targetId,
+    p_decision: d.decision,
+    p_reason: d.reason || undefined,
+    p_offender: d.decision === 'ban' ? d.offenderId : undefined,
+  })
+  if (error?.code === 'P0002') {
     return { ok: false, already: true, message: 'Жалобы уже обработаны' }
   }
-
-  const db = createAdminClient()
-  const resolve = (resolution: string) =>
-    db.rpc('admin_resolve_reports', {
-      p_admin: adminId,
-      p_type: d.targetType,
-      p_target: d.targetId,
-      p_resolution: resolution,
-    })
-  const steps: (() => PromiseLike<{ error: { code?: string } | null }>)[] = []
-  switch (d.decision) {
-    case 'dismiss':
-      steps.push(() => resolve(d.reason || 'Отклонено: нарушения нет'))
-      break
-    case 'hide':
-      steps.push(
-        () =>
-          db.rpc('admin_set_content_hidden', {
-            p_admin: adminId,
-            p_type: d.targetType,
-            p_id: d.targetId,
-            p_hidden: true,
-            p_reason: d.reason,
-          }),
-        () => resolve(`Контент скрыт: ${d.reason}`),
-      )
-      break
-    case 'ban':
-      steps.push(
-        () => banAs(adminId, d.offenderId, d.reason),
-        () => resolve(`Пользователь заблокирован: ${readableBan(d.reason)}`),
-      )
-      break
+  if (error?.code === '55P03') {
+    return { ok: false, already: true, message: 'Жалобу разбирает другой модератор в админке' }
   }
-  for (const step of steps) {
-    const { error } = await step()
-    if (error) {
-      console.error('[telegram] resolve failed:', error.code)
-      return failure(error.code)
-    }
+  if (error) {
+    console.error('[telegram] resolve failed:', error.code)
+    return failure(error.code)
   }
   refresh()
   return { ok: true }

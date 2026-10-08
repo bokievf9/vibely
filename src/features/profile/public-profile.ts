@@ -12,7 +12,7 @@ export type PublicProfile = {
   city: string | null
   bio: string | null
   tags: string[]
-  photos: { url: string; width: number; height: number }[]
+  photos: { id: string; url: string; width: number; height: number }[]
   about: AboutInput
   prompts: ProfilePrompt[]
   // Null when the viewer opened the profile from search and has not matched with this person.
@@ -42,7 +42,7 @@ export async function getPublicProfile(
     supabase
       .from('profiles')
       .select(
-        'id, display_name, username, discoverable, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(storage_path, width, height, position), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
+        'id, display_name, username, discoverable, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(id, storage_path, width, height, position), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -67,7 +67,7 @@ export async function getPublicProfile(
     tags: p.profile_tags.flatMap((t) => (t.tags ? [t.tags.slug] : [])),
     photos: photos.flatMap((ph) => {
       const url = urls.get(ph.storage_path)
-      return url ? [{ url, width: ph.width, height: ph.height }] : []
+      return url ? [{ id: ph.id, url, width: ph.width, height: ph.height }] : []
     }),
     about: aboutFromRow(p),
     prompts: promptsFromRows(p.profile_prompts),

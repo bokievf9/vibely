@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ExternalLink, Phone, Video } from 'lucide-react'
+import { ExternalLink, Phone, Play, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
 import { formatCallDuration } from '@/features/calls/timeline'
@@ -27,13 +27,16 @@ const RECORDING: Record<ReportCall['recording'], string> = {
 }
 
 // Calls between the reported user and the reporter(s). Opening a recording is logged and gives a
-// link valid for a few minutes; it opens in a new tab with the browser's own player.
+// link valid for a few minutes, played inline (the new-tab link stays as a fallback, e.g. when the
+// recordings bucket is not allowed by the page's media CSP).
 export function CallRecordings({
   calls,
   reportTarget,
+  open: initiallyOpen = false,
 }: {
   calls: ReportCall[]
   reportTarget: string
+  open?: boolean
 }) {
   const [links, setLinks] = useState<Record<string, string>>({})
   const [error, setError] = useState<string>()
@@ -49,7 +52,7 @@ export function CallRecordings({
     })
 
   return (
-    <details className="rounded-xl bg-black/20 px-3 py-2">
+    <details open={initiallyOpen} className="rounded-xl bg-black/20 px-3 py-2">
       <summary className="cursor-pointer text-sm font-medium">Звонки ({calls.length})</summary>
       <p className="text-muted mt-2 text-xs">
         Каждое открытие записи фиксируется в журнале модерации. Ссылка действует 5 минут.
@@ -64,25 +67,40 @@ export function CallRecordings({
               {c.durationSec !== null && ` · ${formatCallDuration(c.durationSec)}`} ·{' '}
               {RECORDING[c.recording]}
             </span>
-            {c.recording === 'ready' &&
-              (links[c.id] ? (
-                <a
-                  href={links[c.id]}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent inline-flex items-center gap-1 underline"
-                >
-                  <ExternalLink className="size-4" /> Открыть
-                </a>
-              ) : (
-                <Button size="sm" variant="secondary" disabled={pending} onClick={() => open(c.id)}>
-                  Получить ссылку
-                </Button>
-              ))}
+            {c.recording === 'ready' && !links[c.id] && (
+              <Button size="sm" variant="secondary" disabled={pending} onClick={() => open(c.id)}>
+                <Play className="size-4" /> Прослушать
+              </Button>
+            )}
+            {links[c.id] && <RecordingPlayer kind={c.kind} url={links[c.id] ?? ''} />}
           </li>
         ))}
       </ul>
       <FormError message={error} />
     </details>
+  )
+}
+
+function RecordingPlayer({ kind, url }: { kind: ReportCall['kind']; url: string }) {
+  return (
+    <div className="flex w-full flex-col gap-1">
+      {kind === 'video' ? (
+        <video controls playsInline src={url} className="max-h-72 w-full rounded-lg bg-black">
+          <track kind="captions" />
+        </video>
+      ) : (
+        <audio controls src={url} className="w-full">
+          <track kind="captions" />
+        </audio>
+      )}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-muted inline-flex items-center gap-1 self-start text-xs underline"
+      >
+        <ExternalLink className="size-3" /> Не играет? Открыть в новой вкладке
+      </a>
+    </div>
   )
 }

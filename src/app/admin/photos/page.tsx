@@ -1,10 +1,16 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { chipClassName } from '@/components/ui/chip'
 import { PageSpinner } from '@/components/ui/spinner'
-import { PhotoCard } from '@/features/admin/components/photo-card'
-import { PHOTO_PERIODS, getRecentPhotos, type PhotoPeriod } from '@/features/admin/queries/photos'
+import { PhotoGrid } from '@/features/admin/components/photo-grid'
+import { FilterChips, Pager, pageParam } from '@/features/admin/components/reports-tabs'
+import {
+  PHOTO_PAGE_SIZE,
+  PHOTO_PERIODS,
+  PHOTO_SCOPES,
+  getPhotoQueue,
+  type PhotoPeriod,
+  type PhotoScope,
+} from '@/features/admin/queries/photos'
 
 export const metadata: Metadata = { title: 'Фото' }
 
@@ -15,10 +21,17 @@ const PERIOD_LABELS: Record<PhotoPeriod, string> = {
   30: 'Месяц',
 }
 
+const SCOPE_LABELS: Record<PhotoScope, string> = {
+  pending: 'Ждут проверки',
+  unverified: 'Неверифицированные',
+  verified: 'Верифицированные',
+  all: 'Все',
+}
+
 export default function PhotosPage({ searchParams }: PageProps<'/admin/photos'>) {
   return (
     <>
-      <h1 className="text-2xl font-bold">Новые фото верифицированных</h1>
+      <h1 className="text-2xl font-bold">Фото профилей</h1>
       <Suspense fallback={<PageSpinner />}>
         <Photos searchParams={searchParams} />
       </Suspense>
@@ -27,30 +40,45 @@ export default function PhotosPage({ searchParams }: PageProps<'/admin/photos'>)
 }
 
 async function Photos({ searchParams }: Pick<PageProps<'/admin/photos'>, 'searchParams'>) {
-  const { days: raw } = await searchParams
-  const days = PHOTO_PERIODS.find((d) => String(d) === raw) ?? 3
-  const photos = await getRecentPhotos(days)
+  const sp = await searchParams
+  const days = PHOTO_PERIODS.find((d) => String(d) === sp.days) ?? 7
+  const scope = PHOTO_SCOPES.find((s) => s === sp.scope) ?? 'pending'
+  const page = pageParam(sp.page)
+  const { photos, total } = await getPhotoQueue(scope, days, page)
+
+  const href = (next: { scope?: PhotoScope; days?: PhotoPeriod; page?: number }) => {
+    const params = new URLSearchParams({
+      scope: next.scope ?? scope,
+      days: String(next.days ?? days),
+    })
+    if (next.page && next.page > 1) params.set('page', String(next.page))
+    return `/admin/photos?${params}`
+  }
 
   return (
     <>
-      <nav aria-label="Период" className="flex flex-wrap gap-2">
-        {PHOTO_PERIODS.map((d) => (
-          <Link key={d} href={`/admin/photos?days=${d}`} className={chipClassName(d === days)}>
-            {PERIOD_LABELS[d]}
-          </Link>
-        ))}
-      </nav>
+      <div className="flex flex-col gap-2">
+        <FilterChips
+          label="Показать"
+          options={PHOTO_SCOPES.map((s) => ({ value: s, label: SCOPE_LABELS[s] }))}
+          value={scope}
+          href={(s) => href({ scope: s ?? 'pending' })}
+        />
+        <FilterChips
+          label="Загружены за"
+          options={PHOTO_PERIODS.map((d) => ({ value: String(d), label: PERIOD_LABELS[d] }))}
+          value={String(days)}
+          href={(d) => href({ days: PHOTO_PERIODS.find((p) => String(p) === d) ?? 7 })}
+        />
+      </div>
       {!photos.length ? (
-        <p className="text-muted">Новых фото нет</p>
+        <p className="text-muted">
+          {scope === 'pending' ? 'Все новые фото проверены' : 'Фото за этот период нет'}
+        </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {photos.map((p) => (
-            <li key={p.id}>
-              <PhotoCard photo={p} />
-            </li>
-          ))}
-        </ul>
+        <PhotoGrid key={`${scope}:${days}:${page}`} photos={photos} />
       )}
+      <Pager page={page} total={total} pageSize={PHOTO_PAGE_SIZE} href={(p) => href({ page: p })} />
     </>
   )
 }

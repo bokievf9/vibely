@@ -11,6 +11,7 @@ import { chatUiEn } from './chatui/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
 import { flowsEn } from './flowsui/en'
+import { reportsEn } from './reports/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 
 export const en = {
@@ -367,6 +368,7 @@ export const en = {
   avatar: avatarEn,
   username: usernameEn,
   flows: flowsEn,
+  reports: reportsEn,
   sanctions: sanctionsEn,
 }
 

@@ -83,6 +83,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
               userId={partner.id}
               name={partner.name}
               onUnmatch={unmatch.bind(null, matchId)}
+              calls={callSettings ? calls : undefined}
             />
           </div>
         </div>

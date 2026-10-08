@@ -1308,7 +1308,299 @@ export async function run(db) {
 
 
   // ===== batch-4: admin reports & evidence =====
+  // admin reports & evidence (20261009000160..164): own users, own scope
+  await (async () => {
+    const R = Array.from({ length: 9 }, (_, i) => `ad000000-0000-4000-8000-00000000000${i}`)
+    // R0 reporter A, R1 reported B, R2 reporter C, R3 reporter D (also a post author),
+    // R4 / R5 moderators (no dating profile), R6 call-only reporter E, R7 unverified photo owner, R8 unused
+    const [A, B, C, D, M1, M2, E, P] = R
+    for (const [i, u] of R.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013999000' + i])
+    for (const [i, u] of R.entries()) {
+      if (u === M1 || u === M2 || i === 8) continue
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in) values ($1,'1994-04-04',$2,$3)`,
+        ['Rep' + i, i % 2 ? 'male' : 'female', i % 2 ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [[A, B, C, D, E]])
+    await su(`insert into admins values ($1), ($2)`, [M1, M2])
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const match = async (x, y) => (await su(`select ensure_match($1,$2,'swipe') id`, [x, y])).rows[0].id
+    const mAB = await match(A, B), mCB = await match(C, B), mAD = await match(A, D), mEB = await match(E, B)
+    const send = async (u, m, body) => (await as(u, `insert into messages (match_id, body) values ($1,$2) returning id`, [m, body])).rows[0].id
+    const rep = (u, type, id, reason) => as(u, `insert into reports (target_type, target_id, reason) values ($1,$2,$3)`, [type, id, reason])
+    const subj = async (type, id, u) => (await su(`select subject_id s from reports where target_type=$1 and target_id=$2 and reporter_id=$3`, [type, id, u])).rows[0]?.s
+    const logs = async (action, target) => (await su(`select count(*)::int c from moderation_actions where action=$1 and ($2::uuid is null or target_id=$2)`, [action, target ?? null])).rows[0].c
 
+    // --- new report targets ---------------------------------------------------------------
+    const msg1 = await send(B, mAB, 'hello there')
+    const msg2 = await send(B, mAB, 'whatsapp me 0123456789')
+    await rep(A, 'message', msg2, 'scam: asked for money')
+    ok('rpt_targets: message report gets the sender as subject', (await subj('message', msg2, A)) === B)
+    ok('rpt_targets: outsider cannot report a foreign message', (await fails(() => rep(D, 'message', msg2, 'spam')))?.includes('not found'))
+    ok('rpt_targets: cannot report own message', (await fails(() => rep(B, 'message', msg1, 'spam')))?.includes('yourself'))
+    ok('rpt_targets: unknown message refused', (await fails(() => rep(A, 'message', P, 'spam')))?.includes('not found'))
+    const photoB = (await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 10, 10, 0) returning id`, [B, `${B}/rp.webp`])).rows[0].id
+    await rep(A, 'photo', photoB, 'fake')
+    ok('rpt_targets: photo report gets the owner as subject', (await subj('photo', photoB, A)) === B)
+    ok('rpt_targets: cannot report own photo', (await fails(() => rep(B, 'photo', photoB, 'fake')))?.includes('yourself'))
+    const callE = 'ad0000c0-0000-4000-8000-000000000001'
+    const callAD = 'ad0000c0-0000-4000-8000-000000000002'
+    const callAB = 'ad0000c0-0000-4000-8000-000000000003'
+    const insCall = (id, m, x, y) => su(`insert into calls (id, match_id, caller_id, callee_id, kind, status, started_at, answered_at, ended_at, recording_path, recording_status)
+      values ($1,$2,$3,$4,'audio','ended', now() - interval '10 minutes', now() - interval '9 minutes', now() - interval '5 minutes', $5, 'ready')`, [id, m, x, y, `calls/${m}/${id}.ogg`])
+    await insCall(callE, mEB, E, B); await insCall(callAD, mAD, A, D); await insCall(callAB, mAB, A, B)
+    ok('rpt_targets: outsider cannot report a call', (await fails(() => rep(C, 'call', callE, 'harassment')))?.includes('not found'))
+    await rep(E, 'call', callE, 'harassment: threats on the call')
+    ok('rpt_targets: call report gets the other side as subject', (await subj('call', callE, E)) === B)
+    await rep(C, 'user', B, 'harassment')
+    await rep(D, 'user', B, 'underage: looks 15')
+    ok('rpt_targets: user report still works (subject = target)', (await subj('user', B, D)) === B)
+    const ghost = 'ad00dead-0000-4000-8000-000000000001'
+    await rep(A, 'user', ghost, 'spam')
+    ok('rpt_targets: user report on an unknown id keeps no subject', (await subj('user', ghost, A)) === null)
+    ok('rpt_targets: subject is not client-writable', !!(await fails(() => as(A, `insert into reports (target_type, target_id, reason, subject_id) values ('user',$1,'spam',$1)`, [D]))))
+    const post = (await as(D, `select create_post('buy followers cheap') id`)).rows[0].id
+    await rep(A, 'post', post, 'spam'); await rep(C, 'post', post, 'spam')
+    ok('rpt_targets: post subject is the author', (await subj('post', post, A)) === D)
+
+    // --- queue: priority, filters, pagination ----------------------------------------------
+    const queue = async (args = {}) => (await svc(`select * from admin_report_queue($1,$2,$3,$4,$5,$6,$7)`,
+      [args.admin ?? M1, args.status ?? null, args.reason ?? null, args.type ?? null, args.mine ?? false, args.limit ?? 100, args.offset ?? 0])).rows
+    const mine = new Set([B, msg2, photoB, callE, post])
+    const q = await queue()
+    const ours = q.filter((r) => mine.has(r.target_id))
+    ok('queue: fits one page', q.length < 100 && q[0]?.total === q.length, String(q.length))
+    ok('queue: priority = reason tier, then reporters', JSON.stringify(ours.map((r) => [r.target_type, r.priority])) ===
+      JSON.stringify([['user', 4002], ['message', 3001], ['call', 2001], ['post', 1002], ['photo', 1001]]), JSON.stringify(ours.map((r) => [r.target_type, r.priority])))
+    ok('queue: sorted by priority then age', q.every((r, i) => i === 0 || q[i - 1].priority > r.priority ||
+      (q[i - 1].priority === r.priority && q[i - 1].first_reported_at <= r.first_reported_at)))
+    const uCase = ours[0]
+    ok('queue: case fields', uCase.report_count === 2 && uCase.reporter_count === 2 && uCase.subject_id === B && uCase.status === 'open' &&
+      uCase.reasons.includes('underage') && uCase.reasons.includes('harassment') && uCase.tier === 4, JSON.stringify(uCase))
+    ok('queue: reason filter', (await queue({ reason: 'underage' })).every((r) => r.reasons.includes('underage')) &&
+      (await queue({ reason: 'underage' })).some((r) => r.target_id === B))
+    ok('queue: target type filter', (await queue({ type: 'call' })).map((r) => r.target_id).join() === callE)
+    ok('queue: non-admin refused', !!(await fails(() => queue({ admin: A }))))
+    ok('queue: not callable by users', !!(await fails(() => as(M1, `select * from admin_report_queue($1)`, [M1]))))
+    ok('queue: unknown status refused', !!(await fails(() => queue({ status: 'resolved' }))))
+
+    // --- claims ---------------------------------------------------------------------------
+    const claim = (adm, type, id) => svc(`select admin_claim_report($1,$2,$3) t`, [adm, type, id])
+    const release = (adm, type, id) => svc(`select admin_release_report($1,$2,$3) r`, [adm, type, id])
+    ok('claim: moderator takes a case', !!(await claim(M1, 'user', B)).rows[0].t)
+    const inReview = (await queue({ status: 'in_review' })).find((r) => r.target_id === B)
+    ok('claim: case is in review, by whom', inReview?.claimed_by === M1 && !!inReview.claimed_at)
+    ok('claim: open filter excludes it', !(await queue({ status: 'open' })).some((r) => r.target_id === B))
+    ok('claim: "claimed by me" filter', (await queue({ mine: true })).map((r) => r.target_id).join() === B &&
+      (await queue({ admin: M2, mine: true })).length === 0)
+    ok('claim: refreshing my own claim works', !(await fails(() => claim(M1, 'user', B))))
+    ok('claim: another moderator cannot take it', (await fails(() => claim(M2, 'user', B)))?.includes('Already claimed'))
+    ok('claim: another moderator cannot resolve it', (await fails(() => svc(`select admin_resolve_case($1,'user',$2,'dismiss')`, [M2, B])))?.includes('Claimed by another'))
+    ok('claim: another moderator cannot release it', (await fails(() => release(M2, 'user', B)))?.includes('Claimed by another'))
+    await su(`update report_claims set claimed_at = now() - interval '31 minutes' where target_id=$1`, [B])
+    ok('claim: auto-released after 30 minutes', (await queue({ status: 'open' })).find((r) => r.target_id === B)?.claimed_by === null)
+    ok('claim: expired claim can be taken over', !(await fails(() => claim(M2, 'user', B))) && (await queue({ admin: M2, mine: true })).length === 1)
+    ok('claim: release by holder', (await release(M2, 'user', B)).rows[0].r === true && (await queue({ status: 'in_review' })).every((r) => r.target_id !== B))
+    ok('claim: nothing to claim without open reports', (await fails(() => claim(M1, 'user', P)))?.includes('No open reports'))
+    ok('claim: claims and releases are logged', (await logs('reports.claim', B)) === 3 && (await logs('reports.release', B)) === 1)
+
+    // --- evidence: transcript, media, call recording ---------------------------------------
+    const transcript = (type, id, reporter, adm = M1) => svc(`select * from admin_open_chat_transcript($1,$2,$3,$4)`, [adm, type, id, reporter]).then((r) => r.rows)
+    const tr1 = await transcript('message', msg2, A)
+    ok('evidence: transcript of the reported chat', tr1.map((r) => r.message_id).join() === [msg1, msg2].join() && tr1.find((r) => r.reported)?.message_id === msg2, JSON.stringify(tr1))
+    ok('evidence: transcript access logged', (await logs('evidence.transcript_open', msg2)) === 1)
+    ok('evidence: only the reporter of an open report', (await fails(() => transcript('message', msg2, C)))?.includes('open report'))
+    ok('evidence: not for feed reports', !!(await fails(() => transcript('post', post, A))))
+    ok('evidence: non-admin refused', !!(await fails(() => transcript('message', msg2, A, A))))
+    ok('evidence: not callable by users', !!(await fails(() => as(M1, `select * from admin_open_chat_transcript($1,'message',$2,$3)`, [M1, msg2, A]))))
+    const msg3 = await send(B, mAB, 'secret threat')
+    await as(B, `select delete_message($1)`, [msg3])
+    const tr2 = await transcript('message', msg2, A)
+    const del = tr2.find((r) => r.message_id === msg3)
+    ok('evidence: deleted-for-everyone shown from the archive, marked deleted', del?.body === 'secret threat' && del.deleted === true, JSON.stringify(del))
+    ok('evidence: archive knows the recipient', (await su(`select recipient_id r from message_deletions where message_id=$1`, [msg3])).rows[0]?.r === A)
+    ok('evidence: user-report transcript is the reporter\'s chat', (await transcript('user', B, C)).length === 0 && !(await fails(() => transcript('user', B, D))))
+    // 300 messages around the reported one
+    await su(`insert into messages (match_id, sender_id, body, created_at)
+      select $1, case when g % 2 = 0 then $3::uuid else $2::uuid end, 'w' || g, now() - interval '1 day' + g * interval '1 second'
+      from generate_series(1, 400) g`, [mAB, A, B])
+    const w200 = (await su(`select id from messages where match_id=$1 and body='w200'`, [mAB])).rows[0].id
+    await rep(A, 'message', w200, 'sexual')
+    const tw = await transcript('message', w200, A)
+    const at = tw.findIndex((r) => r.message_id === w200)
+    ok('evidence: 300 messages centred on the reported one', tw.length === 300 && at === 149 && tw[at].reported && tw[0].body === 'w51' && tw[299].body === 'w350', `${tw.length} ${at} ${tw[0]?.body} ${tw[299]?.body}`)
+    const tl = await transcript('user', B, D).catch(() => null)
+    ok('evidence: user case without a chat is empty', Array.isArray(tl) && tl.length === 0)
+    // media
+    const insMedia = async (sql, p) => { await su(`insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [p[3]]); return su(sql, p) }
+    const mediaId = 'ad0000aa-0000-4000-8000-000000000001'
+    const mediaPath = `${mAB}/${mediaId}.webp`
+    await insMedia(`insert into messages (id, match_id, sender_id, media_kind, media_path, media_mime, image_width, image_height) values ($1,$2,$3,'image',$4,'image/webp',10,10)`, [mediaId, mAB, B, mediaPath])
+    const media = (adm, id) => svc(`select * from admin_open_chat_media($1,'message',$2,$3,$4)`, [adm, msg2, A, id]).then((r) => r.rows[0])
+    ok('evidence: chat media path for a message of the case', (await media(M1, mediaId))?.path === mediaPath)
+    ok('evidence: media access logged with its own action', (await logs('evidence.media_open', mediaId)) === 1)
+    const otherMedia = 'ad0000aa-0000-4000-8000-000000000002'
+    await insMedia(`insert into messages (id, match_id, sender_id, media_kind, media_path, media_mime, image_width, image_height) values ($1,$2,$3,'image',$4,'image/webp',10,10)`, [otherMedia, mAD, D, `${mAD}/${otherMedia}.webp`])
+    ok('evidence: media outside the parties\' chat refused', (await fails(() => media(M1, otherMedia)))?.includes('No media'))
+    ok('evidence: media not callable by users', !!(await fails(() => as(M1, `select * from admin_open_chat_media($1,'message',$2,$3,$4)`, [M1, msg2, A, mediaId]))))
+    // call recordings: the existing flow, now also for call / message / photo reports
+    const rec = (id) => svc(`select admin_open_call_recording($1,$2,'test') p`, [M1, id]).then((r) => r.rows[0].p)
+    ok('evidence: call report opens its recording', (await rec(callE)) === `calls/${mEB}/${callE}.ogg`)
+    ok('evidence: message report opens the pair\'s recordings', (await rec(callAB)) === `calls/${mAB}/${callAB}.ogg`)
+    ok('evidence: recording of an unreported pair refused', (await fails(() => rec(callAD)))?.includes('open report'))
+    ok('evidence: recording access logged', (await logs('call.recording_open', callE)) === 1)
+
+    // --- retention while a report is open ---------------------------------------------------
+    ok('retention: match of a reported person held', (await su(`select match_under_open_report($1) h`, [mEB])).rows[0].h === true)
+    ok('retention: unrelated match not held', (await su(`select match_under_open_report($1) h`, [mAD])).rows[0].h === false)
+    ok('retention: call pair held by a call report', (await su(`select call_under_open_report($1,$2) h`, [B, E])).rows[0].h === true &&
+      (await su(`select call_under_open_report($1,$2) h`, [A, D])).rows[0].h === false)
+    const oldMedia = 'ad0000aa-0000-4000-8000-000000000003'
+    await insMedia(`insert into messages (id, match_id, sender_id, media_kind, media_path, media_mime, image_width, image_height, created_at) values ($1,$2,$3,'image',$4,'image/webp',10,10, now() - interval '100 days')`, [oldMedia, mEB, B, `${mEB}/${oldMedia}.webp`])
+    ok('retention: old chat media kept under a call report', !(await su(`select * from retention_chat_media(1000)`)).rows.some((r) => r.message_id === oldMedia))
+    await su(`insert into storage.objects (bucket_id, name, created_at) values ('selfies', $1, now() - interval '100 days')`, [`${B}/old.jpg`])
+    ok('retention: selfie of the reported person kept', !(await su(`select * from retention_selfies(1000) n`)).rows.some((r) => r.n === `${B}/old.jpg`))
+    // unmatch under an open report archives the chat; without a report nothing is archived
+    await su(`delete from matches where id=$1`, [mAB])
+    ok('retention: unmatch archives the reported chat', (await su(`select count(*)::int c from message_deletions where match_id=$1 and cause='unmatched'`, [mAB])).rows[0].c === 403)
+    const tu = await transcript('message', msg2, A)
+    ok('evidence: transcript survives the unmatch', tu.some((r) => r.message_id === msg2 && r.unmatched && r.reported) &&
+      tu.some((r) => r.message_id === msg3 && r.deleted && r.body === 'secret threat'), String(tu.length))
+    ok('evidence: archived media still openable', (await media(M1, mediaId))?.path === mediaPath)
+    await su(`delete from matches where id=$1`, [mAD])
+    ok('retention: unreported unmatch archives nothing', (await su(`select count(*)::int c from message_deletions where match_id=$1`, [mAD])).rows[0].c === 0)
+    await su(`update message_deletions set deleted_at = now() - interval '91 days' where match_id=$1`, [mAB])
+    ok('retention: archive held while the report is open', !(await su(`select * from retention_message_deletions(1000)`)).rows.some((r) => r.message_id === msg2))
+
+    // --- auto-flagging --------------------------------------------------------------------
+    const detect = async (t) => (await su(`select array_agg(kind order by kind) k from detect_message_risk($1)`, [t])).rows[0].k ?? []
+    const flagCases = {
+      phone: ['call me 012-345 6789', '+60 12 345 6789', 'my no 0123456789', '(011) 2345-6789'],
+      link: ['check https://example.com', 'go to www.mysite.net', 'join t.me/cheapcoins', 'wa.me/60123456789', 'visit lucky-profit.xyz now'],
+      messenger: ['add me on WhatsApp', 'whatsapp me', 'wasap je la', 'watsapp me la', 'my telegram is cool_guy', 'tele me', 'add my wechat', 'line id: sweetie88', 'pm me on line', 'follow @sweetie_88'],
+      money: ['can you transfer me some money', 'I need cash urgently', 'send to my bank account', 'acc no 1234', 'I trade bitcoin and USDT', 'good investment opportunity, 30% profit',
+        'forex signals', 'boleh pinjam duit sikit?', 'tolong bank in RM500', 'pelaburan ni untung besar', 'topup tng for me', 'send via touch n go', 'just $200 for the ticket'],
+    }
+    for (const [kind, texts] of Object.entries(flagCases))
+      for (const t of texts) ok(`flags: "${t}" -> ${kind}`, (await detect(t)).includes(kind), JSON.stringify(await detect(t)))
+    for (const t of ['Hi! How was your day?', 'Jom makan nasi lemak esok?', 'I love hiking and coffee', 'Saya suka tengok wayang', 'online now, what about you',
+      'we can meet at the mall lah', 'haha same, wa pun tak tau', 'line up at the cinema was long', 'Bila free?', 'see you at 7:30 on 12/10', 'I was born in 1995'])
+      ok(`flags: "${t}" not flagged`, (await detect(t)).length === 0, JSON.stringify(await detect(t)))
+    ok('flags: detector not callable by users', !!(await fails(() => as(A, `select * from detect_message_risk('x')`))))
+    const fl = async (id) => (await su(`select array_agg(kind order by kind) k from message_flags where message_id=$1`, [id])).rows[0].k ?? []
+    ok('flags: stored on send (and the message is sent)', JSON.stringify(await fl(msg2)) === '["messenger","phone"]')
+    ok('flags: plain message has none', (await fl(msg1)).length === 0)
+    ok('flags: users cannot read flags or scores', !!(await fails(() => as(B, `select * from message_flags`))) && !!(await fails(() => as(B, `select * from user_risk_scores`))))
+    const score = async (u) => (await su(`select score from user_risk_scores where user_id=$1`, [u])).rows[0]?.score ?? 0
+    ok('flags: one conversation stays under the threshold', (await score(B)) === 6 && (await score(B)) < (await su(`select risk_score_threshold() t`)).rows[0].t, String(await score(B)))
+    await send(B, mCB, 'whatsapp me 0123456789'); await send(B, mCB, 'whatsapp me 0123456789 again')
+    ok('flags: same signal counted once per conversation', (await score(B)) === 12, String(await score(B)))
+    const benign = await send(C, mCB, 'no money for dinner lol')
+    ok('flags: single weak signal scores low', JSON.stringify(await fl(benign)) === '["money"]' && (await score(C)) === 1)
+    const flagged = (await svc(`select * from admin_flagged_users($1)`, [M1])).rows
+    ok('flags: flagged tab lists high scores only', flagged.some((r) => r.user_id === B && r.score === 12 && r.conversations === 2 && r.kinds.phone === 3) && !flagged.some((r) => r.user_id === C), JSON.stringify(flagged))
+    ok('flags: flagged list for admins only', !!(await fails(() => svc(`select * from admin_flagged_users($1)`, [A]))))
+    // keywords editable by admins
+    const kw = (await svc(`select admin_add_risk_keyword($1, '  Hadiah   PERCUMA ', 5) id`, [M1])).rows[0].id
+    ok('flags: keyword stored normalised and logged', (await su(`select keyword from risk_keywords where id=$1`, [kw])).rows[0].keyword === 'hadiah percuma' && (await logs('risk_keyword.add', kw)) === 1)
+    const kmsg = await send(E, mEB, 'Tahniah! Dapat hadiah percuma, klik sini')
+    ok('flags: keyword flagged as a whole phrase', JSON.stringify(await fl(kmsg)) === '["keyword"]' && (await su(`select keyword from message_flags where message_id=$1`, [kmsg])).rows[0].keyword === 'hadiah percuma')
+    ok('flags: keyword weight in the score', (await score(E)) === 5)
+    ok('flags: no partial-word keyword match', (await detect('hadiahpercuma')).length === 0)
+    const edited = await send(E, mEB, 'hello')
+    await su(`update messages set body='my number 0123456789' where id=$1`, [edited])
+    ok('flags: edits are flagged too', JSON.stringify(await fl(edited)) === '["phone"]')
+    await svc(`select admin_remove_risk_keyword($1,$2)`, [M1, kw])
+    ok('flags: keyword removal logged', (await logs('risk_keyword.remove', kw)) === 1 && (await detect('hadiah percuma')).length === 0)
+    ok('flags: keyword admin only', !!(await fails(() => svc(`select admin_add_risk_keyword($1,'abcd')`, [A]))) && !!(await fails(() => as(M1, `select admin_add_risk_keyword($1,'abcd')`, [M1]))))
+    await su(`alter table message_flags add constraint t_break check (kind <> 'phone') not valid`)
+    const sentAnyway = await send(E, mEB, 'call 0123456789').catch(() => null)
+    await su(`alter table message_flags drop constraint t_break`)
+    ok('flags: a flagging error never blocks sending', !!sentAnyway)
+    const rs = (await su(`insert into random_chat_sessions (user_a, user_b) values ($1,$2) returning id`, [C, D])).rows[0].id
+    const rmsg = (await su(`insert into random_chat_messages (session_id, sender_id, body) values ($1,$2,'join t.me/cheapcoins') returning id`, [rs, D])).rows[0].id
+    ok('flags: random chat messages flagged too', (await su(`select source, conversation_id c from message_flags where message_id=$1`, [rmsg])).rows.map((r) => r.source + r.c).join() === 'random' + rs)
+
+    // --- atomic resolve ---------------------------------------------------------------------
+    const resolve = (type, id, decision, reason = null, offender = null, adm = M1) =>
+      svc(`select admin_resolve_case($1,$2,$3,$4,$5,$6) r`, [adm, type, id, decision, reason, offender]).then((r) => r.rows[0].r)
+    const open = async (type, id) => (await su(`select count(*)::int c from reports where target_type=$1 and target_id=$2 and resolved_at is null`, [type, id])).rows[0].c
+    ok('resolve: hide only for posts and comments (nothing changes)', !!(await fails(() => resolve('message', msg2, 'hide', 'x'))) && (await open('message', msg2)) === 1)
+    ok('resolve: ban needs a reason (nothing changes)', !!(await fails(() => resolve('user', B, 'ban', ''))) && (await open('user', B)) === 2 &&
+      (await su(`select banned_at from profiles where id=$1`, [B])).rows[0].banned_at === null)
+    ok('resolve: offender must be a party', (await fails(() => resolve('user', B, 'ban', 'harassment', E)))?.includes('party') && (await open('user', B)) === 2)
+    ok('resolve: unknown decision refused', !!(await fails(() => resolve('user', B, 'nuke'))))
+    const hid = await resolve('post', post, 'hide', 'Спам')
+    ok('resolve: hide + close in one call', hid.closed === 2 && (await su(`select is_hidden h from posts where id=$1`, [post])).rows[0].h === true && (await open('post', post)) === 0)
+    await claim(M1, 'user', B)
+    const ban = await resolve('user', B, 'ban', 'harassment: threats')
+    ok('resolve: ban + close in one call', ban.closed === 2 && ban.offender === B && (await su(`select banned_at is not null b from profiles where id=$1`, [B])).rows[0].b === true)
+    ok('resolve: claim cleared', (await su(`select count(*)::int c from report_claims where target_id=$1`, [B])).rows[0].c === 0)
+    ok('resolve: decision stored, logged', (await su(`select distinct decision d, resolved_by r from reports where target_type='user' and target_id=$1`, [B])).rows.map((r) => r.d + r.r).join() === 'ban' + M1 &&
+      (await logs('reports.resolve', B)) === 1 && (await logs('user.ban', B)) === 1)
+    ok('resolve: second decision on the same case fails', (await fails(() => resolve('user', B, 'dismiss')))?.includes('No open reports'))
+    await svc(`select admin_set_ban($1,$2,false)`, [M1, B])
+    const ph = await resolve('photo', photoB, 'delete_photo', 'Чужое фото')
+    ok('resolve: delete_photo returns the file path, removes the row', ph.photo_path === `${B}/rp.webp` && (await su(`select count(*)::int c from profile_photos where id=$1`, [photoB])).rows[0].c === 0)
+    ok('resolve: delete_photo only for photo cases', !!(await fails(() => resolve('call', callE, 'delete_photo', 'x'))))
+    // evidence and retention end with the case
+    await resolve('message', msg2, 'dismiss')
+    ok('evidence: closed report gives no transcript', (await fails(() => transcript('message', msg2, A)))?.includes('open report'))
+    ok('evidence: closed report gives no media', (await fails(() => media(M1, mediaId)))?.includes('open report'))
+    await resolve('message', w200, 'dismiss')
+    await su(`update admins set role='moderator' where user_id=$1`, [M2])
+    const modBan = await resolve('call', callE, 'ban', 'harassment: threats on a call', null, M2)
+    ok('resolve: a moderator\'s ban is a 7-day ban (role rules of admin_ban_user)', modBan.ban_days === 7 && modBan.closed === 1 &&
+      (await su(`select banned_until > now() + interval '6 days' b from profiles where id=$1`, [B])).rows[0].b === true, JSON.stringify(modBan))
+    await rep(A, 'user', D, 'spam')
+    ok('resolve: a moderator cannot ban longer than 7 days (nothing changes)', !!(await fails(() => svc(`select admin_resolve_case($1,'user',$2,'ban','spam',null,30)`, [M2, D]))) &&
+      (await open('user', D)) === 1 && (await su(`select banned_at from profiles where id=$1`, [D])).rows[0].banned_at === null)
+    await resolve('user', D, 'dismiss')
+    await svc(`select admin_unban_user($1,$2)`, [M1, B])
+    ok('evidence: closed call report gives no recording', (await fails(() => rec(callE)))?.includes('open report'))
+    ok('retention: archive released after the case closes', (await su(`select * from retention_message_deletions(1000)`)).rows.some((r) => r.message_id === msg2))
+    ok('retention: old media released after the case closes', (await su(`select * from retention_chat_media(1000)`)).rows.some((r) => r.message_id === oldMedia))
+    // history
+    const hist = (await svc(`select * from admin_report_history($1, null, null, 100, 0)`, [M1])).rows
+    const hUser = hist.find((h) => h.target_id === B)
+    ok('history: who resolved and the decision', hUser?.decision === 'ban' && hUser.resolved_by === M1 && hUser.report_count === 2 && hUser.resolution === 'harassment: threats', JSON.stringify(hUser))
+    ok('history: newest first, type filter', hist.every((h, i) => i === 0 || hist[i - 1].resolved_at >= h.resolved_at) &&
+      (await svc(`select * from admin_report_history($1, 'call')`, [M1])).rows.every((h) => h.target_type === 'call'))
+    ok('history: admin only', !!(await fails(() => svc(`select * from admin_report_history($1)`, [A]))))
+
+    // --- bulk dismiss -----------------------------------------------------------------------
+    const g2 = 'ad00dead-0000-4000-8000-000000000002', g3 = 'ad00dead-0000-4000-8000-000000000003'
+    await rep(A, 'user', g2, 'spam'); await rep(A, 'user', g3, 'spam')
+    await claim(M2, 'user', g3)
+    const before = await logs('reports.resolve')
+    const bulk = (await svc(`select admin_bulk_dismiss($1,$2::jsonb) n`, [M1, JSON.stringify([{ type: 'user', id: ghost }, { type: 'user', id: g2 }, { type: 'user', id: g3 }, { type: 'user', id: P }])])).rows[0].n
+    ok('bulk: dismisses open cases, skips claimed and closed ones', bulk === 2 && (await open('user', ghost)) === 0 && (await open('user', g2)) === 0 && (await open('user', g3)) === 1)
+    ok('bulk: logged per case', (await logs('reports.resolve')) === before + 2)
+    ok('bulk: admin only', !!(await fails(() => svc(`select admin_bulk_dismiss($1,'[]'::jsonb)`, [A]))))
+
+    // --- photo moderation -------------------------------------------------------------------
+    const pp = []
+    for (let i = 0; i < 3; i++) pp.push((await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1,$2,10,10,$3) returning id`, [P, `${P}/q${i}.webp`, i])).rows[0].id)
+    const pq = async (scope) => (await svc(`select * from admin_photo_queue($1,$2,7,200,0)`, [M1, scope])).rows.map((r) => r.id)
+    ok('photos: pending queue includes unverified users', (await pq('pending')).filter((id) => pp.includes(id)).length === 3)
+    ok('photos: verified scope excludes them, unverified includes', !(await pq('verified')).some((id) => pp.includes(id)) && (await pq('unverified')).filter((id) => pp.includes(id)).length === 3)
+    ok('photos: approve marks reviewed, logged per photo', (await svc(`select admin_approve_photos($1,$2) n`, [M1, [pp[0], pp[1]]])).rows[0].n === 2 &&
+      (await logs('photo.approve', pp[0])) === 1 && (await logs('photo.approve', pp[1])) === 1)
+    ok('photos: approved leave the pending queue', (await pq('pending')).filter((id) => pp.includes(id)).join() === pp[2])
+    ok('photos: approving twice is a no-op', (await svc(`select admin_approve_photos($1,$2) n`, [M1, [pp[0]]])).rows[0].n === 0)
+    const delPaths = (await svc(`select admin_delete_photos($1,$2,'Нет лица') p`, [M1, [pp[2], ghost]])).rows.map((r) => r.p)
+    ok('photos: bulk delete returns paths, skips missing', delPaths.join() === `${P}/q2.webp` && (await su(`select count(*)::int c from profile_photos where id=$1`, [pp[2]])).rows[0].c === 0)
+    ok('photos: admin only', !!(await fails(() => svc(`select * from admin_photo_queue($1)`, [A]))) && !!(await fails(() => as(M1, `select admin_approve_photos($1,$2)`, [M1, [pp[0]]]))))
+    ok('photos: reviews not readable by users', !!(await fails(() => as(P, `select * from photo_reviews`))))
+    // roles (20261009000150): viewers read the queues, only moderators act or open evidence
+    await su(`update admins set role='viewer' where user_id=$1`, [M2])
+    await rep(A, 'user', D, 'harassment')
+    ok('roles: viewer reads the queue, history, flags and photos', !(await fails(() => queue({ admin: M2 }))) &&
+      !(await fails(() => svc(`select * from admin_report_history($1)`, [M2]))) && !(await fails(() => svc(`select * from admin_flagged_users($1)`, [M2]))) &&
+      !(await fails(() => svc(`select * from admin_photo_queue($1)`, [M2]))))
+    ok('roles: viewer cannot claim, decide or open evidence', !!(await fails(() => claim(M2, 'user', D))) &&
+      !!(await fails(() => resolve('user', D, 'dismiss', null, null, M2))) && !!(await fails(() => transcript('user', D, A, M2))) &&
+      !!(await fails(() => svc(`select admin_approve_photos($1,$2)`, [M2, [pp[0]]]))))
+  })()
   // ===== end admin reports & evidence =====
 
 

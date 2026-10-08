@@ -4,14 +4,10 @@ import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
-import {
-  notifyBanChanged,
-  notifyReportsResolved,
-  notifyVerificationDecided,
-} from '@/features/telegram/notify'
+import { notifyBanChanged, notifyVerificationDecided } from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
-import { readableBan } from './labels'
+import { resolveCase } from './report-actions'
 import {
   banSchema,
   contentSchema,
@@ -121,54 +117,8 @@ export async function setContentHidden(input: z.input<typeof contentSchema>) {
   ])
 }
 
+// One atomic RPC (20261009000161) through resolveCase: the sanction and the closing of every
+// open report on the target happen in one transaction.
 export async function resolveReports(input: z.input<typeof resolveSchema>) {
-  const result = await moderate(resolveSchema, input, (d, admin) => {
-    const db = createAdminClient()
-    const resolve = (resolution: string) =>
-      db.rpc('admin_resolve_reports', {
-        p_admin: admin,
-        p_type: d.targetType,
-        p_target: d.targetId,
-        p_resolution: resolution,
-      })
-    switch (d.decision) {
-      case 'dismiss':
-        return [resolve(d.reason || 'Отклонено: нарушения нет')]
-      case 'hide':
-        return [
-          db.rpc('admin_set_content_hidden', {
-            p_admin: admin,
-            p_type: d.targetType,
-            p_id: d.targetId,
-            p_hidden: true,
-            p_reason: d.reason,
-          }),
-          resolve(`Контент скрыт: ${d.reason}`),
-        ]
-      case 'ban':
-        return [
-          db.rpc('admin_set_ban', {
-            p_admin: admin,
-            p_user: d.offenderId,
-            p_banned: true,
-            p_reason: d.reason,
-          }),
-          resolve(`Пользователь заблокирован: ${readableBan(d.reason)}`),
-        ]
-    }
-  })
-  const parsed = resolveSchema.safeParse(input)
-  if (result.ok && parsed.success) {
-    const d = parsed.data
-    const adminId = await requireAdmin()
-    notifyReportsResolved(d.targetType, d.targetId, adminId, RESOLVED_LABELS[d.decision])
-    if (d.decision === 'ban') notifyBanChanged(adminId, d.offenderId, true, d.reason)
-  }
-  return result
+  return resolveCase(input)
 }
-
-const RESOLVED_LABELS = {
-  dismiss: 'Отклонено: нарушения нет',
-  hide: '🙈 Скрыто',
-  ban: '🔨 Пользователь заблокирован',
-} as const

@@ -132,7 +132,15 @@ export function parseCommand(text: string, botUsername?: string): ParsedCommand 
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const CODE = '[a-z_]{1,24}'
-export const TARGET_SHORT = { user: 'u', post: 'p', comment: 'c', random_session: 's' } as const
+export const TARGET_SHORT = {
+  user: 'u',
+  post: 'p',
+  comment: 'c',
+  random_session: 's',
+  message: 'm',
+  photo: 'f',
+  call: 'k',
+} as const
 export type ReportTargetType = keyof typeof TARGET_SHORT
 const SHORT_TARGET = Object.fromEntries(
   Object.entries(TARGET_SHORT).map(([k, v]) => [v, k as ReportTargetType]),
@@ -197,7 +205,7 @@ const PATTERNS: [RegExp, (m: RegExpExecArray) => CallbackAction | null][] = [
   ).map(
     ([p, a]) =>
       [
-        new RegExp(`^${p}:([upcs]):(${UUID})$`),
+        new RegExp(`^${p}:([upcsmfk]):(${UUID})$`),
         (m: RegExpExecArray) => {
           const t = SHORT_TARGET[m[1]!]
           return t ? { a, t, id: m[2]! } : null
@@ -212,7 +220,7 @@ const PATTERNS: [RegExp, (m: RegExpExecArray) => CallbackAction | null][] = [
   ).map(
     ([p, a]) =>
       [
-        new RegExp(`^${p}:([upcs]):(${UUID}):(${CODE})$`),
+        new RegExp(`^${p}:([upcsmfk]):(${UUID}):(${CODE})$`),
         (m: RegExpExecArray) => {
           const t = SHORT_TARGET[m[1]!]
           return t ? { a, t, id: m[2]!, code: m[3]! } : null

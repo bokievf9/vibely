@@ -48,6 +48,18 @@ async function summaryOf(t: ReportTargetType, id: string): Promise<Summary | nul
     .rpc('telegram_report_summary', { p_type: t, p_target: id })
     .maybeSingle()
   if (error) console.error('[telegram] report summary failed:', error.code)
+  // Message, photo and call reports (20261009000160): the reported person is reports.subject_id.
+  if (data && !data.offender_id) {
+    const { data: r } = await createAdminClient()
+      .from('reports')
+      .select('subject_id')
+      .eq('target_type', t)
+      .eq('target_id', id)
+      .not('subject_id', 'is', null)
+      .limit(1)
+      .maybeSingle()
+    return { ...data, offender_id: r?.subject_id ?? null }
+  }
   return data ?? null
 }
 

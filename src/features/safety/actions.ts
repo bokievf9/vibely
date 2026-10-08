@@ -20,8 +20,12 @@ export async function report(input: ReportInput): Promise<UserResult> {
   const { error } = await supabase
     .from('reports')
     .insert({ target_type: targetType, target_id: targetId, reason: text })
-  if (error)
-    return fail(error.code === '23505' ? 'alreadyReported' : rateLimitedOr(error.code, 'generic'))
+  if (error) {
+    if (error.code === '23505') return fail('alreadyReported')
+    // Message/photo/call not found, not the reporter's, or their own (20261009000161).
+    if (error.code === 'P0002' || error.code === '23514') return fail('invalidInput')
+    return fail(rateLimitedOr(error.code, 'generic'))
+  }
   notifyReportCreated(targetType, reason, targetId)
   return ok(undefined)
 }

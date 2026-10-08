@@ -57,6 +57,7 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
               userId={profile.id}
               name={profile.name}
               onUnmatch={profile.matchId ? unmatch.bind(null, profile.matchId) : undefined}
+              photos={profile.photos}
             />
           </div>
         </div>
