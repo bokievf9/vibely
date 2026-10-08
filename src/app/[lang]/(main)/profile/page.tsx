@@ -10,7 +10,10 @@ import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { CompletenessNudge } from '@/features/profile/components/completeness-nudge'
-import { getOwnPhotos, getOwnProfile } from '@/features/profile/queries'
+import { OwnProfileHeader } from '@/features/profile/components/own-profile-header'
+import { ProfilePreview } from '@/features/profile/components/profile-preview'
+import { ownCandidate } from '@/features/profile/own-card'
+import { getOwnPhotos, getOwnProfile, getTags } from '@/features/profile/queries'
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { getShowLastSeen } from '@/features/presence/queries'
 import { PushToggle } from '@/features/push/components/push-toggle'
@@ -36,22 +39,32 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, showLastSeen] = await Promise.all([
+  const [photos, profile, showLastSeen, tags] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getShowLastSeen(viewer.id),
+    getTags(),
   ])
+  const card = profile && ownCandidate(viewer.id, profile, photos, tags)
 
   return (
     <div className="flex flex-col gap-8 px-4 pb-6">
       <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-bold">{viewer.profile.displayName}</h2>
+        <OwnProfileHeader
+          name={viewer.profile.displayName}
+          age={card?.age ?? null}
+          city={profile?.city ?? ''}
+          verified={viewer.profile.verificationStatus === 'approved'}
+          mainPhoto={photos[0] ?? null}
+          t={dict.avatar}
+        />
         <Link
           href={localePath(locale, '/profile/edit')}
           className="bg-surface border-border flex h-12 items-center justify-center gap-2 rounded-2xl border font-semibold"
         >
           <Pencil className="size-5" /> {dict.profile.edit}
         </Link>
+        {card && <ProfilePreview candidate={card} />}
       </section>
       {profile && (
         <CompletenessNudge

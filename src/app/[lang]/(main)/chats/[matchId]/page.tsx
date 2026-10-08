@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { PageSpinner } from '@/components/ui/spinner'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { getViewer } from '@/features/auth/session'
 import { unmatch } from '@/features/chat/actions'
 import { ChatRoom } from '@/features/chat/components/chat-room'
@@ -51,7 +52,10 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         >
           <Avatar photo={partner.photo} alt={partner.name} size={36} />
           <span className="flex min-w-0 flex-col">
-            <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+            <span className="flex min-w-0 items-center gap-1">
+              <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+              <VerifiedBadge size={16} />
+            </span>
             <PartnerStatus matchId={matchId} />
           </span>
         </Link>

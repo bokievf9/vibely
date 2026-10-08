@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, MapPin } from 'lucide-react'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import {
@@ -35,6 +36,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-3xl font-bold">
           {candidate.name}, <span className="font-normal">{candidate.age}</span>
+          <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
         </h2>
         {hasMore && (
           <button

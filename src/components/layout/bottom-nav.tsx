@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { Flame, MessageCircle, Newspaper, Shuffle, User } from 'lucide-react'
 import { useUnreadCount } from '@/features/chat/components/use-unread-count'
+import { NavAvatar } from '@/features/profile/components/nav-avatar'
 import { usePresenceHeartbeat } from '@/features/presence/use-heartbeat'
 import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
@@ -63,7 +64,11 @@ function NavBar({ activePath, unread }: { activePath: string | null; unread: num
                 )}
               >
                 <span className="relative">
-                  <Icon className="size-6" aria-hidden />
+                  {key === 'profile' ? (
+                    <NavAvatar active={active} fallback={<Icon className="size-6" aria-hidden />} />
+                  ) : (
+                    <Icon className="size-6" aria-hidden />
+                  )}
                   {key === 'chats' && unread > 0 && (
                     <span
                       aria-hidden

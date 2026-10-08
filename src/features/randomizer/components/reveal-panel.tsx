@@ -3,6 +3,7 @@
 import { Eye, MessageCircle } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import type { RandomSession } from '../types'
 
@@ -18,8 +19,11 @@ export function RevealPanel({ session, pending, onReveal }: Props) {
       <div className="bg-accent/10 flex items-center gap-3 rounded-2xl p-3">
         <Avatar photo={partner.photo} alt={partner.name} size={48} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">
-            {partner.name}, {partner.age}
+          <p className="flex min-w-0 items-center gap-1 font-semibold">
+            <span className="truncate">
+              {partner.name}, {partner.age}
+            </span>
+            <VerifiedBadge size={16} />
           </p>
           {(partner.jobTitle || partner.relationshipGoal) && (
             <p className="text-muted truncate text-xs">
