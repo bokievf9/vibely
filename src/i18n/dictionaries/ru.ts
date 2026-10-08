@@ -12,6 +12,7 @@ import { chatUiRu } from './chatui/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
 import { flowsRu } from './flowsui/ru'
+import { reportsRu } from './reports/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
@@ -368,4 +369,5 @@ export const ru: Dictionary = {
   avatar: avatarRu,
   username: usernameRu,
   flows: flowsRu,
+  reports: reportsRu,
 }

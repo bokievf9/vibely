@@ -12,6 +12,7 @@ import { chatUiMs } from './chatui/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
+import { reportsMs } from './reports/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -370,4 +371,5 @@ export const ms: Dictionary = {
   avatar: avatarMs,
   username: usernameMs,
   flows: flowsMs,
+  reports: reportsMs,
 }

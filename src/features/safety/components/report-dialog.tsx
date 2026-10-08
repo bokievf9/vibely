@@ -17,10 +17,14 @@ type Props = {
   onClose: () => void
   targetType: ReportInput['targetType']
   targetId: string
+  // Defaults to the generic "What is wrong?"; messages, photos and calls pass their own.
+  title?: string
+  // Shown above the reasons, e.g. that moderators will see the conversation.
+  note?: string
 }
 
-// Reusable for profiles, chats, posts, comments and random chats.
-export function ReportDialog({ open, onClose, targetType, targetId }: Props) {
+// Reusable for profiles, chats, messages, photos, calls, posts, comments and random chats.
+export function ReportDialog({ open, onClose, targetType, targetId, title, note }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const [reason, setReason] = useState<ReportInput['reason']>()
@@ -38,7 +42,7 @@ export function ReportDialog({ open, onClose, targetType, targetId }: Props) {
     })
 
   return (
-    <Modal open={open} onClose={onClose} title={dict.safety.reportTitle}>
+    <Modal open={open} onClose={onClose} title={title ?? dict.safety.reportTitle}>
       {sent ? (
         <div className="flex flex-col items-center gap-4 text-center">
           <CheckCircle2 className="size-14 text-emerald-400" aria-hidden />
@@ -49,6 +53,7 @@ export function ReportDialog({ open, onClose, targetType, targetId }: Props) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          {note && <p className="text-muted text-sm">{note}</p>}
           <div className="flex flex-wrap gap-2">
             {REPORT_REASONS.map((r) => (
               <Chip key={r} selected={reason === r} onClick={() => setReason(r)}>

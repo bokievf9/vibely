@@ -11,6 +11,7 @@ import { chatUiEn } from './chatui/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
 import { flowsEn } from './flowsui/en'
+import { reportsEn } from './reports/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -365,6 +366,7 @@ export const en = {
   avatar: avatarEn,
   username: usernameEn,
   flows: flowsEn,
+  reports: reportsEn,
 }
 
 export type Dictionary = typeof en
