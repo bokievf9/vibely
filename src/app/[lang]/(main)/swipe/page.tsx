@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { PageSpinner } from '@/components/ui/spinner'
 import { getViewer } from '@/features/auth/session'
+import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
 import { getDictionary } from '@/i18n/server'
@@ -30,6 +31,11 @@ async function Deck() {
         maxAge: 45,
         maxKm: 50,
       }}
+      headerActions={
+        <Suspense fallback={null}>
+          <LikesButton />
+        </Suspense>
+      }
     />
   )
 }

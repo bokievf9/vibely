@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Heart, RotateCw, SearchX, SlidersHorizontal, X } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
@@ -20,7 +20,13 @@ import { useSwipeFilters } from './use-swipe-filters'
 
 const REFILL_AT = 3
 
-export function SwipeDeck({ defaultFilters }: { defaultFilters: SwipeFilters }) {
+type Props = {
+  defaultFilters: SwipeFilters
+  // Extra header buttons rendered by the server (e.g. "Who liked you" with its count).
+  headerActions?: ReactNode
+}
+
+export function SwipeDeck({ defaultFilters, headerActions }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
@@ -92,6 +98,7 @@ export function SwipeDeck({ defaultFilters }: { defaultFilters: SwipeFilters }) 
   return (
     <>
       <PageHeader title={dict.swipe.title}>
+        {headerActions}
         <Button
           variant="ghost"
           size="icon"

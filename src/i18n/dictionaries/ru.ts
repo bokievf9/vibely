@@ -1,6 +1,7 @@
 import { aboutRu } from './about/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
+import { likesRu, settingsRu } from './settings/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
 
 export const ru: Dictionary = {
@@ -312,6 +313,8 @@ export const ru: Dictionary = {
     deleteConfirm: 'Удалить навсегда',
   },
   about: aboutRu,
+  settings: settingsRu,
+  likes: likesRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',
