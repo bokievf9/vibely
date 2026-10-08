@@ -12,7 +12,9 @@
     "db:types": "supabase gen types typescript --local --schema public > src/types/database.types.ts",
     "db:reset": "supabase db reset",
     "fake:seed": "node --env-file=.env.local scripts/fake-users/seed.mjs",
+    "fake:seed-full": "node --env-file=.env.local scripts/fake-users/seed-full.mjs",
     "fake:delete": "node --env-file=.env.local scripts/fake-users/delete.mjs",
+    "fake:delete-batch": "node --env-file=.env.local scripts/fake-users/delete.mjs --batch",
     "test:sql": "node tests/sql/run.mjs",
     "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --test \"tests/unit/*.test.mjs\""
   },
