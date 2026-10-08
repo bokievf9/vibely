@@ -134,6 +134,7 @@ export const en = {
     feed: 'Feed',
     randomizer: 'Random',
     profile: 'Profile',
+    unread: 'Unread: {count}',
   },
   swipe: {
     title: 'Discover',
@@ -151,6 +152,7 @@ export const en = {
     matchSubtitle: 'You and {name} liked each other.',
     sendMessage: 'Send a message',
     keepSwiping: 'Keep swiping',
+    refresh: 'Refresh',
   },
   chats: {
     title: 'Chats',
@@ -162,6 +164,9 @@ export const en = {
     unmatch: 'Unmatch',
     unmatchConfirm: 'Unmatch {name}? The chat will be deleted for both of you.',
     viewProfile: 'View profile',
+    typing: 'typing…',
+    seen: 'Seen',
+    loadEarlier: 'Load earlier messages',
   },
   profile: {
     title: 'Profile',
@@ -233,6 +238,14 @@ export const en = {
     endConfirm: 'End this chat? You will not be able to return to it.',
     ended: 'The chat has ended.',
     next: 'Find someone new',
+    searchingNow: 'People searching now: {count}',
+    timeoutTitle: 'No one matches your filters right now',
+    timeoutHint: 'Try widening your filters, or keep waiting.',
+    widenFilters: 'Widen filters',
+    keepWaiting: 'Keep waiting',
+    skip: 'Next',
+    skipConfirm: 'End this chat and find someone new?',
+    changeFilters: 'Change filters',
   },
   legal: {
     privacy: 'Privacy Policy',

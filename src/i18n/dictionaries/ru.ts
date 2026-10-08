@@ -137,6 +137,7 @@ export const ru: Dictionary = {
     feed: 'Лента',
     randomizer: 'Рандом',
     profile: 'Профиль',
+    unread: 'Непрочитанных: {count}',
   },
   swipe: {
     title: 'Знакомства',
@@ -154,6 +155,7 @@ export const ru: Dictionary = {
     matchSubtitle: 'Вы и {name} понравились друг другу.',
     sendMessage: 'Написать',
     keepSwiping: 'Смотреть дальше',
+    refresh: 'Обновить',
   },
   chats: {
     title: 'Чаты',
@@ -165,6 +167,9 @@ export const ru: Dictionary = {
     unmatch: 'Удалить мэтч',
     unmatchConfirm: 'Удалить мэтч с {name}? Переписка удалится у обоих.',
     viewProfile: 'Открыть профиль',
+    typing: 'печатает…',
+    seen: 'Просмотрено',
+    loadEarlier: 'Загрузить более ранние сообщения',
   },
   profile: {
     title: 'Профиль',
@@ -236,6 +241,14 @@ export const ru: Dictionary = {
     endConfirm: 'Завершить чат? Вернуться в него будет нельзя.',
     ended: 'Чат завершён.',
     next: 'Найти нового',
+    searchingNow: 'Сейчас в поиске: {count}',
+    timeoutTitle: 'Сейчас никто не подходит под ваши фильтры',
+    timeoutHint: 'Попробуйте расширить фильтры или подождите ещё.',
+    widenFilters: 'Расширить фильтры',
+    keepWaiting: 'Подождать ещё',
+    skip: 'Следующий',
+    skipConfirm: 'Завершить этот чат и найти нового собеседника?',
+    changeFilters: 'Изменить фильтры',
   },
   legal: {
     privacy: 'Политика конфиденциальности',

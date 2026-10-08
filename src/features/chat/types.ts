@@ -1,4 +1,13 @@
-export type ChatMessage = { id: string; body: string; senderId: string; createdAt: string }
+export type ChatMessage = {
+  id: string
+  body: string
+  senderId: string
+  createdAt: string
+  readAt: string | null
+}
+
+// A page of older history, oldest first.
+export type MessagePage = { messages: ChatMessage[]; hasMore: boolean }
 
 export type Partner = {
   id: string

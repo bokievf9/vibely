@@ -138,6 +138,7 @@ export const ms: Dictionary = {
     feed: 'Suapan',
     randomizer: 'Rawak',
     profile: 'Profil',
+    unread: 'Belum dibaca: {count}',
   },
   swipe: {
     title: 'Teroka',
@@ -155,6 +156,7 @@ export const ms: Dictionary = {
     matchSubtitle: 'Anda dan {name} saling menyukai.',
     sendMessage: 'Hantar mesej',
     keepSwiping: 'Teruskan swipe',
+    refresh: 'Muat semula',
   },
   chats: {
     title: 'Sembang',
@@ -167,6 +169,9 @@ export const ms: Dictionary = {
     unmatch: 'Nyahpadan',
     unmatchConfirm: 'Nyahpadan {name}? Sembang akan dipadam untuk kedua-dua pihak.',
     viewProfile: 'Lihat profil',
+    typing: 'sedang menaip…',
+    seen: 'Dilihat',
+    loadEarlier: 'Muatkan mesej terdahulu',
   },
   profile: {
     title: 'Profil',
@@ -239,6 +244,14 @@ export const ms: Dictionary = {
     endConfirm: 'Tamatkan sembang ini? Anda tidak boleh kembali kepadanya.',
     ended: 'Sembang telah tamat.',
     next: 'Cari orang baharu',
+    searchingNow: 'Orang sedang mencari: {count}',
+    timeoutTitle: 'Tiada sesiapa yang sepadan dengan penapis anda sekarang',
+    timeoutHint: 'Cuba luaskan penapis anda, atau terus menunggu.',
+    widenFilters: 'Luaskan penapis',
+    keepWaiting: 'Terus menunggu',
+    skip: 'Seterusnya',
+    skipConfirm: 'Tamatkan sembang ini dan cari orang baharu?',
+    changeFilters: 'Tukar penapis',
   },
   legal: {
     privacy: 'Dasar Privasi',

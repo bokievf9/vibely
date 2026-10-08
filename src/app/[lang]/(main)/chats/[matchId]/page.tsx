@@ -57,7 +57,14 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
           onUnmatch={unmatch.bind(null, matchId)}
         />
       </header>
-      <ChatRoom matchId={matchId} viewerId={viewer.id} initialMessages={room.messages} />
+      <ChatRoom
+        key={matchId}
+        matchId={matchId}
+        viewerId={viewer.id}
+        partnerName={partner.name}
+        initialMessages={room.messages}
+        initialHasMore={room.hasMore}
+      />
     </>
   )
 }

@@ -10,6 +10,7 @@ import { GenderPicker } from '@/features/profile/components/gender-picker'
 import { TagPicker } from '@/features/profile/components/tag-picker'
 import type { Tag } from '@/features/profile/queries'
 import type { JoinFilters } from '../schemas'
+import { SearchingNow } from './searching-now'
 
 type Props = {
   tags: Tag[]
@@ -28,6 +29,7 @@ export function RandomFilters({ tags, initial, pending, error, onStart }: Props)
   return (
     <div className="flex flex-col gap-6">
       <p className="text-muted">{dict.random.intro}</p>
+      <SearchingNow />
       <fieldset className="flex flex-col gap-2">
         <legend className="text-muted mb-2 text-sm font-medium">{dict.random.lookingFor}</legend>
         <GenderPicker multiple value={f.genders} onChange={(genders) => setF({ ...f, genders })} />
