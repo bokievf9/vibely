@@ -2,11 +2,13 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Vibely — знакомства',
+    id: '/',
+    name: 'Vibely: dating with verified people',
     short_name: 'Vibely',
-    description: 'Свайпы, анонимная лента и рандом-чат с верифицированными людьми.',
-    lang: 'ru',
-    start_url: '/swipe',
+    description: 'Swipes, an anonymous feed and random chats with verified people in Malaysia.',
+    lang: 'en',
+    // The proxy sends "/" to the visitor's language: landing when signed out, swipes when signed in.
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',

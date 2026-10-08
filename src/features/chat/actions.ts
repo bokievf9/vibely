@@ -6,6 +6,7 @@ import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { getViewer } from '@/features/auth/session'
+import { notifyNewMessage } from '@/features/push/send'
 import { MESSAGE_COLUMNS, toChatMessage } from './message-row'
 import type { ChatMessage, MessagePage } from './types'
 
@@ -37,6 +38,7 @@ export async function sendMessage(input: {
     .select(MESSAGE_COLUMNS)
     .single()
   if (error) return fail(rateLimitedOr(error.code, 'generic'))
+  notifyNewMessage(parsed.data.matchId, data.sender_id)
   return ok(toChatMessage(data))
 }
 

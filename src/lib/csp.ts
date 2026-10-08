@@ -11,11 +11,6 @@
 // does not apply to it.
 
 const TURNSTILE = 'https://challenges.cloudflare.com'
-// browser-image-compression's Web Worker (blob:) importScripts() its own UMD build from
-// jsDelivr. Pinned to that exact file; without it the library falls back to the main thread.
-const IMAGE_COMPRESSION_WORKER =
-  'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js'
-
 // Umami Cloud serves its script from cloud.umami.is but sends events to its API gateway.
 const ANALYTICS_EXTRA_CONNECT: Record<string, string[]> = {
   'https://cloud.umami.is': ['https://api-gateway.umami.dev'],
@@ -36,7 +31,6 @@ export function buildCsp({ supabaseUrl, analyticsSrc, isDev = false }: CspInput)
       "'unsafe-inline'",
       ...(isDev ? ["'unsafe-eval'"] : []),
       TURNSTILE,
-      IMAGE_COMPRESSION_WORKER,
       ...analytics,
     ],
     // Tailwind is a file, but framer-motion and React style={} write inline styles.

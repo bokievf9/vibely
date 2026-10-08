@@ -7,8 +7,9 @@ import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
 
 const AUTH_ROUTES = ['/login', '/verify-otp']
-// Open to everyone, signed in or not (the landing page "/" is handled separately).
-const PUBLIC_ROUTES = ['/privacy', '/terms', '/opengraph-image', '/twitter-image']
+// Open to everyone, signed in or not (the landing page "/" is handled separately). The service
+// worker precaches /~offline whether or not anyone is signed in.
+const PUBLIC_ROUTES = ['/privacy', '/terms', '/opengraph-image', '/twitter-image', '/~offline']
 
 function matches(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))

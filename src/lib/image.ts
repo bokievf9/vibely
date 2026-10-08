@@ -8,7 +8,8 @@ export async function prepareImage(source: File): Promise<PreparedImage> {
     maxSizeMB: 1,
     maxWidthOrHeight: 1440,
     fileType: 'image/webp',
-    useWebWorker: true,
+    // Main thread: the worker mode loads its own copy from a CDN, which the CSP doesn't allow.
+    useWebWorker: false,
   })
   const bitmap = await createImageBitmap(file)
   const { width, height } = bitmap

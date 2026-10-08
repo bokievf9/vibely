@@ -2,7 +2,7 @@ const U = ['11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-22222
            '33333333-3333-3333-3333-333333333333','44444444-4444-4444-4444-444444444444']
 let pass = 0, fail = 0
 // Prints only failures and a summary; returns the number of failed checks.
-const ok = (name, cond, extra = '') => { cond ? pass++ : fail++; if (!cond) console.log('  ✗', name, extra) }
+const ok = (name, cond, extra = '') => { if (cond) pass++; else fail++; if (!cond) console.log('  ✗', name, extra) }
 export async function run(db) {
   const su = async (sql, p) => { await db.exec('reset role'); return db.query(sql, p) }
   const as = async (u, sql, p, topic='') => {
@@ -294,6 +294,23 @@ export async function run(db) {
     ($1,'{male}',18,99,now()), ($2,'{male}',18,99,now()), ($3,'{female}',18,99,now() - interval '2 minutes')`, [U[0], U[2], U[3]])
   ok('randomizer stats: present others only', (await as(U[0], `select randomizer_stats() n`)).rows[0].n === 1)
   ok('randomizer stats: no anon access', (await su(`select has_function_privilege('anon', 'public.randomizer_stats()', 'execute') v`)).rows[0].v === false)
+  // push subscriptions
+  const sub = (u, ep, loc = 'ms') => as(u, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ($1,'key','auth',$2)`, [ep, loc])
+  await sub(U[0], 'https://push.example/u0'); await sub(U[1], 'https://push.example/u1')
+  ok('push: user_id defaults to auth.uid()', (await su(`select user_id from push_subscriptions where endpoint=$1`, ['https://push.example/u0'])).rows[0].user_id === U[0])
+  ok('push: cannot subscribe for someone else', !!(await fails(() => as(U[0], `insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ($1,'https://push.example/x','k','a')`, [U[1]]))))
+  ok('push: sees only own rows', JSON.stringify((await as(U[0], `select endpoint from push_subscriptions`)).rows.map(r => r.endpoint)) === '["https://push.example/u0"]')
+  ok('push: duplicate endpoint rejected', !!(await fails(() => sub(U[0], 'https://push.example/u1'))))
+  ok('push: non-https endpoint rejected', !!(await fails(() => sub(U[0], 'http://push.example/plain'))))
+  ok('push: unknown locale rejected', !!(await fails(() => sub(U[0], 'https://push.example/l', 'xx'))))
+  ok('push: no update grant', !!(await fails(() => as(U[0], `update push_subscriptions set locale='en'`))))
+  await as(U[0], `delete from push_subscriptions where endpoint=$1`, ['https://push.example/u1'])
+  ok('push: cannot delete others', (await su(`select count(*)::int c from push_subscriptions where user_id=$1`, [U[1]])).rows[0].c === 1)
+  await as(U[0], `delete from push_subscriptions where endpoint=$1`, ['https://push.example/u0'])
+  ok('push: owner deletes own', (await su(`select count(*)::int c from push_subscriptions where user_id=$1`, [U[0]])).rows[0].c === 0)
+  ok('push: anon has no access', !!(await fails(async () => { await db.exec('set role anon'); try { await db.query(`select * from push_subscriptions`) } finally { await db.exec('reset role') } })))
+  await su(`delete from profiles where id=$1`, [U[1]])
+  ok('push: removed with profile', (await su(`select count(*)::int c from push_subscriptions`)).rows[0].c === 0)
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
