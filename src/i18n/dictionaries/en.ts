@@ -1,6 +1,7 @@
 import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
 import { discoverEn } from './discover/en'
+import { discoverUiEn } from './discoverui/en'
 import { feedEn } from './feed/en'
 import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
@@ -317,6 +318,7 @@ export const en = {
   settings: settingsEn,
   likes: likesEn,
   discover: discoverEn,
+  discoverui: discoverUiEn,
   media: mediaEn,
   calls: callsEn,
   pwa: {

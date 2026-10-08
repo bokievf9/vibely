@@ -85,6 +85,8 @@ export function ProfileForm({ tags, initial }: Props) {
         <Input
           id="displayName"
           autoComplete="given-name"
+          autoCapitalize="words"
+          enterKeyHint="next"
           aria-invalid={Boolean(errors.displayName) || undefined}
           {...register('displayName')}
         />
@@ -147,7 +149,13 @@ export function ProfileForm({ tags, initial }: Props) {
         />
       </Field>
       <Field label={dict.onboarding.city} htmlFor="city" error={err(errors.city?.message)}>
-        <Input id="city" autoComplete="address-level2" {...register('city')} />
+        <Input
+          id="city"
+          autoComplete="address-level2"
+          autoCapitalize="words"
+          enterKeyHint={initial ? 'done' : 'next'}
+          {...register('city')}
+        />
       </Field>
       <Controller
         control={control}
@@ -173,10 +181,23 @@ export function ProfileForm({ tags, initial }: Props) {
       {!initial && (
         <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
       )}
-      <FormError message={errorText(serverError)} />
-      <Button type="submit" loading={isSubmitting} fullWidth>
-        {initial ? dict.common.save : dict.common.continue}
-      </Button>
+      {initial ? (
+        // Editing: Save stays in reach above the tab bar instead of waiting at the end of a long
+        // form. It rests in place once the end of the form scrolls into view.
+        <div className="bg-background/90 border-border sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 -mb-6 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+          <FormError message={errorText(serverError)} />
+          <Button type="submit" loading={isSubmitting} fullWidth>
+            {dict.common.save}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <FormError message={errorText(serverError)} />
+          <Button type="submit" loading={isSubmitting} fullWidth>
+            {dict.common.continue}
+          </Button>
+        </>
+      )}
     </form>
   )
 }

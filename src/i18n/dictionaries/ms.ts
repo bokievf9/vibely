@@ -1,6 +1,7 @@
 import { avatarMs } from './avatar/ms'
 import { aboutMs } from './about/ms'
 import { discoverMs } from './discover/ms'
+import { discoverUiMs } from './discoverui/ms'
 import { feedMs } from './feed/ms'
 import { callErrorsMs, callsMs } from './calls/ms'
 import type { Dictionary } from './en'
@@ -322,6 +323,7 @@ export const ms: Dictionary = {
   settings: settingsMs,
   likes: likesMs,
   discover: discoverMs,
+  discoverui: discoverUiMs,
   media: mediaMs,
   calls: callsMs,
   pwa: {

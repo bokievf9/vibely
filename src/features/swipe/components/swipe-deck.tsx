@@ -1,12 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, useMotionValue } from 'framer-motion'
 import { Heart, SlidersHorizontal, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
-import { PageSpinner } from '@/components/ui/spinner'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
@@ -14,9 +13,11 @@ import { loadCandidates, swipe } from '../actions'
 import { setNewPeopleAlert } from '../deck-end-actions'
 import type { Candidate, SwipeFilters } from '../schemas'
 import { DeckEnd } from './deck-end'
+import { DeckSkeleton } from './deck-skeleton'
 import { FilterSheet } from './filter-sheet'
-import { MatchModal } from './match-modal'
-import { SwipeCard } from './swipe-card'
+import { MatchModal, type MatchInfo } from './match-modal'
+import { SwipeCard, type SwipeCardHandle } from './swipe-card'
+import type { Direction } from './swipe-physics'
 import { useSwipeFilters } from './use-swipe-filters'
 
 const REFILL_AT = 3
@@ -27,6 +28,9 @@ type Props = {
   headerActions?: ReactNode
 }
 
+const roundButton =
+  'size-16 rounded-full shadow-lg shadow-black/30 active:scale-[0.92] [&_svg]:transition-transform'
+
 export function SwipeDeck({ defaultFilters, headerActions }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
@@ -35,9 +39,15 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
   const [loading, setLoading] = useState(true)
   const [exhausted, setExhausted] = useState(false)
   const [error, setError] = useState<ErrorKey>()
-  const [direction, setDirection] = useState<'like' | 'pass'>('like')
-  const [match, setMatch] = useState<{ id: string; name: string } | null>(null)
+  const [match, setMatch] = useState<MatchInfo | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // The last card is still flying out: keep the stage mounted until it has left the screen.
+  const [settling, setSettling] = useState(false)
+  // Top card's drag progress (0..1), read by the back card without re-rendering the deck.
+  const progress = useMotionValue(0)
+  const topCard = useRef<SwipeCardHandle>(null)
+  // Every card is decided once, even if a drag release and a button tap land together.
+  const decided = useRef(new Set<string>())
   // Known once the deck-end screen loaded; new filters are then saved for "new people" alerts too.
   const alertOn = useRef(false)
   const onAlertChange = useCallback((on: boolean) => {
@@ -53,7 +63,10 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
       setCards((prev) => {
         const base = replace ? [] : prev
         const seen = new Set(base.map((c) => c.id))
-        return [...base, ...result.data.filter((c) => !seen.has(c.id))]
+        return [
+          ...base,
+          ...result.data.filter((c) => !seen.has(c.id) && !decided.current.has(c.id)),
+        ]
       })
     },
     [],
@@ -87,20 +100,32 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
     apply(await loadCandidates(filters), true)
   }
 
-  const decide = async (dir: 'like' | 'pass') => {
+  const decide = async (dir: Direction) => {
     const [top, ...rest] = cards
-    if (!top) return
-    setDirection(dir)
+    if (!top || decided.current.has(top.id)) return
+    decided.current.add(top.id)
     setCards(rest)
+    if (rest.length === 0) setSettling(true)
     if (rest.length < REFILL_AT && !exhausted && !loading) void topUp()
     const result = await swipe({ targetId: top.id, direction: dir })
     if (!result.ok) return setError(result.error)
     if (!result.data.matchId) return
     trackOnce('first_match')
-    setMatch({ id: result.data.matchId, name: top.name })
+    setMatch({ id: result.data.matchId, name: top.name, photo: top.photos[0]?.url ?? null })
   }
 
   const [top, next] = cards
+
+  // A new top card starts from rest: the back card waits at its resting scale again.
+  useEffect(() => {
+    progress.set(0)
+  }, [top?.id, progress])
+
+  // Buttons throw the card (same spring, same tilt as a flick); fall back to a plain decision.
+  const press = (dir: Direction) => {
+    if (topCard.current) topCard.current.fling(dir)
+    else void decide(dir)
+  }
 
   return (
     <>
@@ -117,8 +142,8 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
       </PageHeader>
       <section className="flex flex-1 flex-col gap-4 px-4 pb-4">
         <FormError message={errorText(error)} />
-        {!top && loading && <PageSpinner />}
-        {!top && !loading && (
+        {!top && !settling && loading && <DeckSkeleton />}
+        {!top && !settling && !loading && (
           <DeckEnd
             filters={filters}
             onWiden={changeFilters}
@@ -127,31 +152,42 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
             onAlertChange={onAlertChange}
           />
         )}
-        {top && (
+        {(top || settling) && (
           <>
             <div className="relative min-h-[420px] flex-1">
-              <AnimatePresence custom={direction}>
+              <AnimatePresence onExitComplete={() => setSettling(false)}>
                 {[next, top].map(
                   (c) =>
-                    c && <SwipeCard key={c.id} candidate={c} active={c === top} onSwipe={decide} />,
+                    c && (
+                      <SwipeCard
+                        key={c.id}
+                        ref={c === top ? topCard : undefined}
+                        candidate={c}
+                        active={c === top}
+                        progress={progress}
+                        onSwipe={(dir) => void decide(dir)}
+                      />
+                    ),
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-8">
               <Button
                 variant="secondary"
                 size="icon"
-                className="size-16 rounded-full"
+                className={roundButton}
                 aria-label={dict.swipe.pass}
-                onClick={() => decide('pass')}
+                disabled={!top}
+                onClick={() => press('pass')}
               >
-                <X className="size-8 text-red-400" />
+                <X className="size-8 text-red-400" strokeWidth={2.5} />
               </Button>
               <Button
                 size="icon"
-                className="size-16 rounded-full"
+                className={roundButton}
                 aria-label={dict.swipe.like}
-                onClick={() => decide('like')}
+                disabled={!top}
+                onClick={() => press('like')}
               >
                 <Heart className="size-8 fill-current" />
               </Button>

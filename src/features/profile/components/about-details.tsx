@@ -81,7 +81,7 @@ export function AboutDetails({ about, t, tone = 'surface', title }: Props) {
             <Icon className="size-5 shrink-0 opacity-70" aria-hidden />
             <span className="flex min-w-0 flex-col">
               <span className="text-xs opacity-60">{label}</span>
-              <span className="text-sm font-medium">{value}</span>
+              <span className="text-sm font-medium [overflow-wrap:anywhere]">{value}</span>
             </span>
           </li>
         ))}
@@ -109,7 +109,9 @@ export function PromptCards({ prompts, t, tone = 'surface' }: PromptsProps) {
           )}
         >
           <span className="text-sm font-semibold opacity-70">{t.prompts.keys[p.key]}</span>
-          <span className="text-lg leading-snug whitespace-pre-wrap">{p.answer}</span>
+          <span className="text-lg leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {p.answer}
+          </span>
         </li>
       ))}
     </ul>

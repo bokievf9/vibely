@@ -1,8 +1,9 @@
 'use client'
 
-import type { PointerEvent } from 'react'
+import type { PointerEvent, ReactNode } from 'react'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight, GripVertical, Star, X } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { ArrowLeftRight, GripVertical, X } from 'lucide-react'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
@@ -23,97 +24,112 @@ type Props = {
   pending: boolean
   drag: PhotoDrag | null
   handle: HandleProps
-  onMove: (to: number) => void
+  onOptions: () => void
   onRemove: () => void
 }
 
-const ctl = 'flex size-7 items-center justify-center rounded-full bg-black/60 text-white'
+// Reorders slide to their new slot (FLIP via framer layout) instead of teleporting.
+const REORDER = { type: 'spring', bounce: 0, duration: 0.35 } as const
 
-// One photo in the manager: drag handle, delete, and "Make main" / ← → for button-only reordering.
-export function PhotoTile({ photo, index, count, pending, drag, handle, onMove, onRemove }: Props) {
+// One photo in the manager: drag handle, delete, and an options button (make main, move earlier /
+// later) for button-only reordering. Every control is a 44px target around a small visual circle.
+export function PhotoTile({
+  photo,
+  index,
+  count,
+  pending,
+  drag,
+  handle,
+  onOptions,
+  onRemove,
+}: Props) {
   const { dict } = useI18n()
   const t = dict.avatar
+  const reduce = useReducedMotion()
   const dragging = drag?.from === index
   const target = drag !== null && !dragging && drag.over === index
 
   return (
-    <li
+    <motion.li
+      layout={!reduce && !dragging}
+      transition={REORDER}
       data-photo-index={index}
       className={cn(
-        'bg-surface relative aspect-[3/4] overflow-hidden rounded-2xl transition-shadow',
-        dragging && 'z-10 opacity-90 shadow-2xl',
+        'bg-surface relative aspect-[3/4] overflow-hidden rounded-2xl',
+        dragging && 'z-10 opacity-90 shadow-2xl shadow-black/50',
         target && 'ring-accent ring-2',
         index === 0 && !drag && 'ring-accent/60 ring-2',
       )}
-      style={dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.05)` } : {}}
+      style={dragging ? { x: drag.dx, y: drag.dy, scale: 1.05 } : { x: 0, y: 0, scale: 1 }}
     >
       <Image
         src={photo.url}
         alt={fmt(dict.onboarding.photoAlt, { n: index + 1 })}
         width={photo.width}
         height={photo.height}
-        sizes="33vw"
+        sizes="(max-width: 448px) 33vw, 150px"
         draggable={false}
         className="size-full object-cover select-none"
       />
-      <button
-        type="button"
-        {...handle}
-        disabled={pending || count < 2}
-        aria-label={t.reorderHint}
-        className={cn(ctl, 'absolute top-1.5 left-1.5 touch-none disabled:hidden')}
-      >
-        <GripVertical className="size-4" />
-      </button>
-      <button
-        type="button"
+      {count > 1 && (
+        <Control
+          {...handle}
+          disabled={pending}
+          label={t.reorderHint}
+          className="top-0 left-0 touch-none disabled:hidden"
+        >
+          <GripVertical className="size-4" />
+        </Control>
+      )}
+      <Control
         onClick={onRemove}
         disabled={pending}
-        aria-label={dict.onboarding.deletePhoto}
-        className={cn(ctl, 'absolute top-1.5 right-1.5')}
+        label={dict.onboarding.deletePhoto}
+        className="top-0 right-0"
       >
         <X className="size-4" />
-      </button>
-      <div className="absolute inset-x-1.5 bottom-1.5 flex items-center gap-1">
-        {index === 0 ? (
-          <span className="bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
-            {t.main}
-          </span>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => onMove(index - 1)}
-              disabled={pending}
-              aria-label={t.moveLeft}
-              className={ctl}
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onMove(0)}
-              disabled={pending}
-              aria-label={t.makeMain}
-              title={t.makeMain}
-              className={ctl}
-            >
-              <Star className="size-4" />
-            </button>
-          </>
-        )}
-        {index < count - 1 && (
-          <button
-            type="button"
-            onClick={() => onMove(index + 1)}
-            disabled={pending}
-            aria-label={t.moveRight}
-            className={cn(ctl, 'ml-auto')}
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        )}
-      </div>
-    </li>
+      </Control>
+      {index === 0 && (
+        <span className="bg-accent text-accent-foreground pointer-events-none absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+          {t.main}
+        </span>
+      )}
+      {count > 1 && (
+        <Control
+          onClick={onOptions}
+          disabled={pending}
+          label={dict.discoverui.photoOptions}
+          className="right-0 bottom-0"
+        >
+          <ArrowLeftRight className="size-4" />
+        </Control>
+      )}
+    </motion.li>
+  )
+}
+
+type ControlProps = Partial<HandleProps> & {
+  onClick?: () => void
+  disabled: boolean
+  label: string
+  className: string
+  children: ReactNode
+}
+
+function Control({ label, className, children, ...props }: ControlProps) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className={cn(
+        'group absolute flex size-11 items-center justify-center disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    >
+      <span className="flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out group-active:scale-90 group-active:bg-black/80">
+        {children}
+      </span>
+    </button>
   )
 }

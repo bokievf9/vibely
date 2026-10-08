@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { ChevronLeft, Heart } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
-import { PageSpinner } from '@/components/ui/spinner'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
 import { LikesGrid } from '@/features/likes/components/likes-grid'
+import { LikesSkeleton } from '@/features/likes/components/likes-skeleton'
 import { countIncomingLikes, getIncomingLikes } from '@/features/likes/queries'
 import { fmt, localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
@@ -21,19 +21,19 @@ export default async function LikesPage() {
     <>
       <PageHeader
         title={
-          <span className="flex items-center gap-1">
+          <span className="flex min-w-0 items-center gap-1">
             <Link
               href={localePath(locale, '/swipe')}
               aria-label={dict.common.back}
-              className="-ml-2 p-1"
+              className="active:bg-surface -ml-3 flex size-11 shrink-0 items-center justify-center rounded-full transition-[transform,background-color] duration-150 ease-out active:scale-[0.94]"
             >
               <ChevronLeft className="size-6" />
             </Link>
-            {dict.likes.title}
+            <span className="truncate">{dict.likes.title}</span>
           </span>
         }
       />
-      <Suspense fallback={<PageSpinner />}>
+      <Suspense fallback={<LikesSkeleton />}>
         <Likes />
       </Suspense>
     </>
