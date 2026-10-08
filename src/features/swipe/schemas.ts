@@ -33,4 +33,6 @@ export type Candidate = {
   photos: { url: string; width: number; height: number }[]
   about: AboutInput
   prompts: ProfilePrompt[]
+  // Passed more than 14 days ago and shown again.
+  secondChance: boolean
 }

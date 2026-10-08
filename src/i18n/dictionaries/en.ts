@@ -1,5 +1,6 @@
 import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
+import { discoverEn } from './discover/en'
 import { landingEn } from './landing/en'
 import { likesEn, settingsEn } from './settings/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
@@ -314,6 +315,7 @@ export const en = {
   about: aboutEn,
   settings: settingsEn,
   likes: likesEn,
+  discover: discoverEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

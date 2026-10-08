@@ -8,6 +8,7 @@ export const NOTIFICATION_TYPES = [
   'likes',
   'feed_replies',
   'random_reveal',
+  'new_people',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -21,4 +22,5 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   likes: true,
   feed_replies: true,
   random_reveal: true,
+  new_people: true,
 }

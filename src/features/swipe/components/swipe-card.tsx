@@ -1,6 +1,8 @@
 'use client'
 
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion'
+import { RotateCcw } from 'lucide-react'
+import { useI18n } from '@/i18n/client'
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import type { Candidate } from '../schemas'
 import { SwipeCardInfo } from './swipe-card-info'
@@ -25,6 +27,7 @@ type Props = {
 }
 
 export function SwipeCard({ candidate, active, onSwipe, draggable = true }: Props) {
+  const { dict } = useI18n()
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-300, 300], [-18, 18])
   const likeOpacity = useTransform(x, [20, SWIPE_THRESHOLD_PX], [0, 1])
@@ -49,6 +52,11 @@ export function SwipeCard({ candidate, active, onSwipe, draggable = true }: Prop
       aria-hidden={!active}
     >
       <PhotoCarousel photos={candidate.photos} alt={candidate.name} priority={active} />
+      {candidate.secondChance && (
+        <span className="pointer-events-none absolute top-5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+          <RotateCcw className="size-3.5" aria-hidden /> {dict.discover.secondChance}
+        </span>
+      )}
       <motion.span
         style={{ opacity: likeOpacity }}
         className="absolute top-8 left-6 -rotate-12 rounded-xl border-4 border-emerald-400 px-3 py-1 text-3xl font-black text-emerald-400"

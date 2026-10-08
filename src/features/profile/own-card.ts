@@ -18,6 +18,7 @@ export function ownCandidate(
     bio: profile.bio || null,
     city: profile.city || null,
     distanceKm: null,
+    secondChance: false,
     tags: profile.tagIds.flatMap((tagId) => slugById.get(tagId) ?? []).sort(),
     photos: [...photos]
       .sort((a, b) => a.position - b.position)

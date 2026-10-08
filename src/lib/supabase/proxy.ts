@@ -5,6 +5,12 @@ import { LOCALE_COOKIE, localePath } from '@/i18n/config'
 import { preferredLocale, splitLocale } from '@/i18n/negotiate'
 import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
+import {
+  parseRefCode,
+  REF_COOKIE,
+  REF_COOKIE_MAX_AGE,
+  REF_PARAM,
+} from '@/features/referrals/constants'
 
 const AUTH_ROUTES = ['/login', '/verify-otp']
 // Open to everyone, signed in or not (the landing page "/" is handled separately). The service
@@ -66,6 +72,18 @@ export async function updateSession(request: NextRequest) {
   const lang = locale ?? preferredLocale(request)
 
   const isLanding = rest === '/'
+
+  // Invite link (/{lang}?ref=<code>): remembered until the visitor creates a profile.
+  const ref = parseRefCode(request.nextUrl.searchParams.get(REF_PARAM))
+  if (ref && !isSignedIn) {
+    response.cookies.set(REF_COOKIE, ref, {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: request.nextUrl.protocol === 'https:',
+      maxAge: REF_COOKIE_MAX_AGE,
+    })
+  }
 
   if (!isSignedIn && !isLanding && !isPublic(rest) && !matches(rest, AUTH_ROUTES)) {
     return redirectWithCookies(request, response, localePath(lang, '/login'))

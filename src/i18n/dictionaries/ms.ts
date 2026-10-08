@@ -1,5 +1,6 @@
 import { avatarMs } from './avatar/ms'
 import { aboutMs } from './about/ms'
+import { discoverMs } from './discover/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { likesMs, settingsMs } from './settings/ms'
@@ -319,6 +320,7 @@ export const ms: Dictionary = {
   about: aboutMs,
   settings: settingsMs,
   likes: likesMs,
+  discover: discoverMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',

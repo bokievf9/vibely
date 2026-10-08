@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { FormError } from '@/components/ui/field'
+import { ChatIcebreakers } from '@/features/icebreakers/components/chat-icebreakers'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { loadMessagesBefore } from '../history-actions'
 import type { ChatImage, ChatMessage, Reaction } from '../types'
-import { ChatComposer } from './chat-composer'
+import { ChatComposer, type ComposerPrefill } from './chat-composer'
 import type { ComposerMode } from './composer-banner'
 import { MessageList } from './message-list'
 import { PhotoViewer } from './photo-viewer'
@@ -41,6 +42,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
   const [loadingEarlier, startLoading] = useTransition()
   const [mode, setMode] = useState<ComposerMode | null>(null)
   const [photo, setPhoto] = useState<ChatImage | null>(null)
+  const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
   const actions = useMessageActions({ chat, reactions, setMode, setPhoto, setError })
   // Reply/edit target as currently loaded; dropped once it is deleted (by either side).
   const target = mode && chat.messages.find((m) => m.id === mode.message.id)
@@ -91,8 +93,15 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
         onLoadEarlier={loadEarlier}
         onAction={actions.onBubble}
       />
+      {chat.messages.length === 0 && !hasMore && (
+        <ChatIcebreakers
+          matchId={matchId}
+          onPick={(text) => setPrefill({ text, at: Date.now() })}
+        />
+      )}
       <ChatComposer
         matchId={matchId}
+        prefill={prefill}
         mode={activeMode}
         quoteAuthor={activeMode?.message.senderId === viewerId ? dict.chats.yourself : partnerName}
         aside={

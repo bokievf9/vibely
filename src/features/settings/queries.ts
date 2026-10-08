@@ -24,8 +24,8 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     .eq('user_id', userId)
     .maybeSingle()
   if (!data) return DEFAULT_NOTIFICATION_PREFS
-  const { new_matches, messages, likes, feed_replies, random_reveal } = data
-  return { new_matches, messages, likes, feed_replies, random_reveal }
+  const { new_matches, messages, likes, feed_replies, random_reveal, new_people } = data
+  return { new_matches, messages, likes, feed_replies, random_reveal, new_people }
 }
 
 export type BlockedUser = {

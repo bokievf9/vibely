@@ -11,6 +11,7 @@ export const settingsRu: SettingsDictionary = {
     likes: 'Кто-то вас лайкнул',
     feed_replies: 'Ответы в ленте',
     random_reveal: 'Раскрытие в случайном чате',
+    new_people: 'Новые люди рядом',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

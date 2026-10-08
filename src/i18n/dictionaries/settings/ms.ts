@@ -11,6 +11,7 @@ export const settingsMs: SettingsDictionary = {
     likes: 'Seseorang menyukai anda',
     feed_replies: 'Balasan dalam suapan',
     random_reveal: 'Pendedahan sembang rawak',
+    new_people: 'Orang baharu berdekatan',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',

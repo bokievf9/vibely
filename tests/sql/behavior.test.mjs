@@ -578,6 +578,82 @@ export async function run(db) {
   ok('likes: unverified caller rejected', !!(await fails(() => likesOf(S[3]))))
   await su(`delete from auth.users where id=$1`, [S[0]])
   ok('prefs: removed with the account', (await su(`select count(*)::int c from notification_prefs`)).rows[0].c === 0)
+  // discover: widening counts, second chance, new-people alerts, referrals (gender 'other' keeps them apart)
+  const DS = [1, 2, 3, 4, 5].map((i) => `d15c0000-0000-0000-0000-00000000000${i}`)
+  const discLon = [101.7, 101.71, 101.72, 103.0, 101.705]
+  const discBirth = ['1995-01-01', '1996-01-01', '1985-01-01', '1998-01-01', '1997-01-01']
+  for (const [i, u] of DS.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, location)
+      values ($1, $2, 'other', '{other}', 'SRID=4326;POINT(${discLon[i]} 3.14)')`, ['Disc' + i, discBirth[i]])
+  }
+  await su(`update profiles set verification_status = 'approved' where id = any($1)`, [DS.slice(0, 4)])
+  const discCount = async (u, minA, maxA, km) => (await as(u, `select count_swipe_candidates('{other}', $1, $2, $3) n`, [minA, maxA, km])).rows[0].n
+  ok('disc: count matches deck filters', (await discCount(DS[0], 18, 35, 50)) === 1)
+  ok('disc: wider age counts more', (await discCount(DS[0], 18, 45, 50)) === 2)
+  ok('disc: wider distance counts more', (await discCount(DS[0], 18, 35, 200)) === 2)
+  ok('disc: count requires verification', !!(await fails(() => discCount(DS[4], 18, 99, 50))))
+  ok('disc: pool not callable by clients', !!(await fails(() => as(DS[0], `select * from swipe_candidate_pool($1, '{other}', 18, 99, 50)`, [DS[0]]))))
+  await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'pass')`, [DS[1]])
+  await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[2]])
+  ok('disc: fresh pass hidden', (await discCount(DS[0], 18, 99, 500)) === 1)
+  await su(`update swipes set created_at = now() - interval '15 days' where swiper_id = $1`, [DS[0]])
+  const discDeck = (await as(DS[0], `select id, second_chance from get_swipe_candidates('{other}', 18, 99, 500)`)).rows
+  ok('disc: old pass comes back as second chance, new people first',
+    JSON.stringify(discDeck) === JSON.stringify([{ id: DS[3], second_chance: false }, { id: DS[1], second_chance: true }]), JSON.stringify(discDeck))
+  ok('disc: likes never come back', !discDeck.some((c) => c.id === DS[2]))
+  ok('disc: candidates never return location', !('location' in ((await as(DS[0], `select * from get_swipe_candidates('{other}', 18, 99, 500)`)).rows[0] ?? {})))
+  const reSwipe = await fails(() => as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[1]]))
+  ok('disc: second-chance card can be swiped again', !reSwipe && (await su(`select direction from swipes where swiper_id = $1 and swiped_id = $2`, [DS[0], DS[1]])).rows[0].direction === 'like', reSwipe)
+  ok('disc: fresh pass cannot be replaced', !!(await fails(async () => {
+    await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'pass')`, [DS[3]])
+    await as(DS[0], `insert into swipes (swiped_id, direction) values ($1, 'like')`, [DS[3]])
+  })))
+  // new-people alerts
+  const discSvc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+  ok('disc: alert requires verification', !!(await fails(() => as(DS[4], `select set_new_people_alert(true, '{other}', 18, 99, 50)`))))
+  await as(DS[1], `select set_new_people_alert(true, '{other}', 18, 40, 50)`)
+  await as(DS[2], `select set_new_people_alert(true, '{other}', 18, 99, 50)`)
+  await as(DS[3], `select set_new_people_alert(true, '{other}', 18, 99, 10)`)
+  for (const u of [DS[1], DS[3]]) await su(`insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [u, `https://push.example/${u}`])
+  ok('disc: alert is owner-only', (await as(DS[0], `select count(*)::int c from new_people_alerts`)).rows[0].c === 0 &&
+    (await as(DS[1], `select count(*)::int c from new_people_alerts`)).rows[0].c === 1)
+  ok('disc: alert not writable directly', !!(await fails(() => as(DS[1], `update new_people_alerts set max_km = 500`))))
+  const discRecipients = async (p) => (await discSvc(`select coalesce(array_agg(r), '{}') r from new_people_alert_recipients($1) r`, [p])).rows[0].r
+  ok('disc: recipients not callable by clients', !!(await fails(() => as(DS[0], `select new_people_alert_recipients($1)`, [DS[4]]))))
+  ok('disc: unapproved profile notifies nobody', (await discRecipients(DS[4])).length === 0)
+  await su(`update profiles set verification_status = 'approved' where id = $1`, [DS[4]])
+  const discR = await discRecipients(DS[4])
+  ok('disc: only opted-in, in range, subscribed users', JSON.stringify(discR) === JSON.stringify([DS[1]]), JSON.stringify(discR))
+  ok('disc: at most one alert per 12 hours', (await discRecipients(DS[4])).length === 0)
+  await as(DS[1], `select set_new_people_alert(false)`)
+  ok('disc: alert can be turned off', (await su(`select count(*)::int c from new_people_alerts where user_id = $1`, [DS[1]])).rows[0].c === 0)
+  // referrals
+  const discRef = (await as(DS[0], `select * from get_my_referral()`)).rows[0]
+  ok('disc: referral code created', /^[a-z0-9]{8}$/.test(discRef.code) && discRef.invited === 0, JSON.stringify(discRef))
+  ok('disc: referral code is stable', (await as(DS[0], `select code from get_my_referral()`)).rows[0].code === discRef.code)
+  ok('disc: referral codes owner-only', (await as(DS[1], `select count(*)::int c from referral_codes`)).rows[0].c === 0)
+  ok('disc: own code not claimable', (await as(DS[0], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  ok('disc: new user claims code', (await as(DS[4], `select claim_referral($1) v`, [discRef.code.toUpperCase()])).rows[0].v === true)
+  ok('disc: claim only once', (await as(DS[4], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  await su(`update profiles set created_at = now() - interval '2 days' where id = $1`, [DS[3]])
+  ok('disc: old profile cannot claim', (await as(DS[3], `select claim_referral($1) v`, [discRef.code])).rows[0].v === false)
+  ok('disc: invited count', (await as(DS[0], `select invited from get_my_referral()`)).rows[0].invited === 1)
+  ok('disc: referred_by not readable', !!(await fails(() => as(DS[4], `select referred_by from profiles where id = $1`, [DS[4]]))))
+  ok('disc: referred_by not writable', !!(await fails(() => as(DS[4], `update profiles set referred_by = null where id = $1`, [DS[4]]))))
+  // batch-3 integration: paused (discoverable=false) profiles stay out of the Discover pool and counts
+  const integ_viewer = '11111111-1111-1111-1111-111111111111'
+  await su(`update profiles set verification_status='approved', is_active=true, banned_at=null where id=$1`, [integ_viewer])
+  const integ_before = (await as(integ_viewer, `select count_swipe_candidates('{female,male,other}', 18, 99, 300) n`)).rows[0].n
+  const integ_target = (await as(integ_viewer, `select id from get_swipe_candidates('{female,male,other}', 18, 99, 300, 50) limit 1`)).rows[0]?.id
+  ok('integ: viewer has at least one candidate', !!integ_target)
+  await su(`update profiles set discoverable=false where id=$1`, [integ_target])
+  const integ_after = (await as(integ_viewer, `select count_swipe_candidates('{female,male,other}', 18, 99, 300) n`)).rows[0].n
+  const integ_ids = (await as(integ_viewer, `select id from get_swipe_candidates('{female,male,other}', 18, 99, 300, 50)`)).rows.map(r => r.id)
+  ok('integ: paused profile left the deck', !integ_ids.includes(integ_target))
+  ok('integ: paused profile left the count', integ_after === integ_before - 1, `${integ_before} -> ${integ_after}`)
+  await su(`update profiles set discoverable=true where id=$1`, [integ_target])
+  ok('integ: new_people pref column exists', (await su(`select count(*)::int c from information_schema.columns where table_name='notification_prefs' and column_name='new_people'`)).rows[0].c === 1)
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

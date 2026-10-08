@@ -1,5 +1,6 @@
 import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
+import { discoverRu } from './discover/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { likesRu, settingsRu } from './settings/ru'
@@ -316,6 +317,7 @@ export const ru: Dictionary = {
   about: aboutRu,
   settings: settingsRu,
   likes: likesRu,
+  discover: discoverRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',

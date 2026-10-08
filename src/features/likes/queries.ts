@@ -30,6 +30,7 @@ export async function getIncomingLikes(): Promise<Candidate[]> {
     bio: c.bio,
     city: c.city,
     distanceKm: c.distance_km,
+    secondChance: false,
     tags: c.tags,
     photos: (photosById.get(c.id) ?? []).flatMap((p) => {
       const url = urls.get(p.path)

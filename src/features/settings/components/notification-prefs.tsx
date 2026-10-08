@@ -1,6 +1,14 @@
 'use client'
 
-import { Heart, MessageCircle, Newspaper, Shuffle, Sparkles, type LucideIcon } from 'lucide-react'
+import {
+  Heart,
+  MessageCircle,
+  Newspaper,
+  Shuffle,
+  Sparkles,
+  UserPlus,
+  type LucideIcon,
+} from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import {
   NOTIFICATION_TYPES,
@@ -16,6 +24,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   likes: Sparkles,
   feed_replies: Newspaper,
   random_reveal: Shuffle,
+  new_people: UserPlus,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

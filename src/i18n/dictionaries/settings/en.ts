@@ -10,6 +10,7 @@ export const settingsEn = {
     likes: 'Someone liked you',
     feed_replies: 'Replies in the feed',
     random_reveal: 'Random chat reveals',
+    new_people: 'New people nearby',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',

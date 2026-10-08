@@ -1,9 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Heart, RotateCw, SearchX, SlidersHorizontal, X } from 'lucide-react'
-import { EmptyState } from '@/components/layout/empty-state'
+import { Heart, SlidersHorizontal, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
@@ -12,7 +11,9 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
 import { loadCandidates, swipe } from '../actions'
+import { setNewPeopleAlert } from '../deck-end-actions'
 import type { Candidate, SwipeFilters } from '../schemas'
+import { DeckEnd } from './deck-end'
 import { FilterSheet } from './filter-sheet'
 import { MatchModal } from './match-modal'
 import { SwipeCard } from './swipe-card'
@@ -37,6 +38,11 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
   const [direction, setDirection] = useState<'like' | 'pass'>('like')
   const [match, setMatch] = useState<{ id: string; name: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // Known once the deck-end screen loaded; new filters are then saved for "new people" alerts too.
+  const alertOn = useRef(false)
+  const onAlertChange = useCallback((on: boolean) => {
+    alertOn.current = on
+  }, [])
 
   const apply = useCallback(
     (result: Awaited<ReturnType<typeof loadCandidates>>, replace: boolean) => {
@@ -67,6 +73,7 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
     setLoading(true)
     setCards([])
     setFilters(next)
+    if (alertOn.current) void setNewPeopleAlert({ enabled: true, filters: next })
   }
 
   const topUp = async () => {
@@ -112,16 +119,13 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
         <FormError message={errorText(error)} />
         {!top && loading && <PageSpinner />}
         {!top && !loading && (
-          <EmptyState icon={SearchX} title={dict.swipe.empty} text={dict.swipe.emptyHint}>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={() => void refresh()}>
-                <RotateCw className="size-5" /> {dict.swipe.refresh}
-              </Button>
-              <Button variant="secondary" onClick={() => setFiltersOpen(true)}>
-                <SlidersHorizontal className="size-5" /> {dict.swipe.filters}
-              </Button>
-            </div>
-          </EmptyState>
+          <DeckEnd
+            filters={filters}
+            onWiden={changeFilters}
+            onRefresh={() => void refresh()}
+            onOpenFilters={() => setFiltersOpen(true)}
+            onAlertChange={onAlertChange}
+          />
         )}
         {top && (
           <>
