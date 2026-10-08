@@ -41,13 +41,13 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
   }
 
   return (
-    <section className="flex flex-1 flex-col gap-4 px-4 pb-4">
+    <section className="flex flex-1 flex-col gap-4 px-4 pb-6">
       <FormError message={errorText(error)} />
       {people.length === 0 ? (
         <EmptyState icon={HeartHandshake} title={dict.likes.empty} text={dict.likes.emptyHint} />
       ) : (
         <>
-          <p className="text-muted text-sm">{dict.likes.hint}</p>
+          <p className="text-muted text-callout px-1">{dict.likes.hint}</p>
           <ul className="grid grid-cols-2 gap-3">
             {people.map((person, i) => (
               <li key={person.id}>
@@ -55,13 +55,17 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   type="button"
                   onClick={() => setOpen(person)}
                   aria-label={fmt(dict.likes.view, { name: person.name })}
-                  className="bg-surface relative block aspect-[3/4] w-full overflow-hidden rounded-2xl text-left transition-transform duration-150 ease-out active:scale-[0.97]"
+                  className="bg-surface-raised relative block aspect-[3/4] w-full overflow-hidden rounded-[1.375rem] text-left shadow-[0_2px_4px_rgb(0_0_0/0.3),0_18px_36px_-20px_rgb(0_0_0/0.9)] transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   <GridPhoto person={person} eager={i < 4} />
-                  <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-gradient-to-t from-black/85 to-transparent p-3 pt-10 font-semibold text-white">
+                  <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-[linear-gradient(to_top,rgb(10_6_10/0.9),rgb(10_6_10/0.4)_55%,transparent)] px-3.5 pt-12 pb-3 text-[17px] font-bold tracking-[-0.02em] text-white">
                     <span className="truncate">{person.name}</span>
-                    <span className="shrink-0 font-normal">, {person.age}</span>
+                    <span className="shrink-0 font-light text-white/90">, {person.age}</span>
                   </span>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),inset_0_1px_0_rgb(255_255_255/0.12)]"
+                  />
                 </button>
               </li>
             ))}

@@ -11,8 +11,8 @@ export function ChatListSkeleton({ label }: { label: string }) {
   return (
     <ul className="flex flex-col" aria-busy="true" aria-label={label}>
       {ROW_WIDTHS.map((w, i) => (
-        <li key={i} className="flex items-center gap-3 px-4 py-3">
-          <Skeleton className="size-14 shrink-0 rounded-full" />
+        <li key={i} className="flex items-center gap-3.5 px-4 py-2.5">
+          <Skeleton className="size-[60px] shrink-0 rounded-full" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <Skeleton className={cn('h-4 rounded-full', w)} />
@@ -42,7 +42,7 @@ export function ChatRoomSkeleton() {
       <Immersive />
       <div className={CHAT_HEADER_CLASS}>
         <div aria-hidden className={`${CHAT_BAR_MATERIAL_CLASS} border-b`} />
-        <div className="relative flex h-14 w-full items-center gap-2 px-2">
+        <div className="relative flex h-[3.25rem] w-full items-center gap-2 px-2">
           <span className="size-11 shrink-0" />
           <Skeleton className="size-9 shrink-0 rounded-full" />
           <div className="flex flex-1 flex-col gap-1.5">

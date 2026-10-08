@@ -25,7 +25,7 @@ export function TelegramLink({ linked, linkedAt }: Props) {
     : null
 
   return (
-    <section className="bg-surface flex flex-col gap-3 rounded-2xl p-4">
+    <section className="card flex flex-col gap-3 p-4">
       {linked ? (
         <>
           <p>

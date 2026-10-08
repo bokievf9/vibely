@@ -15,7 +15,7 @@ export function Field({ label, htmlFor, error, hint, className, children }: Fiel
   const message = error ?? hint
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={htmlFor} className="text-muted text-sm font-medium">
+      <label htmlFor={htmlFor} className="text-muted text-footnote px-1 font-medium">
         {label}
       </label>
       {children}

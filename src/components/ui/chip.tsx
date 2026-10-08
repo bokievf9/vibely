@@ -11,8 +11,8 @@ export function chipClassName(selected: boolean, className?: string) {
     'transition-[transform,scale,background-color,border-color,color] duration-150 ease-out active:scale-[0.97]',
     'focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
     selected
-      ? 'border-accent bg-accent/15 text-accent'
-      : 'border-border bg-surface text-foreground active:bg-border',
+      ? 'border-accent/60 bg-accent/15 text-[#ff7aa0] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]'
+      : 'border-border bg-surface-raised text-foreground highlight active:bg-fill',
     className,
   )
 }

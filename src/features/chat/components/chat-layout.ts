@@ -11,4 +11,4 @@ export const CHAT_HEADER_CLASS =
 // The translucent material lives on its own layer: backdrop-filter on the header itself would make
 // it the containing block of the fixed sheets opened from its buttons (they would be clipped to it).
 export const CHAT_BAR_MATERIAL_CLASS =
-  'bg-background/80 border-border/60 pointer-events-none absolute inset-0 backdrop-blur-xl'
+  'material-bar border-white/[0.07] pointer-events-none absolute inset-0'

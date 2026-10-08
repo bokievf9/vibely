@@ -141,7 +141,7 @@ export function MessageList({
               // Sticks right under the translucent header (its height includes the notch).
               className="pointer-events-none sticky top-[calc(var(--header-h)+0.5rem)] z-20 flex justify-center py-2"
             >
-              <span className="bg-surface/85 text-muted rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur">
+              <span className="glass-dark text-foreground/75 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.01em]">
                 {dayLabel(item.at)}
               </span>
             </li>
@@ -159,9 +159,9 @@ export function MessageList({
               if (el && fresh.current.delete(m.id)) rise(el, mine)
             }}
             className={cn(
-              'flex max-w-[85%] min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] flex-col',
+              'flex max-w-[80%] min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] flex-col',
               mine ? 'self-end' : 'self-start',
-              item.groupStart ? 'mt-2' : 'mt-0.5',
+              item.groupStart ? 'mt-3' : 'mt-[3px]',
             )}
           >
             <MessageBubble
@@ -170,6 +170,7 @@ export function MessageList({
               quote={quote}
               quoteAuthor={quote?.senderId === viewerId ? dict.chats.yourself : partnerName}
               tail={item.groupEnd}
+              first={item.groupStart}
               seen={m.id === lastOwn?.id && !!m.readAt}
               highlighted={highlightId === m.id}
               lifted={liftedId === m.id}

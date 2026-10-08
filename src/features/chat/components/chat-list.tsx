@@ -19,7 +19,7 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
       <EmptyState icon={MessagesSquare} title={dict.chats.empty} text={dict.chats.emptyHint}>
         <LocaleLink
           href="/swipe"
-          className="bg-accent text-accent-foreground mt-2 inline-flex h-12 items-center justify-center rounded-2xl px-6 font-semibold transition-transform duration-150 ease-out active:scale-[0.97]"
+          className="btn-accent mt-2 inline-flex h-[3.25rem] items-center justify-center rounded-2xl px-7 font-semibold transition-transform duration-150 ease-out active:scale-[0.97]"
         >
           {dict.chatui.goDiscover}
         </LocaleLink>
@@ -30,13 +30,16 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
   const threads = chats.filter((c) => c.lastMessage)
 
   return (
-    <div className="flex flex-col gap-2 pb-4">
+    <div className="flex flex-col gap-3 pt-2 pb-4">
       {fresh.length > 0 && (
-        <section aria-labelledby="new-matches" className="flex flex-col gap-2 pt-1">
-          <h2 id="new-matches" className="text-muted px-4 text-sm font-semibold">
+        <section aria-labelledby="new-matches" className="flex flex-col gap-3">
+          <h2 id="new-matches" className="text-headline flex items-center gap-2 px-4">
             {dict.chatui.newMatches}
+            <span className="bg-accent/15 text-accent rounded-full px-2 py-0.5 text-xs font-bold tabular-nums">
+              {fresh.length}
+            </span>
           </h2>
-          <ul className="flex snap-x snap-mandatory scroll-px-4 [scrollbar-width:none] gap-1 overflow-x-auto overscroll-x-contain px-3 pb-2 [&::-webkit-scrollbar]:hidden">
+          <ul className="flex snap-x snap-mandatory scroll-px-4 [scrollbar-width:none] gap-2 overflow-x-auto overscroll-x-contain px-3 pb-1 [&::-webkit-scrollbar]:hidden">
             {fresh.map((c) => (
               <li key={c.matchId} className="shrink-0 snap-start">
                 <NewMatch chat={c} />
@@ -48,7 +51,7 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
       {threads.length > 0 ? (
         <section aria-labelledby={fresh.length ? 'messages' : undefined}>
           {fresh.length > 0 && (
-            <h2 id="messages" className="text-muted px-4 pb-1 text-sm font-semibold">
+            <h2 id="messages" className="text-headline px-4 pt-3 pb-1">
               {dict.chatui.messages}
             </h2>
           )}
@@ -61,7 +64,9 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
           </ul>
         </section>
       ) : (
-        <p className="text-muted px-4 py-6 text-center text-sm">{dict.chatui.onlyNewMatches}</p>
+        <p className="text-muted text-callout px-4 py-6 text-center">
+          {dict.chatui.onlyNewMatches}
+        </p>
       )}
     </div>
   )
@@ -71,14 +76,18 @@ function NewMatch({ chat: c }: { chat: ChatPreview }) {
   return (
     <LocaleLink
       href={`/chats/${c.matchId}`}
-      className="flex w-20 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 transition-transform duration-150 ease-out active:scale-95"
+      className="flex w-[5.5rem] flex-col items-center gap-2 rounded-2xl px-1 py-1 transition-transform duration-150 ease-out active:scale-95"
     >
-      {/* Accent ring: new, not opened yet. */}
-      <span className="ring-accent ring-offset-background relative block rounded-full ring-2 ring-offset-2">
-        <Avatar photo={c.partner.photo} alt={c.partner.name} size={64} />
-        {c.online && <OnlineDot className="right-0.5 bottom-0.5" />}
+      {/* Gradient ring (new, not opened yet), with a gap in the background color. */}
+      <span className="bg-accent-gradient relative flex rounded-full p-[2.5px] shadow-[0_8px_20px_-10px_rgb(255_77_125/0.7)]">
+        <span className="bg-background flex rounded-full p-[2.5px]">
+          <Avatar photo={c.partner.photo} alt={c.partner.name} size={70} />
+        </span>
+        {c.online && <OnlineDot className="right-1 bottom-1" />}
       </span>
-      <span className="w-full truncate text-center text-xs font-medium">{c.partner.name}</span>
+      <span className="w-full truncate text-center text-[13px] font-semibold tracking-[-0.005em]">
+        {c.partner.name}
+      </span>
     </LocaleLink>
   )
 }
@@ -107,19 +116,22 @@ function ChatRow({ chat: c }: { chat: ChatPreview }) {
   return (
     <LocaleLink
       href={`/chats/${c.matchId}`}
-      className="active:bg-surface flex items-center gap-3 px-4 py-3 transition-colors duration-150"
+      className="group active:bg-fill flex items-center gap-3.5 pl-4 transition-colors duration-150"
     >
-      <span className="relative shrink-0">
-        <Avatar photo={c.partner.photo} alt={c.partner.name} size={56} />
-        {c.online && <OnlineDot className="right-0 bottom-0" />}
+      <span className="relative shrink-0 py-2.5">
+        <Avatar photo={c.partner.photo} alt={c.partner.name} size={60} />
+        {c.online && <OnlineDot className="right-0 bottom-2.5" />}
       </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      {/* Inset hairline between rows (starts after the avatar, like iOS lists). */}
+      <div className="flex min-h-[5rem] min-w-0 flex-1 flex-col justify-center gap-1 pr-4 shadow-[inset_0_-1px_0_var(--border)] group-last:shadow-none">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="min-w-0 truncate font-semibold">{c.partner.name}</span>
+          <span className={cn('text-headline min-w-0 truncate', c.unread > 0 && 'font-bold')}>
+            {c.partner.name}
+          </span>
           <time
             className={cn(
-              'shrink-0 text-xs tabular-nums',
-              c.unread ? 'text-accent font-medium' : 'text-muted',
+              'text-footnote shrink-0 tabular-nums',
+              c.unread ? 'text-accent font-semibold' : 'text-muted',
             )}
             dateTime={at}
           >
@@ -129,7 +141,7 @@ function ChatRow({ chat: c }: { chat: ChatPreview }) {
         <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
-              'min-w-0 truncate text-sm',
+              'text-callout min-w-0 truncate',
               c.unread ? 'text-foreground font-medium' : 'text-muted',
             )}
           >
@@ -139,7 +151,7 @@ function ChatRow({ chat: c }: { chat: ChatPreview }) {
           {c.unread > 0 && (
             <span
               aria-label={fmt(dict.nav.unread, { count: c.unread })}
-              className="bg-accent text-accent-foreground flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums"
+              className="bg-accent-gradient text-accent-foreground flex h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums shadow-[0_4px_10px_-4px_rgb(255_77_125/0.8)]"
             >
               {unreadLabel(c.unread)}
             </span>
@@ -156,9 +168,8 @@ function OnlineDot({ className }: { className?: string }) {
     <span
       role="img"
       aria-label={dict.chats.online}
-      // TODO(integration): bg-success once the shell tokens land.
       className={cn(
-        'border-background absolute size-3.5 rounded-full border-2 bg-green-500',
+        'border-background bg-success absolute size-4 rounded-full border-[3px]',
         className,
       )}
     />

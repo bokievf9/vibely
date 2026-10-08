@@ -72,7 +72,7 @@ function BannerContent({
         onPointerDown={(e) => e.preventDefault()}
         onClick={onCancel}
         aria-label={cancel}
-        className="text-muted active:bg-surface flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90"
+        className="text-muted active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90"
       >
         <X className="size-5" />
       </button>

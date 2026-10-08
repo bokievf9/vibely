@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapPin, Search, SearchX, TriangleAlert, X } from 'lucide-react'
+import { ChevronRight, MapPin, Search, SearchX, TriangleAlert, X } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -67,7 +67,7 @@ export function UserSearch({ initialQuery }: { initialQuery: string }) {
     <div className="flex flex-1 flex-col gap-4 px-4 pb-6">
       <form role="search" className="relative" onSubmit={(e) => e.preventDefault()}>
         <Search
-          className="text-muted pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2"
+          className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2"
           aria-hidden
         />
         <Input
@@ -83,7 +83,7 @@ export function UserSearch({ initialQuery }: { initialQuery: string }) {
           spellCheck={false}
           enterKeyHint="search"
           maxLength={40}
-          className="pr-12 pl-12 [&::-webkit-search-cancel-button]:hidden"
+          className="h-12 rounded-[0.875rem] border-transparent bg-white/[0.07] pr-12 pl-11 shadow-[inset_0_1px_1px_rgb(0_0_0/0.25)] [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
@@ -97,7 +97,7 @@ export function UserSearch({ initialQuery }: { initialQuery: string }) {
         )}
       </form>
 
-      {view.kind === 'idle' && <p className="text-muted px-1 text-sm">{t.searchHint}</p>}
+      {view.kind === 'idle' && <p className="text-muted text-footnote px-1">{t.searchHint}</p>}
       {view.kind === 'loading' && <ResultsSkeleton label={dict.common.loading} />}
       {view.kind === 'error' && (
         <EmptyState icon={TriangleAlert} title={t.searchFailed}>
@@ -113,7 +113,7 @@ export function UserSearch({ initialQuery }: { initialQuery: string }) {
         <ul
           aria-label={t.results}
           className={cn(
-            'bg-surface border-border divide-border flex flex-col divide-y rounded-2xl border transition-opacity',
+            'card divide-border flex flex-col divide-y overflow-hidden transition-opacity',
             view.query !== term && 'opacity-60',
           )}
         >
@@ -133,16 +133,16 @@ function ResultRow({ result: r, label }: { result: SearchResult; label: string }
     <LocaleLink
       href={`/profile/${r.id}`}
       aria-label={label}
-      className="active:bg-border flex min-h-18 items-center gap-3 px-4 py-3 first:rounded-t-2xl last:rounded-b-2xl"
+      className="active:bg-fill flex min-h-18 items-center gap-3.5 px-4 py-3"
     >
-      <Avatar photo={r.photo} alt="" size={52} />
-      <span className="flex min-w-0 flex-1 flex-col">
+      <Avatar photo={r.photo} alt="" size={56} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-1">
-          <span className="truncate font-semibold">{r.name}</span>
-          <span className="shrink-0">, {r.age}</span>
+          <span className="text-headline truncate">{r.name}</span>
+          <span className="text-headline shrink-0 font-normal text-white/80">, {r.age}</span>
           <VerifiedBadge size={16} className="shrink-0" />
         </span>
-        <span className="text-muted truncate text-sm">@{r.username}</span>
+        <span className="text-muted text-callout truncate">@{r.username}</span>
         {r.city && (
           <span className="text-muted flex min-w-0 items-center gap-1 text-xs">
             <MapPin className="size-3 shrink-0" aria-hidden />
@@ -150,23 +150,20 @@ function ResultRow({ result: r, label }: { result: SearchResult; label: string }
           </span>
         )}
       </span>
+      <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
     </LocaleLink>
   )
 }
 
 function ResultsSkeleton({ label }: { label: string }) {
   return (
-    <ul
-      aria-busy
-      aria-label={label}
-      className="bg-surface border-border divide-border flex flex-col divide-y rounded-2xl border"
-    >
+    <ul aria-busy aria-label={label} className="card divide-border flex flex-col divide-y">
       {[0, 1, 2, 3].map((i) => (
         <li key={i} className="flex items-center gap-3 px-4 py-3">
-          <span className="bg-border size-13 shrink-0 animate-pulse rounded-full" />
+          <span className="bg-fill size-13 shrink-0 animate-pulse rounded-full" />
           <span className="flex flex-1 flex-col gap-2">
-            <span className="bg-border h-4 w-2/5 animate-pulse rounded" />
-            <span className="bg-border h-3 w-1/3 animate-pulse rounded" />
+            <span className="bg-fill h-4 w-2/5 animate-pulse rounded" />
+            <span className="bg-fill h-3 w-1/3 animate-pulse rounded" />
           </span>
         </li>
       ))}

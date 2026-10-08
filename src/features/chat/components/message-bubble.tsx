@@ -35,6 +35,8 @@ type Props = {
   quote: ReplyPreview | null
   quoteAuthor: string
   tail: boolean
+  // First bubble of a run from the same sender (gets the full top corner).
+  first?: boolean
   seen: boolean
   highlighted: boolean
   lifted: boolean
@@ -48,7 +50,7 @@ type Props = {
 const SWIPE_REPLY_PX = 56
 
 export function MessageBubble(props: Props) {
-  const { message: m, mine, quote, tail, onAction } = props
+  const { message: m, mine, quote, tail, first = true, onAction } = props
   const { dict, locale } = useI18n()
   const deleted = !!m.deletedAt
   const local = m.local
@@ -106,7 +108,7 @@ export function MessageBubble(props: Props) {
         {/* Press feedback lives on this wrapper; the swipe transform lives on the bubble. */}
         <div
           className={cn(
-            'relative z-10 min-w-0 rounded-2xl',
+            'relative z-10 min-w-0 rounded-[1.25rem]',
             mine ? 'origin-right' : 'origin-left',
             props.lifted
               ? 'scale-[1.03] shadow-[0_12px_32px_rgb(0_0_0/0.45)] transition-[transform,scale,box-shadow] duration-200 ease-out'
@@ -132,7 +134,7 @@ export function MessageBubble(props: Props) {
             className={cn(
               // pan-y: vertical scrolling stays native, the horizontal swipe is ours (framer only sets
               // touch-action itself when it owns the pointer listener).
-              'ring-accent relative flex min-w-0 touch-pan-y flex-col gap-1 overflow-hidden rounded-2xl [overflow-wrap:anywhere] whitespace-pre-wrap select-none [-webkit-touch-callout:none]',
+              'ring-accent relative flex min-w-0 touch-pan-y flex-col gap-1 overflow-hidden rounded-[1.25rem] text-[16px] leading-[1.38] tracking-[-0.011em] [overflow-wrap:anywhere] whitespace-pre-wrap select-none [-webkit-touch-callout:none]',
               // Reply-jump highlight: appears fast, fades slowly.
               props.highlighted
                 ? 'ring-2 transition-[box-shadow] duration-150'
@@ -140,10 +142,15 @@ export function MessageBubble(props: Props) {
               kind === 'video'
                 ? 'bg-transparent'
                 : mine
-                  ? 'bg-accent text-accent-foreground'
-                  : 'bg-surface',
-              tail && kind !== 'video' && (mine ? 'rounded-br-md' : 'rounded-bl-md'),
-              kind === 'image' ? 'p-1' : kind === 'video' ? 'p-0' : 'px-3.5 py-2',
+                  ? 'bg-accent-gradient text-accent-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.22)]'
+                  : 'bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.06),inset_0_0_0_1px_var(--border)]',
+              // Grouped runs: the corners facing the neighbouring bubbles tighten; the last one
+              // keeps a small "tail" corner on the sender's side.
+              kind !== 'video' &&
+                (mine
+                  ? cn(!first && 'rounded-tr-[0.375rem]', 'rounded-br-[0.375rem]')
+                  : cn(!first && 'rounded-tl-[0.375rem]', 'rounded-bl-[0.375rem]')),
+              kind === 'image' ? 'p-1' : kind === 'video' ? 'p-0' : 'px-3.5 py-[0.5625rem]',
               local === 'pending' && 'opacity-75',
               local === 'failed' && 'opacity-60',
             )}
@@ -198,7 +205,7 @@ export function MessageBubble(props: Props) {
         )
       ) : (
         (tail || (m.editedAt && !deleted)) && (
-          <span className="text-muted px-1 text-[11px] tabular-nums">
+          <span className="text-muted px-1.5 pt-0.5 text-[11px] font-medium tabular-nums">
             {m.editedAt && !deleted && <>{dict.chats.edited} · </>}
             <time dateTime={m.createdAt}>{formatTime(m.createdAt, locale)}</time>
             {props.seen && <> · {dict.chats.seen}</>}
@@ -228,14 +235,14 @@ function FailedRow(props: {
       <button
         type="button"
         onClick={props.onRetry}
-        className="text-foreground active:bg-surface h-8 rounded-full px-2.5 font-semibold transition-[background-color,transform,scale] duration-150 ease-out active:scale-95"
+        className="text-foreground active:bg-fill h-8 rounded-full px-2.5 font-semibold transition-[background-color,transform,scale] duration-150 ease-out active:scale-95"
       >
         {props.retry}
       </button>
       <button
         type="button"
         onClick={props.onDiscard}
-        className="text-muted active:bg-surface h-8 rounded-full px-2.5 transition-[background-color,transform,scale] duration-150 ease-out active:scale-95"
+        className="text-muted active:bg-fill h-8 rounded-full px-2.5 transition-[background-color,transform,scale] duration-150 ease-out active:scale-95"
       >
         {props.discard}
       </button>

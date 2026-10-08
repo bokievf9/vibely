@@ -236,7 +236,7 @@ export function SwipeCard({ candidate, active, onSwipe, draggable = true, progre
   return (
     <motion.article
       ref={el}
-      className="bg-surface absolute inset-0 overflow-hidden rounded-3xl shadow-xl shadow-black/40 select-none data-[drag=true]:touch-none"
+      className="bg-surface absolute inset-0 overflow-hidden rounded-[1.75rem] shadow-[0_2px_6px_rgb(0_0_0/0.35),0_28px_56px_-28px_rgb(255_77_125/0.32),0_40px_80px_-40px_rgb(0_0_0/0.9)] select-none data-[drag=true]:touch-none"
       data-drag={canDrag}
       style={{ x, y, rotate, scale, opacity, zIndex: isPresent ? (active ? 2 : 1) : 3 }}
       // Every new press starts clean, even one that never becomes a drag (e.g. on "More").
@@ -253,25 +253,30 @@ export function SwipeCard({ candidate, active, onSwipe, draggable = true, progre
     >
       <PhotoCarousel photos={candidate.photos} alt={candidate.name} priority={active} />
       {candidate.secondChance && (
-        <span className="pointer-events-none absolute top-5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white backdrop-blur-sm">
+        <span className="glass-dark pointer-events-none absolute top-6 left-1/2 z-[3] flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white">
           <RotateCcw className="size-3.5" aria-hidden /> {dict.discover.secondChance}
         </span>
       )}
       <motion.span
         aria-hidden
         style={{ opacity: likeOpacity }}
-        className="border-accent text-accent pointer-events-none absolute top-10 left-6 -rotate-12 rounded-2xl border-4 bg-black/20 px-3 py-1 text-3xl font-black tracking-wide whitespace-nowrap"
+        className="border-accent text-accent pointer-events-none absolute top-12 left-6 z-[3] -rotate-12 rounded-2xl border-[3px] bg-black/25 px-3 py-1 text-3xl font-black tracking-wider whitespace-nowrap backdrop-blur-sm"
       >
         {t.stampLike}
       </motion.span>
       <motion.span
         aria-hidden
         style={{ opacity: nopeOpacity }}
-        className="border-danger text-danger pointer-events-none absolute top-10 right-6 rotate-12 rounded-2xl border-4 bg-black/20 px-3 py-1 text-3xl font-black tracking-wide whitespace-nowrap"
+        className="pointer-events-none absolute top-12 right-6 z-[3] rotate-12 rounded-2xl border-[3px] border-white/90 bg-black/25 px-3 py-1 text-3xl font-black tracking-wider whitespace-nowrap text-white backdrop-blur-sm"
       >
         {t.stampNope}
       </motion.span>
       <SwipeCardInfo candidate={candidate} />
+      {/* Hairline + top highlight drawn above the photo, so the card edge reads on any image. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[3] rounded-[inherit] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09),inset_0_1px_0_rgb(255_255_255/0.14)]"
+      />
       {/* Dim layer for the waiting back card; fades out as the top card is dragged away. */}
       <motion.div
         aria-hidden

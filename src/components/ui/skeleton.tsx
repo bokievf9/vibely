@@ -7,7 +7,10 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn('skeleton-shimmer bg-surface relative overflow-hidden rounded-2xl', className)}
+      className={cn(
+        'skeleton-shimmer bg-surface-raised relative overflow-hidden rounded-2xl',
+        className,
+      )}
     />
   )
 }

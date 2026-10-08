@@ -66,6 +66,27 @@ type Props = { about: AboutInput; t: AboutDictionary; tone?: 'surface' | 'dark';
 export function AboutDetails({ about, t, tone = 'surface', title }: Props) {
   const rows = aboutRows(about, t)
   if (!rows.length) return null
+  if (tone === 'surface') {
+    // Grouped list (iOS Settings style): icon tile, label above value, hairlines between rows.
+    return (
+      <section className="flex flex-col gap-2">
+        {title && <h2 className="text-headline px-1">{title}</h2>}
+        <ul className="card divide-border flex flex-col divide-y overflow-hidden">
+          {rows.map(({ icon: Icon, label, value }) => (
+            <li key={label} className="flex min-h-[3.5rem] items-center gap-3 px-4 py-2.5">
+              <span className="icon-tile">
+                <Icon className="size-[1.125rem]" aria-hidden />
+              </span>
+              <span className="text-muted text-callout min-w-0 flex-1 truncate">{label}</span>
+              <span className="max-w-[60%] text-right text-[15px] font-semibold [overflow-wrap:anywhere]">
+                {value}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
   return (
     <section className="flex flex-col gap-2">
       {title && <h2 className="text-muted text-sm font-medium">{title}</h2>}
@@ -104,12 +125,26 @@ export function PromptCards({ prompts, t, tone = 'surface' }: PromptsProps) {
         <li
           key={p.key}
           className={cn(
-            'flex flex-col gap-1 rounded-2xl p-4',
-            tone === 'dark' ? 'bg-white/10' : 'bg-surface border-border border',
+            'flex flex-col gap-1.5',
+            tone === 'dark' ? 'rounded-2xl bg-white/10 p-4' : 'card px-5 py-4',
           )}
         >
-          <span className="text-sm font-semibold opacity-70">{t.prompts.keys[p.key]}</span>
-          <span className="text-lg leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <span
+            className={cn(
+              'text-sm font-semibold',
+              tone === 'dark' ? 'opacity-70' : 'text-accent tracking-[-0.005em]',
+            )}
+          >
+            {t.prompts.keys[p.key]}
+          </span>
+          <span
+            className={cn(
+              '[overflow-wrap:anywhere] whitespace-pre-wrap',
+              tone === 'dark'
+                ? 'text-lg leading-snug'
+                : 'text-[1.25rem] leading-[1.3] font-semibold tracking-[-0.02em]',
+            )}
+          >
             {p.answer}
           </span>
         </li>

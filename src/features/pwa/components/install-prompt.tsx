@@ -117,7 +117,7 @@ function Card({
       ref={ref}
       aria-label={dict.pwa.installTitle}
       data-install-prompt
-      className="bg-surface/95 fixed inset-x-3 bottom-[calc(var(--tabbar-h)+0.5rem)] z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl py-2 pr-1 pl-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.7)] ring-1 ring-white/[0.07] backdrop-blur-xl"
+      className="bg-surface-raised/95 fixed inset-x-3 bottom-[calc(var(--tabbar-h)+0.5rem)] z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl py-2 pr-1 pl-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.7)] ring-1 ring-white/[0.07] backdrop-blur-xl"
       initial={{ opacity: 0, transform: 'translateY(16px) scale(0.98)' }}
       animate={{
         opacity: 1,
@@ -143,7 +143,7 @@ function Card({
         type="button"
         onClick={onDismiss}
         aria-label={dict.common.close}
-        className="text-muted active:bg-border flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 ease-out active:scale-[0.92]"
+        className="text-muted active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 ease-out active:scale-[0.92]"
       >
         <X className="size-5" aria-hidden />
       </button>

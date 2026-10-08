@@ -41,7 +41,7 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
   }
 
   return (
-    <div className="bg-surface border-border flex flex-col gap-3 rounded-2xl border p-4">
+    <div className="card flex flex-col gap-3 border p-4">
       <div className="flex items-start gap-3">
         <UserPlus className="text-accent size-6 shrink-0" aria-hidden />
         <div className="flex flex-col">

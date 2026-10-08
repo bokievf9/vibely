@@ -36,7 +36,7 @@ export function LandingFeatures({ t }: { t: LandingDictionary }) {
           </h3>
           <p className="text-foreground/75 relative max-w-[40ch] md:text-lg">{swipe.text}</p>
         </li>
-        <li className="bg-surface border-border flex flex-col rounded-3xl border p-6">
+        <li className="card flex flex-col border p-6">
           <MessageSquareText className="text-accent mb-3 size-7" aria-hidden />
           <h3 className="mb-1 text-lg font-semibold">{feed.title}</h3>
           <p className="text-muted">{feed.text}</p>
@@ -94,7 +94,7 @@ export function LandingFaq({ t }: { t: LandingDictionary }) {
       </h2>
       <div className="flex flex-col gap-3">
         {t.faq.map(({ q, a }) => (
-          <details key={q} className="group border-border bg-surface rounded-2xl border">
+          <details key={q} className="group card">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold select-none [&::-webkit-details-marker]:hidden">
               {q}
               <ChevronDown

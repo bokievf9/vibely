@@ -53,7 +53,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
           notch inset, so the sticky day pills can sit right under it. */}
       <header className={CHAT_HEADER_CLASS}>
         <div aria-hidden className={`${CHAT_BAR_MATERIAL_CLASS} border-b`} />
-        <div className="relative flex h-14 w-full min-w-0 items-center gap-1 px-1">
+        <div className="relative flex h-[3.25rem] w-full min-w-0 items-center gap-1 px-1">
           <Link
             href={localePath(locale, '/chats')}
             aria-label={dict.common.back}
@@ -66,10 +66,15 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
             className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl py-1 pr-1 transition-opacity duration-150 active:opacity-70"
             aria-label={dict.chats.viewProfile}
           >
-            <Avatar photo={partner.photo} alt={partner.name} size={36} />
+            <Avatar
+              photo={partner.photo}
+              alt={partner.name}
+              size={38}
+              className="ring-1 ring-white/10"
+            />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="flex min-w-0 items-center gap-1">
-                <h1 className="truncate leading-tight font-semibold">{partner.name}</h1>
+                <h1 className="text-headline truncate leading-tight">{partner.name}</h1>
                 <VerifiedBadge size={16} />
               </span>
               <PartnerStatus matchId={matchId} fallback={`@${partner.username}`} />

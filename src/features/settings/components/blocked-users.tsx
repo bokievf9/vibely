@@ -33,7 +33,7 @@ export function BlockedUsers({ initial }: { initial: BlockedUser[] }) {
   if (users.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-        <span className="bg-background flex size-14 items-center justify-center rounded-full">
+        <span className="bg-surface-raised flex size-14 items-center justify-center rounded-full shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]">
           <ShieldCheck className="text-muted size-7" aria-hidden />
         </span>
         <p className="font-medium">{dict.settings.blockedEmpty}</p>

@@ -13,7 +13,7 @@ export function Avatar({ photo, alt, size = 48, className }: Props) {
   return (
     <span
       className={cn(
-        'bg-surface text-muted inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full',
+        'bg-surface-raised text-muted inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full',
         className,
       )}
       style={{ width: size, height: size }}

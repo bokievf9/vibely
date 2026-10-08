@@ -34,10 +34,10 @@ async function Feed({ searchParams }: Pick<PageProps<'/[lang]/feed'>, 'searchPar
 // The shape of FeedList: note, collapsed composer, tabs, cards.
 function FeedSkeleton({ label }: { label: string }) {
   return (
-    <div className="flex flex-col gap-3 px-4 pb-6" role="status" aria-label={label}>
+    <div className="flex flex-col gap-3 px-4 pt-1 pb-6" role="status" aria-label={label}>
+      <Skeleton className="h-[3.875rem] rounded-3xl" />
       <Skeleton className="h-3 w-3/4 rounded-full" />
-      <Skeleton className="h-[3.625rem] rounded-3xl" />
-      <Skeleton className="h-[3.25rem] rounded-full" />
+      <Skeleton className="h-11 rounded-[0.875rem]" />
       <PostListSkeleton />
     </div>
   )
