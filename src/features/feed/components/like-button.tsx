@@ -53,13 +53,13 @@ export function LikeButton({
       aria-pressed={state.liked}
       aria-label={`${dict.feed.like}: ${state.count}`}
       className={cn(
-        '-ml-2.5 flex h-11 min-w-11 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors active:bg-white/5',
+        'active:bg-fill flex h-11 min-w-11 items-center gap-2 rounded-full px-3 text-[15px] font-medium transition-colors',
         state.liked ? 'text-accent' : 'text-muted',
       )}
     >
       <Heart
         ref={heart}
-        className={cn('size-5 shrink-0', state.liked && 'fill-current')}
+        className={cn('size-[1.375rem] shrink-0', state.liked && 'fill-current')}
         aria-hidden
       />
       <span className="tabular-nums">{formatCount(state.count, locale)}</span>

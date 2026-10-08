@@ -50,7 +50,12 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
             {comments.map((c) => (
               <li
                 key={c.id}
-                className={cn('rounded-2xl px-4 py-3', c.isOp ? 'bg-accent/10' : 'bg-surface')}
+                className={cn(
+                  'rounded-2xl px-4 py-3',
+                  c.isOp
+                    ? 'bg-accent/10 border-accent/20 border'
+                    : 'bg-surface-raised border-border border',
+                )}
               >
                 <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                   <AuthorLine

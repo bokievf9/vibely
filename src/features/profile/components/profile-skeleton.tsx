@@ -3,18 +3,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 // Own profile page: header (photo, name, @username), the two actions, then the photo grid.
 export function OwnProfileSkeleton() {
   return (
-    <div className="flex flex-col gap-8 px-4 pb-6" aria-busy="true">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-[88px] shrink-0 rounded-full" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-7 w-2/3 rounded-full" />
-            <Skeleton className="h-4 w-1/3 rounded-full" />
-            <Skeleton className="h-4 w-1/2 rounded-full" />
-          </div>
+    <div className="flex flex-col gap-7 px-4 pb-8" aria-busy="true">
+      <section className="flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-4 pt-2">
+          <Skeleton className="size-[128px] shrink-0 rounded-full" />
+          <Skeleton className="h-8 w-1/2 rounded-full" />
+          <Skeleton className="h-4 w-1/3 rounded-full" />
         </div>
-        <Skeleton className="h-12" />
-        <Skeleton className="h-12" />
+        <Skeleton className="h-[6.5rem] rounded-3xl" />
       </section>
       <section className="flex flex-col gap-3">
         <Skeleton className="h-4 w-16 rounded-full" />
@@ -32,7 +28,7 @@ export function OwnProfileSkeleton() {
 export function PublicProfileSkeleton() {
   return (
     <div className="flex flex-col" aria-busy="true">
-      <Skeleton className="aspect-[3/4] w-full rounded-none" />
+      <Skeleton className="aspect-[3/4] w-full rounded-none rounded-b-[2rem]" />
       <div className="flex flex-col gap-3 p-5">
         <Skeleton className="h-9 w-2/3 rounded-full" />
         <Skeleton className="h-4 w-1/3 rounded-full" />

@@ -36,8 +36,10 @@ function Toggle() {
   return (
     <div {...pressableRow(toggle, !available || busy)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2 font-medium">
-          <Bell className="size-5 shrink-0" aria-hidden />
+        <span className="flex min-w-0 items-center gap-3 text-[16px] font-medium tracking-[-0.01em]">
+          <span className="icon-tile">
+            <Bell className="size-[1.125rem]" aria-hidden />
+          </span>
           <span className="min-w-0">{dict.push.toggle}</span>
         </span>
         <Switch

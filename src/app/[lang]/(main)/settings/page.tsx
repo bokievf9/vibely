@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { DeleteAccount } from '@/features/account/components/delete-account'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
@@ -29,23 +29,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SettingsPage() {
-  const [dict, locale] = await Promise.all([getDictionary(), getLocale()])
+  const dict = await getDictionary()
   return (
     <>
       <PageHeader
-        title={
-          <span className="flex min-w-0 items-center">
-            {/* 44px target; the title's overflow clips a background, so press feedback is opacity. */}
-            <Link
-              href={localePath(locale, '/profile')}
-              aria-label={dict.common.back}
-              className="-ml-2.5 flex size-11 shrink-0 items-center justify-center transition-opacity active:opacity-50"
-            >
-              <ChevronLeft className="size-6" />
-            </Link>
-            <span className="truncate">{dict.settings.title}</span>
-          </span>
-        }
+        title={dict.settings.title}
+        back={{ href: '/profile', label: dict.common.back }}
       />
       <Suspense fallback={<SettingsSkeleton label={dict.common.loading} />}>
         <Settings />
@@ -65,7 +54,7 @@ async function Settings() {
   ])
 
   return (
-    <div className="flex flex-col gap-8 px-4 pb-6">
+    <div className="flex flex-col gap-7 px-4 pt-1 pb-8">
       {username && (
         <SettingsSection title={dict.username.section}>
           <UsernameSettingsRows initial={username} />
@@ -90,7 +79,7 @@ async function Settings() {
           <Link
             key={doc}
             href={localePath(locale, `/${doc}`)}
-            className="active:bg-border/60 flex min-h-12 items-center justify-between gap-3 px-4 py-3 transition-colors"
+            className="active:bg-fill flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-3 text-[16px] font-medium tracking-[-0.01em] transition-colors"
           >
             <span className="min-w-0">{dict.legal[doc]}</span>
             <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />

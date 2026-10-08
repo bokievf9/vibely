@@ -32,20 +32,16 @@ export function EmptyState({
         className,
       )}
     >
-      <div
-        aria-hidden
-        className="from-accent/20 to-accent/0 relative mb-6 flex size-24 items-center justify-center rounded-full bg-radial"
-      >
-        <div className="bg-surface flex size-16 items-center justify-center rounded-full shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_8px_24px_-8px_rgb(255_77_125/0.35)] ring-1 ring-white/[0.06]">
-          <Icon className="text-accent size-7" strokeWidth={1.75} />
+      <div aria-hidden className="relative mb-7 flex size-28 items-center justify-center">
+        <span className="from-accent/25 to-accent/0 absolute inset-[-12px] rounded-full bg-radial" />
+        <span className="absolute inset-0 rounded-full border border-white/[0.05]" />
+        <span className="absolute inset-3 rounded-full border border-white/[0.07]" />
+        <div className="card-raised relative flex size-[4.5rem] items-center justify-center rounded-[1.375rem]">
+          <Icon className="text-accent size-8" strokeWidth={1.75} />
         </div>
       </div>
-      <h2 className="text-lg font-semibold tracking-tight text-balance">{title}</h2>
-      {text && (
-        <p className="text-muted mt-2 max-w-[30ch] text-[15px] leading-relaxed text-pretty">
-          {text}
-        </p>
-      )}
+      <h2 className="text-title2 text-balance">{title}</h2>
+      {text && <p className="text-muted text-callout mt-2 max-w-[32ch] text-pretty">{text}</p>}
       {cta && <div className="mt-6 flex flex-col items-center gap-2">{cta}</div>}
     </div>
   )

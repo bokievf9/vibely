@@ -85,7 +85,7 @@ function NavBar({ activePath, unread }: { activePath: string | null; unread: num
             <Icon
               aria-hidden
               className="size-6"
-              strokeWidth={active ? (fill === 'none' ? 2.6 : 2.2) : 1.8}
+              strokeWidth={active ? (fill === 'none' ? 2.5 : 2.1) : 1.75}
               fill={active && fill !== 'none' ? 'currentColor' : 'none'}
               fillOpacity={fill === 'tint' ? 0.22 : 1}
             />
@@ -98,31 +98,42 @@ function NavBar({ activePath, unread }: { activePath: string | null; unread: num
                 onClick={onClick}
                 draggable={false}
                 className={cn(
-                  'group relative flex h-16 flex-col items-center justify-center rounded-2xl text-[11px] font-medium outline-none',
+                  'group relative flex h-16 flex-col items-center justify-center rounded-2xl outline-none',
                   'focus-visible:ring-accent focus-visible:ring-2 focus-visible:ring-inset',
-                  active ? 'text-accent' : 'text-muted',
+                  active ? 'text-accent' : 'text-muted active:text-foreground',
                 )}
               >
-                {active && (
-                  <span
-                    aria-hidden
-                    className="bg-accent absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-b-full transition-[scale,opacity] duration-200 ease-out starting:scale-x-0 starting:opacity-0"
-                  />
-                )}
-                <span className="flex flex-col items-center gap-1 rounded-2xl px-3 py-1 transition-[scale,color] duration-150 ease-out group-active:scale-[0.92]">
-                  <span className="relative">
-                    {key === 'profile' ? <NavAvatar active={active} fallback={icon} /> : icon}
-                    {key === 'chats' && unread > 0 && (
-                      <span
-                        key={unread}
-                        aria-hidden
-                        className="badge-pop bg-accent text-accent-foreground ring-background absolute -top-1.5 -right-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold tabular-nums ring-2"
-                      >
-                        {unread > 99 ? '99+' : unread}
-                      </span>
-                    )}
+                <span className="flex flex-col items-center gap-[3px] transition-[scale,color] duration-150 ease-out group-active:scale-[0.92]">
+                  <span className="relative flex h-8 w-14 items-center justify-center">
+                    {/* Active tab: a soft accent pill behind the icon, with a faint glow. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'bg-accent/[0.14] absolute inset-0 rounded-full shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_6px_18px_-6px_rgb(255_77_125/0.45)] transition-[opacity,scale] duration-200 ease-out',
+                        active ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+                      )}
+                    />
+                    <span className="relative">
+                      {key === 'profile' ? <NavAvatar active={active} fallback={icon} /> : icon}
+                      {key === 'chats' && unread > 0 && (
+                        <span
+                          key={unread}
+                          aria-hidden
+                          className="badge-pop bg-accent-gradient text-accent-foreground absolute -top-1.5 -right-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold tabular-nums shadow-[0_0_0_2px_var(--background)]"
+                        >
+                          {unread > 99 ? '99+' : unread}
+                        </span>
+                      )}
+                    </span>
                   </span>
-                  <span className={cn(active && 'font-semibold')}>{dict.nav[key]}</span>
+                  <span
+                    className={cn(
+                      'text-[10.5px] leading-none tracking-[0.01em]',
+                      active ? 'font-semibold' : 'font-medium',
+                    )}
+                  >
+                    {dict.nav[key]}
+                  </span>
                 </span>
                 {key === 'chats' && unread > 0 && (
                   <span className="sr-only">{fmt(dict.nav.unread, { count: unread })}</span>

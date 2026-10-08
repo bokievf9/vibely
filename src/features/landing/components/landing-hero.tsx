@@ -4,21 +4,26 @@ import { localePath, type Locale } from '@/i18n/config'
 import type { LandingDictionary } from '@/i18n/dictionaries/landing/en'
 
 export const ctaClassName =
-  'bg-accent text-accent-foreground focus-visible:ring-accent focus-visible:ring-offset-background inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 font-semibold whitespace-nowrap select-none transition-[transform,scale,opacity] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] active:opacity-90'
+  'btn-accent focus-visible:ring-accent focus-visible:ring-offset-background inline-flex h-[3.25rem] items-center justify-center gap-2 rounded-2xl px-6 text-[17px] font-semibold whitespace-nowrap select-none transition-[transform,scale,filter] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] active:brightness-95'
 
 type Props = { locale: Locale; t: LandingDictionary }
 
 export function LandingHeader({ locale, t }: Props) {
   return (
-    <header className="mx-auto box-content flex h-16 w-full max-w-5xl items-center justify-between px-5 pt-[env(safe-area-inset-top)]">
+    <header className="mx-auto flex min-h-[calc(4rem+env(safe-area-inset-top))] w-full max-w-5xl items-center justify-between px-5 pt-[env(safe-area-inset-top)]">
       <Link href={localePath(locale, '/')} className="flex items-center gap-2" aria-label="Vibely">
-        <Heart className="fill-accent text-accent size-6" aria-hidden />
-        <span className="text-xl font-bold tracking-tight">Vibely</span>
+        <span
+          aria-hidden
+          className="btn-accent flex size-9 items-center justify-center rounded-[0.7rem]"
+        >
+          <Heart className="size-[1.125rem] fill-current" />
+        </span>
+        <span className="text-xl font-bold tracking-[-0.03em]">Vibely</span>
       </Link>
       <nav aria-label="Vibely">
         <Link
           href={localePath(locale, '/login')}
-          className="border-border bg-surface active:bg-border inline-flex h-10 items-center rounded-2xl border px-4 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.97]"
+          className="border-border bg-surface-raised highlight active:bg-fill inline-flex h-10 items-center rounded-2xl border px-4 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.97]"
         >
           {t.signIn}
         </Link>

@@ -83,7 +83,7 @@ function Celebration({ match, onClose }: { match: MatchInfo; onClose: () => void
             <PairPhoto src={match.photo} side="right" reduce={reduce} />
             <motion.span
               aria-hidden
-              className="bg-accent text-accent-foreground ring-background absolute top-1/2 left-1/2 z-10 -mt-7 -ml-7 flex size-14 items-center justify-center rounded-full shadow-lg ring-4"
+              className="bg-accent-gradient text-accent-foreground ring-background absolute top-1/2 left-1/2 z-10 -mt-7 -ml-7 flex size-14 items-center justify-center rounded-full shadow-lg ring-4"
               initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1, transition: { ...POP, delay: 0.18 } }}
             >
@@ -92,7 +92,7 @@ function Celebration({ match, onClose }: { match: MatchInfo; onClose: () => void
           </div>
           <motion.h2
             id={titleId}
-            className="mt-6 text-center text-4xl leading-tight font-bold tracking-tight"
+            className="mt-6 text-center text-[2.5rem] leading-[1.1] font-bold tracking-[-0.035em]"
             {...rise(0.12)}
           >
             {dict.swipe.matchTitle}

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
+import { headerActionClassName } from '@/components/layout/header-styles'
 import { fmt, localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { countIncomingLikes } from '../queries'
@@ -16,11 +17,11 @@ export async function LikesButton() {
     <Link
       href={localePath(locale, '/likes')}
       aria-label={fmt(dict.likes.open, { count })}
-      className="active:bg-surface relative flex size-12 items-center justify-center rounded-2xl transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
+      className={headerActionClassName}
     >
-      <Heart className="size-6" />
+      <Heart className="size-[1.375rem]" />
       {count > 0 && (
-        <span className="bg-accent text-accent-foreground ring-background absolute top-1 right-0.5 min-w-5 rounded-full px-1.5 text-center text-xs leading-5 font-bold tabular-nums ring-2">
+        <span className="bg-accent-gradient text-accent-foreground absolute top-0.5 -right-0.5 min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-bold tabular-nums shadow-[0_0_0_2px_var(--background)]">
           {count > 99 ? '99+' : count}
         </span>
       )}

@@ -315,10 +315,10 @@ function Sheet({ onClose, title, children, footer, size = 'auto' }: ModalProps) 
         tabIndex={-1}
         style={{ y, opacity: fade }}
         className={cn(
-          'bg-surface relative flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-3xl outline-none sm:rounded-3xl',
+          'bg-surface-raised relative flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-[1.75rem] shadow-[inset_0_1px_0_rgb(255_255_255/0.07)] outline-none sm:rounded-3xl',
           'shadow-[0_-12px_40px_-12px_rgb(0_0_0/0.6)] ring-1 ring-white/[0.06]',
           // Pulled up past rest, the sheet stretches instead of lifting off the screen edge.
-          'max-sm:after:bg-surface max-sm:after:pointer-events-none max-sm:after:absolute max-sm:after:inset-x-0 max-sm:after:top-full max-sm:after:h-40',
+          'max-sm:after:bg-surface-raised max-sm:after:pointer-events-none max-sm:after:absolute max-sm:after:inset-x-0 max-sm:after:top-full max-sm:after:h-40',
           size === 'tall' && 'h-[90dvh]',
         )}
       >
@@ -338,7 +338,7 @@ function Sheet({ onClose, title, children, footer, size = 'auto' }: ModalProps) 
               type="button"
               onClick={() => onCloseRef.current()}
               aria-label={closeLabel}
-              className="text-muted active:bg-border -mr-2.5 flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 ease-out active:scale-[0.92]"
+              className="text-muted active:bg-fill -mr-2.5 flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 ease-out active:scale-[0.92]"
             >
               <X className="size-5" aria-hidden />
             </button>

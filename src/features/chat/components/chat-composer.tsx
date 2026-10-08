@@ -157,14 +157,14 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
               disabled={sending}
               onClick={() => fileRef.current?.click()}
             >
-              <ImagePlus className="size-6" />
+              <ImagePlus className="size-[1.375rem]" />
             </IconButton>
             <IconButton
               label={dict.media.recordVideo}
               disabled={sending}
               onClick={() => setVideoOpen(true)}
             >
-              <CircleUserRound className="size-6" />
+              <CircleUserRound className="size-[1.375rem]" />
             </IconButton>
           </>
         )}
@@ -199,7 +199,7 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
           placeholder={dict.chats.placeholder}
           aria-label={dict.chats.placeholder}
           style={{ maxHeight: MAX_INPUT_PX }}
-          className="bg-surface border-border focus:border-accent/60 [field-sizing:content] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto overscroll-contain rounded-2xl border px-4 py-2.5 leading-6 transition-[border-color] duration-150 outline-none"
+          className="bg-surface-raised border-border placeholder:text-muted focus:border-accent/50 [field-sizing:content] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto overscroll-contain rounded-[1.375rem] border px-4 py-2.5 leading-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] transition-[border-color] duration-150 outline-none"
         />
         {!editing && !canSend ? (
           <VoiceRecorder
@@ -250,7 +250,7 @@ function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="text-muted active:bg-surface flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50"
+      className="text-foreground/70 active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50"
     >
       {children}
     </button>

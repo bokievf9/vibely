@@ -24,11 +24,11 @@ export function ScrollDownButton({ visible, unseen, onClick }: Props) {
           animate={{ opacity: 1, transform: 'scale(1)' }}
           exit={{ opacity: 0, transform: 'scale(0.9)', transition: { duration: 0.12 } }}
           transition={{ duration: 0.18, ease: EASE_OUT }}
-          className="bg-surface/95 border-border relative flex size-11 items-center justify-center rounded-full border shadow-lg backdrop-blur"
+          className="glass-dark relative flex size-11 items-center justify-center rounded-full shadow-[0_8px_24px_-8px_rgb(0_0_0/0.8)]"
         >
           <ChevronDown className="size-6" />
           {unseen > 0 && (
-            <span className="bg-accent text-accent-foreground absolute -top-2 -right-1 min-w-5 rounded-full px-1.5 text-center text-xs leading-5 font-bold tabular-nums">
+            <span className="bg-accent-gradient text-accent-foreground absolute -top-2 -right-1 min-w-5 rounded-full px-1.5 text-center text-xs leading-5 font-bold tabular-nums">
               {unseen > 99 ? '99+' : unseen}
             </span>
           )}

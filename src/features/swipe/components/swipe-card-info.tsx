@@ -44,31 +44,31 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
         initial={false}
         animate={{ opacity: open ? 0 : 1 }}
         transition={{ duration: 0.24, ease: EASE_OUT }}
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[70%] bg-[linear-gradient(to_top,rgb(10_6_10/0.96)_0%,rgb(10_6_10/0.82)_28%,rgb(10_6_10/0.45)_58%,transparent_100%)]"
       />
       <motion.div
         aria-hidden
         initial={false}
         animate={{ opacity: open ? 1 : 0 }}
         transition={{ duration: 0.24, ease: EASE_OUT }}
-        className="pointer-events-none absolute inset-0 bg-black/85"
+        className="pointer-events-none absolute inset-0 bg-[rgb(10_6_10/0.88)] backdrop-blur-md"
       />
       <motion.div
         layoutScroll
         data-no-drag={open || undefined}
         className={cn(
-          'absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-5 text-white',
+          'absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-2 px-5 pt-5 pb-6 text-white',
           open
             ? 'pointer-events-auto max-h-[85%] touch-pan-y overflow-y-auto overscroll-contain'
             : 'pointer-events-none',
         )}
       >
         <motion.div layout="position" className="flex items-start justify-between gap-2">
-          <h2 className="min-w-0 text-3xl leading-tight font-bold [overflow-wrap:anywhere]">
+          <h2 className="min-w-0 text-[2rem] leading-[1.1] font-bold tracking-[-0.03em] [overflow-wrap:anywhere] [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">
             {candidate.name},{' '}
             {/* Age and badge stay together, so the badge never wraps onto a line of its own. */}
             <span className="whitespace-nowrap">
-              <span className="font-normal">{candidate.age}</span>
+              <span className="font-light text-white/90">{candidate.age}</span>
               <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
             </span>
           </h2>
@@ -78,7 +78,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
               data-no-drag
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
-              className="pointer-events-auto relative mt-1 flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/20 px-3 text-sm font-medium backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-x-1 before:-inset-y-1.5 active:scale-[0.96] active:bg-white/30"
+              className="glass pointer-events-auto relative mt-1 flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-x-1 before:-inset-y-1 active:scale-[0.96] active:bg-white/25"
             >
               {open ? dict.about.less : dict.about.more}
               <ChevronUp
@@ -94,7 +94,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
         {(candidate.city || candidate.distanceKm !== null) && (
           <motion.p
             layout="position"
-            className="flex min-w-0 items-center gap-1 text-sm text-white/80"
+            className="flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-white/85"
           >
             <MapPin className="size-4 shrink-0" aria-hidden />
             <span className="truncate">
@@ -113,9 +113,9 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
               {badges.map(({ icon: Icon, label, value }) => (
                 <li
                   key={label}
-                  className="flex max-w-full items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium"
+                  className="glass flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold"
                 >
-                  <Icon className="size-3.5 shrink-0" aria-hidden />
+                  <Icon className="size-4 shrink-0 text-white/80" aria-hidden />
                   <span className="truncate">{value}</span>
                 </li>
               ))}
@@ -126,7 +126,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
           <motion.p
             layout="position"
             className={cn(
-              'text-sm [overflow-wrap:anywhere] text-white/90',
+              'text-[15px] leading-snug [overflow-wrap:anywhere] text-white/85',
               open ? 'whitespace-pre-wrap' : 'line-clamp-2',
             )}
           >
@@ -144,7 +144,10 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
         {candidate.tags.length > 0 && (
           <motion.ul layout="position" className="flex flex-wrap gap-1.5 pt-1">
             {(open ? candidate.tags : candidate.tags.slice(0, 5)).map((slug) => (
-              <li key={slug} className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs">
+              <li
+                key={slug}
+                className="rounded-full border border-white/10 bg-white/[0.08] px-2.5 py-1 text-xs font-medium text-white/90"
+              >
                 {dict.tags[slug] ?? slug}
               </li>
             ))}

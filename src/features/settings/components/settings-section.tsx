@@ -12,12 +12,12 @@ export function SettingsSection({
   children: ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-muted text-sm font-medium">{title}</h2>
+    <section className="flex flex-col gap-2">
+      <h2 className="text-muted text-footnote px-1 font-semibold tracking-[0.01em]">{title}</h2>
       <div
         className={cn(
           card
-            ? 'bg-surface border-border divide-border flex flex-col divide-y overflow-hidden rounded-2xl border'
+            ? 'card divide-border flex flex-col divide-y overflow-hidden'
             : 'flex flex-col gap-3',
         )}
       >

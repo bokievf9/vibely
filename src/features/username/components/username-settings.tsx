@@ -47,10 +47,12 @@ export function UsernameSettingsRows({ initial }: { initial: UsernameSettings })
 
   return (
     <>
-      <div className="flex flex-col gap-1.5 p-4">
+      <div className="flex flex-col gap-1.5 px-4 py-3.5">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex min-w-0 items-center gap-2 font-medium">
-            <AtSign className="size-5 shrink-0" aria-hidden />
+          <span className="flex min-w-0 items-center gap-3 text-[16px] font-medium tracking-[-0.01em]">
+            <span className="icon-tile">
+              <AtSign className="size-[1.125rem]" aria-hidden />
+            </span>
             <span className="truncate">{username}</span>
           </span>
           <Button

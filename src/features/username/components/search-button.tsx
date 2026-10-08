@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Search } from 'lucide-react'
+import { headerActionClassName } from '@/components/layout/header-styles'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 
@@ -10,9 +11,9 @@ export async function SearchButton() {
     <Link
       href={localePath(locale, '/search')}
       aria-label={dict.username.searchOpen}
-      className="active:bg-surface flex size-12 items-center justify-center rounded-2xl"
+      className={headerActionClassName}
     >
-      <Search className="size-6" />
+      <Search className="size-[1.375rem]" />
     </Link>
   )
 }

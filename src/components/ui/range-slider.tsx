@@ -85,7 +85,7 @@ export function RangeSlider({ min, max, values, onChange, labels, valueText }: P
       onPointerCancel={end}
     >
       <div ref={track} className="absolute inset-x-3.5 top-1/2 h-1.5 -translate-y-1/2">
-        <div className="bg-border absolute inset-0 rounded-full" />
+        <div className="bg-fill absolute inset-0 rounded-full" />
         <div
           className="bg-accent absolute inset-y-0 rounded-full"
           style={{ left: `${from}%`, right: `${100 - to}%` }}

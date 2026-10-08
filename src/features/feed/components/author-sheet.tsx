@@ -74,12 +74,12 @@ export function AuthorSheet({ userId, name, open, onClose }: Props) {
       ) : (
         <div className="flex flex-col gap-3" role="status" aria-label={dict.common.loading}>
           <div className={STRIP}>
-            <Skeleton className="bg-border/60 aspect-[3/4] w-4/5 shrink-0" />
-            <Skeleton className="bg-border/60 aspect-[3/4] w-4/5 shrink-0" />
+            <Skeleton className="bg-fill aspect-[3/4] w-4/5 shrink-0" />
+            <Skeleton className="bg-fill aspect-[3/4] w-4/5 shrink-0" />
           </div>
-          <Skeleton className="bg-border/60 mt-1 h-5 w-40 rounded-full" />
-          <Skeleton className="bg-border/60 h-3.5 w-24 rounded-full" />
-          <Skeleton className="bg-border/60 h-3.5 w-full rounded-full" />
+          <Skeleton className="bg-fill mt-1 h-5 w-40 rounded-full" />
+          <Skeleton className="bg-fill h-3.5 w-24 rounded-full" />
+          <Skeleton className="bg-fill h-3.5 w-full rounded-full" />
         </div>
       )}
     </Modal>

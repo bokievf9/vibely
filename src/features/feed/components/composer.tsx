@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { SendHorizontal } from 'lucide-react'
+import { PenLine, SendHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useErrorText } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
@@ -136,8 +136,8 @@ export function Composer({
       className={cn(
         'placeholder:text-muted w-full resize-none text-base outline-none',
         variant === 'card'
-          ? 'max-h-60 bg-transparent px-1 py-2.5'
-          : 'bg-surface border-border focus:border-accent max-h-32 min-h-11 flex-1 rounded-2xl border px-4 py-2.5 transition-colors',
+          ? 'max-h-60 min-w-0 flex-1 bg-transparent py-3 text-[17px] tracking-[-0.012em]'
+          : 'bg-surface-raised border-border focus:border-accent/60 max-h-32 min-h-11 flex-1 rounded-[1.375rem] border px-4 py-2.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] transition-colors',
       )}
     />
   )
@@ -189,8 +189,8 @@ export function Composer({
       onPointerDown={keepFocus}
       onMouseDown={keepFocus}
       className={cn(
-        'bg-surface flex flex-col rounded-3xl border px-3 py-1.5 transition-colors',
-        open ? 'border-accent/40' : 'border-border',
+        'card flex flex-col px-3.5 py-1.5 transition-[border-color] duration-200',
+        open && 'border-accent/35',
         className,
       )}
     >
@@ -199,7 +199,16 @@ export function Composer({
           <IdentityToggle asMe={asMe} onChange={setAsMe} />
         </div>
       </Reveal>
-      {textarea}
+      {/* Prompt row: an accent pen in a soft tile, then the field. */}
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden
+          className="bg-accent/[0.12] text-accent mt-[0.4375rem] flex size-9 shrink-0 items-center justify-center rounded-xl shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
+        >
+          <PenLine className="size-[1.125rem]" />
+        </span>
+        {textarea}
+      </div>
       <Reveal show={open}>
         <div className="flex items-center justify-between gap-3 pt-1 pb-1.5">
           {counter}

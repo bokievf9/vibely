@@ -42,8 +42,12 @@ export function SwitchRow({ label, icon: Icon, hint, initial, save }: RowProps) 
   return (
     <div {...pressableRow(toggle, pending)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2 font-medium">
-          {Icon && <Icon className="size-5 shrink-0" aria-hidden />}
+        <span className="flex min-w-0 items-center gap-3 text-[16px] font-medium tracking-[-0.01em]">
+          {Icon && (
+            <span className="icon-tile">
+              <Icon className="size-[1.125rem]" aria-hidden />
+            </span>
+          )}
           <span className="min-w-0">{label}</span>
         </span>
         <Switch checked={on} onToggle={toggle} label={label} disabled={pending} />
@@ -58,8 +62,8 @@ export function SwitchRow({ label, icon: Icon, hint, initial, save }: RowProps) 
 export function pressableRow(toggle: () => void, disabled: boolean) {
   return {
     className: cn(
-      'flex flex-col gap-1.5 p-4 transition-colors',
-      !disabled && 'cursor-pointer active:bg-border/50',
+      'flex flex-col gap-1.5 px-4 py-3.5 transition-colors',
+      !disabled && 'cursor-pointer active:bg-fill',
     ),
     onClick: (e: MouseEvent<HTMLDivElement>) => {
       if (disabled || (e.target as HTMLElement).closest('[role="switch"], a, button')) return

@@ -9,7 +9,7 @@ export function LikesSkeleton() {
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="relative aspect-[3/4]">
             <Skeleton className="absolute inset-0" />
-            <Skeleton className="bg-border absolute bottom-3 left-3 h-4 w-1/2 rounded-full" />
+            <Skeleton className="bg-fill absolute bottom-3 left-3 h-4 w-1/2 rounded-full" />
           </div>
         ))}
       </div>
