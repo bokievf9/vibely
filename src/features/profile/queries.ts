@@ -1,8 +1,9 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import type { Enums } from '@/types/database.types'
+import { TAG_CATEGORIES, isTagCategory, type TagCategory } from './tag-categories'
 
-export type Tag = { id: number; slug: string }
+export type Tag = { id: number; slug: string; category: TagCategory; sort: number }
 
 export type OwnPhoto = {
   id: string
@@ -25,10 +26,19 @@ export type OwnProfile = {
 
 const SIGNED_URL_TTL_S = 60 * 60
 
+// Ordered by category (TAG_CATEGORIES order), then by `sort` within it, then by slug.
 export async function getTags(): Promise<Tag[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from('tags').select('id, slug').order('slug')
-  return data ?? []
+  const { data } = await supabase
+    .from('tags')
+    .select('id, slug, category, sort')
+    .order('sort')
+    .order('slug')
+  const tags = (data ?? []).flatMap((t) =>
+    isTagCategory(t.category) ? [{ ...t, category: t.category }] : [],
+  )
+  const rank = (c: TagCategory) => TAG_CATEGORIES.indexOf(c)
+  return tags.sort((a, b) => rank(a.category) - rank(b.category))
 }
 
 export async function getOwnProfile(userId: string): Promise<OwnProfile | null> {

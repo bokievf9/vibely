@@ -1,0 +1,125 @@
+-- Interest catalog: ~100 tags grouped into categories with a display order.
+-- Ids and slugs of the original 20 tags never change (profile_tags and random_chat_queue.want_tags
+-- reference them by id). Labels shown in the app come from the i18n dictionaries (keyed by slug);
+-- `label` stays an English fallback and existing labels are left untouched.
+
+alter table public.tags
+  add column category text,
+  add column sort smallint not null default 0;
+
+-- The original 20 come first, in their historical order, so a fresh database gives them ids 1..20.
+-- Existing rows keep id, slug and label: only category and sort are set.
+insert into public.tags (slug, label, category, sort) values
+  ('sport', 'Sports', 'sports', 101),
+  ('fitness', 'Fitness', 'sports', 102),
+  ('travel', 'Travel', 'outdoors', 201),
+  ('movies', 'Movies', 'screen', 501),
+  ('series', 'TV series', 'screen', 502),
+  ('music', 'Music', 'music', 401),
+  ('concerts', 'Concerts', 'music', 402),
+  ('books', 'Books', 'learning', 901),
+  ('gaming', 'Gaming', 'games', 701),
+  ('anime', 'Anime', 'screen', 503),
+  ('cooking', 'Cooking', 'food', 301),
+  ('coffee', 'Coffee', 'food', 302),
+  ('art', 'Art', 'creative', 601),
+  ('photography', 'Photography', 'creative', 602),
+  ('tech', 'Tech', 'games', 702),
+  ('startups', 'Startups', 'learning', 902),
+  ('nature', 'Nature', 'nature', 1001),
+  ('pets', 'Pets', 'nature', 1002),
+  ('dancing', 'Dancing', 'creative', 603),
+  ('psychology', 'Psychology', 'learning', 903),
+  ('gym', 'Gym', 'sports', 103),
+  ('running', 'Running', 'sports', 104),
+  ('cycling', 'Cycling', 'sports', 105),
+  ('yoga', 'Yoga', 'sports', 106),
+  ('badminton', 'Badminton', 'sports', 107),
+  ('futsal', 'Futsal', 'sports', 108),
+  ('football', 'Football (EPL)', 'sports', 109),
+  ('swimming', 'Swimming', 'sports', 110),
+  ('martial-arts', 'Martial arts', 'sports', 111),
+  ('bouldering', 'Bouldering', 'sports', 112),
+  ('pickleball', 'Pickleball', 'sports', 113),
+  ('formula-1', 'Formula 1', 'sports', 114),
+  ('hiking', 'Hiking', 'outdoors', 202),
+  ('camping', 'Camping', 'outdoors', 203),
+  ('diving', 'Diving & snorkelling', 'outdoors', 204),
+  ('island-hopping', 'Island hopping', 'outdoors', 205),
+  ('road-trips', 'Road trips', 'outdoors', 206),
+  ('beach', 'Beach days', 'outdoors', 207),
+  ('backpacking', 'Backpacking', 'outdoors', 208),
+  ('staycations', 'Staycations', 'outdoors', 209),
+  ('mamak', 'Mamak sessions', 'food', 303),
+  ('nasi-lemak', 'Nasi lemak hunting', 'food', 304),
+  ('street-food', 'Street food & pasar malam', 'food', 305),
+  ('durian', 'Durian', 'food', 306),
+  ('bubble-tea', 'Bubble tea', 'food', 307),
+  ('matcha', 'Matcha', 'food', 308),
+  ('baking', 'Baking', 'food', 309),
+  ('cafe-hopping', 'Cafe hopping', 'food', 310),
+  ('spicy-food', 'Spicy food', 'food', 311),
+  ('healthy-eating', 'Healthy eating', 'food', 312),
+  ('kpop', 'K-pop', 'music', 403),
+  ('cpop', 'C-pop', 'music', 404),
+  ('karaoke', 'Karaoke', 'music', 405),
+  ('edm', 'EDM', 'music', 406),
+  ('indie-music', 'Indie music', 'music', 407),
+  ('hip-hop', 'Hip-hop', 'music', 408),
+  ('instruments', 'Playing music', 'music', 409),
+  ('music-festivals', 'Music festivals', 'music', 410),
+  ('kdramas', 'K-dramas', 'screen', 504),
+  ('cdramas', 'C-dramas', 'screen', 505),
+  ('bollywood', 'Bollywood', 'screen', 506),
+  ('horror', 'Horror movies', 'screen', 507),
+  ('documentaries', 'Documentaries', 'screen', 508),
+  ('stand-up', 'Stand-up comedy', 'screen', 509),
+  ('painting', 'Painting', 'creative', 604),
+  ('drawing', 'Drawing', 'creative', 605),
+  ('writing', 'Writing', 'creative', 606),
+  ('poetry', 'Poetry', 'creative', 607),
+  ('diy-crafts', 'DIY & crafts', 'creative', 608),
+  ('cosplay', 'Cosplay', 'creative', 609),
+  ('content-creation', 'Content creation', 'creative', 610),
+  ('mobile-legends', 'Mobile Legends', 'games', 703),
+  ('pc-gaming', 'PC gaming', 'games', 704),
+  ('console-gaming', 'Console gaming', 'games', 705),
+  ('esports', 'Esports', 'games', 706),
+  ('board-games', 'Board games', 'games', 707),
+  ('coding', 'Coding', 'games', 708),
+  ('gadgets', 'Gadgets', 'games', 709),
+  ('ai', 'AI', 'games', 710),
+  ('fashion', 'Fashion', 'lifestyle', 801),
+  ('skincare', 'Skincare', 'lifestyle', 802),
+  ('thrifting', 'Thrifting', 'lifestyle', 803),
+  ('cars', 'Cars', 'lifestyle', 804),
+  ('astrology', 'Astrology', 'lifestyle', 805),
+  ('volunteering', 'Volunteering', 'lifestyle', 806),
+  ('open-houses', 'Festive open houses', 'lifestyle', 807),
+  ('self-care', 'Self-care', 'lifestyle', 808),
+  ('meditation', 'Meditation', 'lifestyle', 809),
+  ('languages', 'Languages', 'learning', 904),
+  ('podcasts', 'Podcasts', 'learning', 905),
+  ('investing', 'Investing', 'learning', 906),
+  ('crypto', 'Crypto', 'learning', 907),
+  ('side-hustles', 'Side hustles', 'learning', 908),
+  ('cats', 'Cats', 'nature', 1003),
+  ('dogs', 'Dogs', 'nature', 1004),
+  ('plants', 'Plants & gardening', 'nature', 1005),
+  ('stargazing', 'Stargazing', 'nature', 1006),
+  ('animal-rescue', 'Animal rescue', 'nature', 1007),
+  ('fishing', 'Fishing', 'nature', 1008)
+on conflict (slug) do update set category = excluded.category, sort = excluded.sort;
+
+-- Safety net for any tag added outside migrations: keep it visible instead of failing the migration.
+update public.tags set category = 'lifestyle', sort = 32000 where category is null;
+
+alter table public.tags
+  alter column category set not null,
+  add constraint tags_category_check check (category in (
+    'sports', 'outdoors', 'food', 'music', 'screen',
+    'creative', 'games', 'lifestyle', 'learning', 'nature'
+  ));
+
+-- `grant select on public.tags to authenticated` (20261008000004) is table-wide, so it already
+-- covers the new columns; anon stays without access.

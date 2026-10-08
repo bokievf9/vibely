@@ -1,5 +1,6 @@
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
+import { tagCategoriesMs, tagsMs } from './tags/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
@@ -304,26 +305,13 @@ export const ms: Dictionary = {
     randomRevealBody: 'Anda sepadan! Tegurlah.',
   },
   soon: { title: 'Akan datang', text: 'Bahagian ini sedang dibina.' },
-  tags: {
-    sport: 'Sukan',
-    fitness: 'Kecergasan',
-    travel: 'Melancong',
-    movies: 'Filem',
-    series: 'Siri TV',
-    music: 'Muzik',
-    concerts: 'Konsert',
-    books: 'Buku',
-    gaming: 'Permainan video',
-    anime: 'Anime',
-    cooking: 'Memasak',
-    coffee: 'Kopi',
-    art: 'Seni',
-    photography: 'Fotografi',
-    tech: 'Teknologi',
-    startups: 'Syarikat permulaan',
-    nature: 'Alam semula jadi',
-    pets: 'Haiwan peliharaan',
-    dancing: 'Menari',
-    psychology: 'Psikologi',
+  tagPicker: {
+    search: 'Cari minat',
+    selected: 'Dipilih {count}/{max}',
+    all: 'Semua',
+    empty: 'Tiada hasil',
+    clear: 'Kosongkan carian',
   },
+  tags: tagsMs,
+  tagCategories: tagCategoriesMs,
 }

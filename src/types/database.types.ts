@@ -720,19 +720,25 @@ export type Database = {
       }
       tags: {
         Row: {
+          category: string
           id: number
           label: string
           slug: string
+          sort: number
         }
         Insert: {
+          category: string
           id?: never
           label: string
           slug: string
+          sort?: number
         }
         Update: {
+          category?: string
           id?: never
           label?: string
           slug?: string
+          sort?: number
         }
         Relationships: []
       }

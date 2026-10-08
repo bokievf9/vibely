@@ -1,32 +1,127 @@
 'use client'
 
+import { useDeferredValue, useMemo, useState } from 'react'
+import { Search, X } from 'lucide-react'
 import { Chip } from '@/components/ui/chip'
+import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 import type { Tag } from '../queries'
 import { MAX_TAGS } from '../schemas'
+import { TAG_CATEGORIES, type TagCategory } from '../tag-categories'
 
 type Props = { tags: Tag[]; value: number[]; onChange: (value: number[]) => void }
 
+// Case- and accent-insensitive: "cafe" finds "Café".
+const normalize = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase()
+
+// Interests grouped by category: search (current language), category filter, selected row on top.
 export function TagPicker({ tags, value, onChange }: Props) {
   const { dict } = useI18n()
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<TagCategory | null>(null)
+  const search = normalize(useDeferredValue(query).trim())
+  const label = (tag: Tag) => dict.tags[tag.slug] ?? tag.slug
+
   const toggle = (id: number) =>
     onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id])
+  const full = value.length >= MAX_TAGS
+
+  const byId = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags])
+  const selected = value.flatMap((id) => byId.get(id) ?? [])
+
+  // Search looks across all categories; otherwise the chip filter narrows to one.
+  const groups = useMemo(() => {
+    const visible = tags.filter((t) =>
+      search
+        ? normalize(dict.tags[t.slug] ?? t.slug).includes(search)
+        : !category || t.category === category,
+    )
+    return TAG_CATEGORIES.map((c) => ({
+      category: c,
+      tags: visible.filter((t) => t.category === c),
+    })).filter((g) => g.tags.length > 0)
+  }, [tags, search, category, dict.tags])
+
+  const renderChip = (tag: Tag) => {
+    const on = value.includes(tag.id)
+    return (
+      <Chip key={tag.id} selected={on} disabled={!on && full} onClick={() => toggle(tag.id)}>
+        {label(tag)}
+      </Chip>
+    )
+  }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {tags.map((tag) => {
-        const selected = value.includes(tag.id)
-        return (
-          <Chip
-            key={tag.id}
-            selected={selected}
-            disabled={!selected && value.length >= MAX_TAGS}
-            onClick={() => toggle(tag.id)}
-          >
-            {dict.tags[tag.slug] ?? tag.slug}
+    <div className="flex flex-col gap-3">
+      <div className="flex min-h-9 flex-wrap items-center gap-2">
+        <span className={cn('text-sm font-medium', full ? 'text-accent' : 'text-muted')}>
+          {fmt(dict.tagPicker.selected, { count: value.length, max: MAX_TAGS })}
+        </span>
+        {selected.map((tag) => (
+          <Chip key={tag.id} selected onClick={() => toggle(tag.id)} className="gap-1 pr-3">
+            {label(tag)} <X className="size-3.5" aria-hidden />
           </Chip>
-        )
-      })}
+        ))}
+      </div>
+
+      <div className="relative">
+        <Search className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={dict.tagPicker.search}
+          aria-label={dict.tagPicker.search}
+          enterKeyHint="search"
+          className="bg-surface border-border placeholder:text-muted focus:border-accent h-11 w-full rounded-2xl border pr-10 pl-10 text-base outline-none [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label={dict.tagPicker.clear}
+            className="text-muted absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+
+      {!search && (
+        <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-1">
+          <Chip selected={!category} onClick={() => setCategory(null)} className="shrink-0">
+            {dict.tagPicker.all}
+          </Chip>
+          {TAG_CATEGORIES.map((c) => (
+            <Chip
+              key={c}
+              selected={category === c}
+              onClick={() => setCategory(category === c ? null : c)}
+              className="shrink-0"
+            >
+              {dict.tagCategories[c]}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {/* Bounded height keeps the rest of the form reachable with ~100 interests. */}
+      <div className="flex max-h-[55vh] flex-col gap-4 overflow-y-auto overscroll-contain">
+        {groups.length === 0 && <p className="text-muted py-2 text-sm">{dict.tagPicker.empty}</p>}
+        {groups.map((g) => (
+          <section key={g.category} className="flex flex-col gap-2">
+            <h3 className="text-muted text-xs font-semibold tracking-wide uppercase">
+              {dict.tagCategories[g.category]}
+            </h3>
+            <div className="flex flex-wrap gap-2">{g.tags.map(renderChip)}</div>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
