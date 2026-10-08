@@ -9,6 +9,12 @@ import type { ChatPreview } from '../types'
 
 export function ChatList({ chats }: { chats: ChatPreview[] }) {
   const { dict, locale } = useI18n()
+  const previewText = (m: NonNullable<ChatPreview['lastMessage']>) =>
+    m.kind === 'deleted'
+      ? dict.chats.deleted
+      : m.kind === 'photo'
+        ? `📷 ${m.body ?? dict.chats.photo}`
+        : (m.body ?? '')
   if (!chats.length) {
     return <EmptyState icon={MessagesSquare} title={dict.chats.empty} text={dict.chats.emptyHint} />
   }
@@ -39,7 +45,7 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
                   }
                 >
                   {c.lastMessage
-                    ? `${c.lastMessage.mine ? dict.chats.you : ''}${c.lastMessage.body}`
+                    ? `${c.lastMessage.mine ? dict.chats.you : ''}${previewText(c.lastMessage)}`
                     : dict.chats.newMatch}
                 </span>
                 {c.unread > 0 && (

@@ -1,73 +1,89 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { getBrowserClient } from '@/lib/supabase/client'
-import { loadMessagesAfter, markRead } from '../actions'
+import { markRead } from '../actions'
+import { mergeMessages } from '../chat-state'
+import { loadMessagesAfter, loadMessagesById, signChatImages } from '../history-actions'
 import { toChatMessage, type MessageRow } from '../message-row'
 import type { ChatMessage } from '../types'
 import { signalUnreadChanged } from '../unread-signal'
 
-const byTime = (a: ChatMessage, b: ChatMessage) => a.createdAt.localeCompare(b.createdAt)
-
-// Live message list: initial history from the server + INSERTs over Realtime (RLS-filtered),
-// UPDATEs carry read receipts (read_at). Whenever the postgres_changes subscription becomes ready
-// (first join or reconnect), messages sent in the meantime are fetched, so nothing falls into the gap.
+// Live message list: initial history from the server, then Realtime rows (RLS-filtered).
+// Realtime rows lack signed photo URLs and quoted-message previews, so those are fetched through a
+// Server Action and merged in. UPDATEs carry read receipts, edits and deletions.
 export function useChatMessages(matchId: string, viewerId: string, initial: ChatMessage[]) {
   const [messages, setMessages] = useState(initial)
   const latest = useRef(initial.at(-1)?.createdAt ?? null)
+  const known = useRef(new Set(initial.map((m) => m.id)))
+  const resigned = useRef(new Set<string>())
 
   const read = () => void markRead(matchId).then(signalUnreadChanged)
 
   const merge = (incoming: ChatMessage[]) => {
     if (!incoming.length) return
-    setMessages((prev) => {
-      const fresh = new Map(incoming.map((m) => [m.id, m]))
-      const kept = prev.map((p) => fresh.get(p.id) ?? p)
-      const seen = new Set(prev.map((p) => p.id))
-      const next = [...kept, ...incoming.filter((m) => !seen.has(m.id))].sort(byTime)
-      latest.current = next.at(-1)?.createdAt ?? latest.current
-      return next
-    })
-    if (incoming.some((m) => m.senderId !== viewerId && !m.readAt)) read()
+    for (const m of incoming) {
+      known.current.add(m.id)
+      if (!latest.current || m.createdAt > latest.current) latest.current = m.createdAt
+    }
+    setMessages((prev) => mergeMessages(prev, incoming))
+    if (incoming.some((m) => m.senderId !== viewerId && !m.readAt && !m.deletedAt)) read()
   }
 
   // Older pages go in front; they never move `latest`.
-  const prepend = (older: ChatMessage[]) =>
+  const prepend = (older: ChatMessage[]) => {
+    for (const m of older) known.current.add(m.id)
     setMessages((prev) => {
       const seen = new Set(prev.map((p) => p.id))
       return [...older.filter((m) => !seen.has(m.id)), ...prev]
     })
+  }
 
-  const markSeen = (row: MessageRow) =>
-    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, readAt: row.read_at } : m)))
+  const hydrate = (ids: string[]) => void loadMessagesById({ matchId, ids }).then(merge)
+
+  const onInsert = (row: MessageRow) => {
+    const m = toChatMessage(row)
+    const needsMore = !!m.image || (!!m.replyTo && !known.current.has(m.replyTo))
+    merge([m])
+    if (needsMore) hydrate([m.id])
+  }
+
+  const onUpdate = (row: MessageRow) => {
+    if (!known.current.has(row.id)) return
+    setMessages((prev) => mergeMessages(prev, [toChatMessage(row)]))
+  }
+
+  const resync = () => void loadMessagesAfter(matchId, latest.current).then(merge)
+
+  // Signed URLs expire after an hour: re-sign once when a photo fails to load.
+  const refreshImage = (path: string) => {
+    if (resigned.current.has(path)) return
+    resigned.current.add(path)
+    void signChatImages([path]).then((urls) => {
+      const url = urls[path]
+      if (!url) return
+      setMessages((prev) =>
+        prev.map((m) => (m.image?.path === path ? { ...m, image: { ...m.image, url } } : m)),
+      )
+    })
+  }
+
+  // Locally applied edits and deletions (the Realtime UPDATE confirms them for both sides).
+  const patch = (id: string, change: Partial<ChatMessage>) =>
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...change } : m)))
 
   useEffect(() => {
     read()
-    const client = getBrowserClient()
-    const filter = `match_id=eq.${matchId}`
-    const channel = client
-      .channel(`match:${matchId}`, { config: { private: true } })
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter },
-        ({ new: row }) => merge([toChatMessage(row as MessageRow)]),
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages', filter },
-        ({ new: row }) => markSeen(row as MessageRow),
-      )
-      .on('system', {}, (payload: { extension?: string; status?: string }) => {
-        if (payload.extension === 'postgres_changes' && payload.status === 'ok') {
-          void loadMessagesAfter(matchId, latest.current).then(merge)
-        }
-      })
-      .subscribe()
-    return () => {
-      void client.removeChannel(channel)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- merge only touches state setters and refs
-  }, [matchId, viewerId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read only depends on matchId
+  }, [matchId])
 
-  return { messages, add: (m: ChatMessage) => merge([m]), prepend }
+  return {
+    messages,
+    add: (m: ChatMessage) => merge([m]),
+    prepend,
+    patch,
+    onInsert,
+    onUpdate,
+    resync,
+    refreshImage,
+  }
 }

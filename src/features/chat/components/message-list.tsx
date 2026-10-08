@@ -1,98 +1,115 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useMemo, type RefObject } from 'react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
-import { formatTime } from '@/i18n/format'
+import { dayKey, daysAgo, formatDay } from '@/i18n/format'
 import { cn } from '@/lib/utils'
-import { RiskWarning } from '@/features/safety/components/risk-warning'
-import type { ChatMessage } from '../types'
+import { groupMessages } from '../chat-state'
+import type { ChatMessage, Reaction, ReplyPreview } from '../types'
+import { MessageBubble, type BubbleAction } from './message-bubble'
 
 type Props = {
   messages: ChatMessage[]
+  reactions: Map<string, Reaction[]>
   viewerId: string
   partnerName: string
   partnerTyping: boolean
   hasMore: boolean
   loadingEarlier: boolean
+  highlightId: string | null
+  bottomRef: RefObject<HTMLDivElement | null>
   onLoadEarlier: () => void
+  onAction: (message: ChatMessage, action: BubbleAction) => void
 }
 
-const NEAR_BOTTOM_PX = 320
+const NO_REACTIONS: Reaction[] = []
 
-const distanceFromBottom = () =>
-  document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+const toPreview = (m: ChatMessage): ReplyPreview => ({
+  id: m.id,
+  senderId: m.senderId,
+  body: m.body,
+  hasImage: !!m.image,
+  deleted: !!m.deletedAt,
+})
 
-// The page (window) scrolls. New messages stick to the bottom unless the user is reading older
-// history; a prepended page keeps the viewport anchored to the same message.
-export function MessageList(props: Props) {
-  const { messages, viewerId, partnerName, partnerTyping, hasMore, loadingEarlier } = props
+export function MessageList({
+  messages,
+  reactions,
+  viewerId,
+  partnerName,
+  partnerTyping,
+  hasMore,
+  loadingEarlier,
+  highlightId,
+  bottomRef,
+  onLoadEarlier,
+  onAction,
+}: Props) {
   const { dict, locale } = useI18n()
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const anchor = useRef<number | null>(null)
-  const firstId = messages[0]?.id
-  const last = messages.at(-1)
+  const items = useMemo(() => groupMessages(messages, dayKey), [messages])
+  const byId = useMemo(() => new Map(messages.map((m) => [m.id, m])), [messages])
   const lastOwn = messages.findLast((m) => m.senderId === viewerId)
 
-  useLayoutEffect(() => {
-    if (anchor.current === null) return
-    window.scrollTo({ top: document.documentElement.scrollHeight - anchor.current })
-    anchor.current = null
-  }, [firstId])
-
-  const mounted = useRef(false)
-  useEffect(() => {
-    const stick = !mounted.current || last?.senderId === viewerId
-    mounted.current = true
-    if (stick || distanceFromBottom() < NEAR_BOTTOM_PX) {
-      bottomRef.current?.scrollIntoView({ block: 'end' })
-    }
-  }, [last?.id, last?.senderId, viewerId, partnerTyping])
-
-  const loadEarlier = () => {
-    anchor.current = document.documentElement.scrollHeight - window.scrollY
-    props.onLoadEarlier()
+  const dayLabel = (iso: string) => {
+    const days = daysAgo(iso)
+    return days === 0
+      ? dict.chats.today
+      : days === 1
+        ? dict.chats.yesterday
+        : formatDay(iso, locale)
   }
 
   return (
-    <ol className="flex flex-1 flex-col gap-1.5 px-4 py-3" aria-live="polite">
+    <ol className="flex flex-1 flex-col px-4 py-3" aria-live="polite">
       {hasMore && (
         <li className="flex justify-center pb-2">
-          <Button variant="ghost" size="sm" loading={loadingEarlier} onClick={loadEarlier}>
+          <Button variant="ghost" size="sm" loading={loadingEarlier} onClick={onLoadEarlier}>
             {dict.chats.loadEarlier}
           </Button>
         </li>
       )}
-      {messages.map((m) => {
+      {items.map((item) => {
+        if (item.kind === 'day') {
+          return (
+            <li key={`day-${item.key}`} className="sticky top-16 z-20 flex justify-center py-2">
+              <span className="bg-surface/90 text-muted rounded-full px-3 py-1 text-xs backdrop-blur">
+                {dayLabel(item.at)}
+              </span>
+            </li>
+          )
+        }
+        const m = item.message
         const mine = m.senderId === viewerId
+        const original = m.replyTo ? byId.get(m.replyTo) : undefined
+        const quote = original ? toPreview(original) : m.reply
         return (
           <li
             key={m.id}
+            id={`msg-${m.id}`}
             className={cn(
-              'flex max-w-[80%] flex-col',
-              mine ? 'items-end self-end' : 'items-start self-start',
+              'flex max-w-[85%] scroll-mt-24 flex-col',
+              mine ? 'self-end' : 'self-start',
+              item.groupStart ? 'mt-2' : 'mt-0.5',
             )}
           >
-            <p
-              className={cn(
-                'rounded-2xl px-3.5 py-2 break-words whitespace-pre-wrap',
-                mine
-                  ? 'bg-accent text-accent-foreground rounded-br-md'
-                  : 'bg-surface rounded-bl-md',
-              )}
-            >
-              {m.body}
-            </p>
-            <span className="text-muted px-1 text-[10px]">
-              <time dateTime={m.createdAt}>{formatTime(m.createdAt, locale)}</time>
-              {m.id === lastOwn?.id && m.readAt && <> · {dict.chats.seen}</>}
-            </span>
-            {!mine && <RiskWarning text={m.body} />}
+            <MessageBubble
+              message={m}
+              mine={mine}
+              quote={quote}
+              quoteAuthor={quote?.senderId === viewerId ? dict.chats.yourself : partnerName}
+              tail={item.groupEnd}
+              seen={m.id === lastOwn?.id && !!m.readAt}
+              highlighted={highlightId === m.id}
+              reactions={reactions.get(m.id) ?? NO_REACTIONS}
+              viewerId={viewerId}
+              onAction={(action) => onAction(m, action)}
+            />
           </li>
         )
       })}
       {partnerTyping && (
-        <li className="text-muted self-start text-sm italic">
+        <li className="text-muted mt-2 self-start text-sm italic">
           {partnerName} {dict.chats.typing}
         </li>
       )}

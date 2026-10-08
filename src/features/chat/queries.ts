@@ -1,8 +1,9 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
-import { MESSAGE_COLUMNS, toChatMessage } from './message-row'
-import type { ChatPreview, Partner } from './types'
+import { hydrateMessages, loadReactionsFor } from './hydrate'
+import { MESSAGE_COLUMNS } from './message-row'
+import type { ChatPreview, Partner, PreviewKind } from './types'
 
 const ROOM_HISTORY = 100
 
@@ -35,6 +36,9 @@ async function toPartners(rows: PartnerRow[]): Promise<Map<string, Partner>> {
   )
 }
 
+const previewKind = (m: { image_path: string | null; deleted_at: string | null }): PreviewKind =>
+  m.deleted_at ? 'deleted' : m.image_path ? 'photo' : 'text'
+
 // Matches with the partner's first photo and the latest message. Partners that are banned,
 // blocked or deactivated are invisible through RLS, so their chats drop out automatically.
 export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
@@ -52,7 +56,7 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
     toPartners(partnerRows),
     supabase
       .from('messages')
-      .select('match_id, body, sender_id, created_at, read_at')
+      .select('match_id, body, sender_id, created_at, read_at, image_path, deleted_at')
       .in(
         'match_id',
         matches.map((m) => m.id),
@@ -71,9 +75,15 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
         matchId: m.id,
         partner,
         lastMessage: last
-          ? { body: last.body, mine: last.sender_id === viewerId, at: last.created_at }
+          ? {
+              body: last.body,
+              kind: previewKind(last),
+              mine: last.sender_id === viewerId,
+              at: last.created_at,
+            }
           : null,
-        unread: own.filter((msg) => msg.sender_id !== viewerId && !msg.read_at).length,
+        unread: own.filter((msg) => msg.sender_id !== viewerId && !msg.read_at && !msg.deleted_at)
+          .length,
         createdAt: m.created_at,
       },
     ]
@@ -107,9 +117,14 @@ export async function getChatRoom(matchId: string, viewerId: string) {
   const partner = partners.get(row.id)
   if (!partner) return null
   const rows = messages ?? []
-  return {
-    partner,
-    messages: rows.slice(0, ROOM_HISTORY).reverse().map(toChatMessage),
-    hasMore: rows.length > ROOM_HISTORY,
-  }
+  const page = rows.slice(0, ROOM_HISTORY).reverse()
+  const [hydrated, reactions] = await Promise.all([
+    hydrateMessages(supabase, page),
+    loadReactionsFor(
+      supabase,
+      matchId,
+      page.map((m) => m.id),
+    ),
+  ])
+  return { partner, messages: hydrated, reactions, hasMore: rows.length > ROOM_HISTORY }
 }

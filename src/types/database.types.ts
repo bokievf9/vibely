@@ -147,29 +147,96 @@ export type Database = {
           },
         ]
       }
-      messages: {
+      message_reactions: {
         Row: {
-          body: string
           created_at: string
+          emoji: string | null
           id: string
           match_id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          match_id: string
+          message_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          match_id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'message_reactions_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'message_reactions_message_id_fkey'
+            columns: ['message_id']
+            isOneToOne: false
+            referencedRelation: 'messages'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'message_reactions_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          image_height: number | null
+          image_path: string | null
+          image_width: number | null
+          match_id: string
           read_at: string | null
+          reply_to: string | null
           sender_id: string
         }
         Insert: {
-          body: string
+          body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
+          image_height?: number | null
+          image_path?: string | null
+          image_width?: number | null
           match_id: string
           read_at?: string | null
+          reply_to?: string | null
           sender_id?: string
         }
         Update: {
-          body?: string
+          body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
+          image_height?: number | null
+          image_path?: string | null
+          image_width?: number | null
           match_id?: string
           read_at?: string | null
+          reply_to?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -178,6 +245,13 @@ export type Database = {
             columns: ['match_id']
             isOneToOne: false
             referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'messages_reply_to_fkey'
+            columns: ['reply_to']
+            isOneToOne: false
+            referencedRelation: 'messages'
             referencedColumns: ['id']
           },
           {
@@ -464,6 +538,7 @@ export type Database = {
           pets: Database['public']['Enums']['pets_status'] | null
           relationship_goal: Database['public']['Enums']['relationship_goal'] | null
           religion: Database['public']['Enums']['religion'] | null
+          show_last_seen: boolean
           smoking: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at: string | null
           updated_at: string
@@ -492,6 +567,7 @@ export type Database = {
           pets?: Database['public']['Enums']['pets_status'] | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
+          show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -520,6 +596,7 @@ export type Database = {
           pets?: Database['public']['Enums']['pets_status'] | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
+          show_last_seen?: boolean
           smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -970,16 +1047,19 @@ export type Database = {
         Returns: undefined
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
-      array_is_distinct: { Args: { arr: unknown[] }; Returns: boolean }
+      array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
       can_view_profile: { Args: { target: string }; Returns: boolean }
+      chat_media_match: { Args: { object_name: string }; Returns: string }
       create_comment: {
         Args: { p_body: string; p_post_id: string }
         Returns: string
       }
       create_post: { Args: { p_body: string }; Returns: string }
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
+      delete_message: { Args: { p_id: string }; Returns: string }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
+      edit_message: { Args: { p_body: string; p_id: string }; Returns: string }
       ensure_match: {
         Args: {
           a: string
@@ -1055,6 +1135,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      match_partner_last_seen: { Args: { p_match: string }; Returns: string }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
@@ -1075,7 +1156,12 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      set_message_reaction: {
+        Args: { p_emoji: string; p_message: string }
+        Returns: undefined
+      }
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
+      touch_last_active: { Args: never; Returns: undefined }
       unread_message_count: { Args: never; Returns: number }
     }
     Enums: {

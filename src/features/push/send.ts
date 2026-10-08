@@ -79,7 +79,7 @@ export function notifyNewMatch(userId: string, partnerName: string, matchId: str
 
 // Looks up the recipient and sender name in the background, so sending a message stays fast.
 // Callers must have authorized the sender for this match (the RLS-checked insert did).
-export function notifyNewMessage(matchId: string, senderId: string) {
+export function notifyNewMessage(matchId: string, senderId: string, kind: 'text' | 'photo') {
   inBackground(async () => {
     const admin = createAdminClient()
     const { data: match } = await admin
@@ -94,10 +94,10 @@ export function notifyNewMessage(matchId: string, senderId: string) {
       .select('display_name')
       .eq('id', senderId)
       .maybeSingle()
-    // Never the message body: it would be readable on a locked screen.
+    // Never the message body or photo: it would be readable on a locked screen.
     await sendToUser(recipient, (dict, locale) => ({
       title: fmt(dict.push.newMessage, { name: sender?.display_name ?? 'Vibely' }),
-      body: dict.push.newMessageBody,
+      body: kind === 'photo' ? dict.push.newPhotoBody : dict.push.newMessageBody,
       url: chatUrl(locale, matchId),
       tag: `chat-${matchId}`,
     }))

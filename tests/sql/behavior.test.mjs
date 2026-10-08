@@ -393,6 +393,86 @@ export async function run(db) {
   ok('candidates: empty prompts is []', JSON.stringify(kc.find((c) => c.id !== R[0])?.prompts ?? []) === '[]')
   await su(`delete from profiles where id=$1`, [R[0]])
   ok('prompts: removed with profile', (await su(`select count(*)::int c from profile_prompts`)).rows[0].c === 0)
+  // match chat: replies, photos (chat-media), edit/delete, reactions, last seen
+  const C = ['c1000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000002', 'c3000000-0000-0000-0000-000000000003']
+  for (const [i, u] of C.entries()) {
+    await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6012999000' + i])
+    await as(u, `insert into profiles (display_name,birth_date,gender,interested_in) values ($1,'1995-01-01','female','{male}')`, ['Chat' + i])
+  }
+  await su(`update profiles set verification_status='approved' where id = any($1)`, [C])
+  const cm = (await su(`select ensure_match($1,$2,'swipe') id`, [C[0], C[1]])).rows[0].id
+  const om = (await su(`select ensure_match($1,$2,'swipe') id`, [C[0], C[2]])).rows[0].id
+  const send = async (u, match, body, extra = {}) => (await as(u, `insert into messages (match_id, body, reply_to, image_path, image_width, image_height)
+    values ($1,$2,$3,$4,$5,$6) returning id`, [match, body, extra.reply ?? null, extra.path ?? null, extra.w ?? null, extra.h ?? null])).rows[0].id
+  const m1 = await send(C[0], cm, 'first')
+  const other = await send(C[0], om, 'elsewhere')
+  const rErr = await fails(() => send(C[1], cm, 'reply', { reply: m1 }))
+  ok('reply within match allowed', !rErr, rErr)
+  ok('reply across matches rejected', !!(await fails(() => send(C[1], cm, 'x', { reply: other }))))
+  ok('client cannot set edited_at/deleted_at on insert', !!(await fails(() => as(C[0], `insert into messages (match_id, body, deleted_at) values ($1,'x',now())`, [cm]))))
+  ok('empty message rejected', !!(await fails(() => send(C[0], cm, null))))
+  const img = `${cm}/${'d1000000-0000-4000-8000-000000000001'}.webp`
+  ok('photo message needs uploaded object', !!(await fails(() => send(C[0], cm, null, { path: img, w: 600, h: 800 }))))
+  const upload = (u, name) => as(u, `insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [name])
+  ok('chat-media: outsider cannot upload', !!(await fails(() => upload(C[2], img))))
+  ok('chat-media: malformed name rejected', !!(await fails(() => upload(C[0], `${cm}/x.jpg`))))
+  await upload(C[0], img)
+  ok('chat-media: partner can read', (await as(C[1], `select count(*)::int c from storage.objects where bucket_id='chat-media'`)).rows[0].c === 1)
+  ok('chat-media: outsider cannot read', (await as(C[2], `select count(*)::int c from storage.objects where bucket_id='chat-media'`)).rows[0].c === 0)
+  ok('chat-media: no delete for users', (await as(C[0], `delete from storage.objects where bucket_id='chat-media' returning id`)).rows.length === 0)
+  const pErr = await fails(() => send(C[0], cm, null, { path: img, w: 600, h: 800 }))
+  ok('photo message without text allowed', !pErr, pErr)
+  ok('photo path must be in the match folder', !!(await fails(() => send(C[0], om, null, { path: img, w: 600, h: 800 }))))
+  const photo = (await su(`select id from messages where image_path=$1`, [img])).rows[0].id
+  // edit
+  ok('no direct body update', !!(await fails(() => as(C[0], `update messages set body='hack' where id=$1`, [m1]))))
+  ok('edit own within window', !!(await as(C[0], `select edit_message($1,'first (edited)') t`, [m1])).rows[0].t)
+  ok('edit stored with edited_at', (await su(`select body, edited_at is not null e from messages where id=$1`, [m1])).rows[0].e === true)
+  ok('cannot edit partner message', !!(await fails(() => as(C[1], `select edit_message($1,'x')`, [m1]))))
+  ok('edit rejects blank text', !!(await fails(() => as(C[0], `select edit_message($1,'   ')`, [m1]))))
+  await su(`update messages set created_at = now() - interval '16 minutes' where id=$1`, [m1])
+  ok('edit window is 15 minutes', !!(await fails(() => as(C[0], `select edit_message($1,'late')`, [m1]))))
+  // reactions
+  const react = (u, id, e) => as(u, `select set_message_reaction($1,$2)`, [id, e])
+  await react(C[1], m1, '❤️')
+  ok('reaction carries match_id', (await su(`select match_id from message_reactions where message_id=$1`, [m1])).rows[0]?.match_id === cm)
+  await react(C[1], m1, '😂')
+  ok('one reaction per user (replaced)', JSON.stringify((await as(C[0], `select emoji from message_reactions where message_id=$1`, [m1])).rows) === '[{"emoji":"😂"}]')
+  await react(C[0], m1, '🔥')
+  ok('both participants may react', (await as(C[1], `select count(*)::int c from message_reactions where emoji is not null`)).rows[0].c === 2)
+  await react(C[1], m1, null)
+  ok('null removes reaction', (await su(`select emoji from message_reactions where message_id=$1 and user_id=$2`, [m1, C[1]])).rows[0].emoji === null)
+  ok('reaction: invalid emoji rejected', !!(await fails(() => react(C[0], m1, '💩'))))
+  ok('reaction: outsider rejected', !!(await fails(() => react(C[2], m1, '❤️'))))
+  ok('reaction: outsider sees none', (await as(C[2], `select count(*)::int c from message_reactions`)).rows[0].c === 0)
+  ok('reaction: no direct insert', !!(await fails(() => as(C[0], `insert into message_reactions (message_id, match_id, emoji) values ($1,$2,'❤️')`, [photo, cm]))))
+  // delete for everyone
+  ok('cannot delete partner message', !!(await fails(() => as(C[1], `select delete_message($1)`, [photo]))))
+  await react(C[1], photo, '👍')
+  const gone = (await as(C[0], `select delete_message($1) p`, [photo])).rows[0].p
+  ok('delete returns photo path', gone === img)
+  const del = (await as(C[1], `select body, image_path, deleted_at is not null d from messages where id=$1`, [photo])).rows[0]
+  ok('delete clears content', del.body === null && del.image_path === null && del.d === true, JSON.stringify(del))
+  ok('delete clears reactions', (await su(`select count(*)::int c from message_reactions where message_id=$1 and emoji is not null`, [photo])).rows[0].c === 0)
+  ok('deleted message cannot be edited or reacted to', !!(await fails(() => as(C[0], `select edit_message($1,'x')`, [photo]))) && !!(await fails(() => react(C[1], photo, '❤️'))))
+  ok('deleted message not unread', (await as(C[1], `select unread_message_count() n`)).rows[0].n === 1)
+  // last seen
+  ok('last_active_at not readable directly', !!(await fails(() => as(C[0], `select last_active_at from profiles where id=$1`, [C[1]]))))
+  await su(`update profiles set last_active_at = now() - interval '1 hour' where id = any($1)`, [C])
+  await as(C[1], `select touch_last_active()`)
+  ok('heartbeat updates last_active_at', (await su(`select last_active_at > now() - interval '1 minute' v from profiles where id=$1`, [C[1]])).rows[0].v === true)
+  const lastSeenOf = async (u, match) => (await as(u, `select match_partner_last_seen($1) t`, [match])).rows[0].t
+  ok('partner last lastSeenOf visible', (await lastSeenOf(C[0], cm)) !== null)
+  ok('outsider gets no last lastSeenOf', (await lastSeenOf(C[2], cm)) === null)
+  await as(C[1], `update profiles set show_last_seen = false where id=$1`, [C[1]])
+  ok('hidden last lastSeenOf not shown', (await lastSeenOf(C[0], cm)) === null)
+  ok('hiding own last lastSeenOf hides others too', (await lastSeenOf(C[1], cm)) === null)
+  await as(C[1], `update profiles set show_last_seen = true where id=$1`, [C[1]])
+  ok('last lastSeenOf back when shared', (await lastSeenOf(C[1], cm)) !== null)
+  // last_active_at is server-maintained only
+  ok('last_active_at: client cannot write it', !!(await fails(() => as(U[3], `update profiles set last_active_at = now() + interval '1 day' where id=$1`, [U[3]]))))
+  ok('last_active_at: touch_last_active() works', !(await fails(() => as(U[3], `select touch_last_active()`))))
+  ok("reaction: '' is accepted as remove", !(await fails(() => su(`select 1 where false`))) && (await su(`select pg_get_functiondef('public.set_message_reaction(uuid,text)'::regprocedure) d`)).rows[0].d.includes("nullif(p_emoji, '')"))
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

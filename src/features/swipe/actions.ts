@@ -60,10 +60,7 @@ export async function swipe(input: z.input<typeof swipeSchema>): Promise<UserRes
   // 23505: already swiped (double tap, second device). Treat as success.
   if (error && error.code !== '23505') return fail(rateLimitedOr(error.code, 'generic'))
 
-  await supabase
-    .from('profiles')
-    .update({ last_active_at: new Date().toISOString() })
-    .eq('id', viewer.id)
+  await supabase.rpc('touch_last_active')
   if (direction === 'pass') return ok({ matchId: null })
 
   // The DB trigger creates the match on a mutual like; user_a is always the smaller uuid.
