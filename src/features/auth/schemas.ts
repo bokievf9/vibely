@@ -31,3 +31,6 @@ export const otpSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, { error: 'otpFormat' satisfies ErrorKey }),
 })
+
+// Cloudflare Turnstile token (single use, max 2048 chars). Absent when captcha is off.
+export const captchaSchema = z.string().trim().max(2048).optional()

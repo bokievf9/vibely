@@ -8,6 +8,7 @@ import { Field, FormError } from '@/components/ui/field'
 import { Input, Textarea } from '@/components/ui/input'
 import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n, useLocaleRouter } from '@/i18n/client'
+import { track } from '@/lib/analytics'
 import { createProfile, updateProfile } from '../actions'
 import type { OwnProfile, Tag } from '../queries'
 import { TermsConsent } from '@/features/legal/components/terms-consent'
@@ -43,6 +44,7 @@ export function ProfileForm({ tags, initial }: Props) {
 
   const onSubmit = handleSubmit(async (values) => {
     const result = initial ? await updateProfile(values) : await createProfile(values)
+    if (result.ok && !initial) track('profile_created')
     if (result.ok) return initial ? router.push('/profile') : router.refresh()
     setServerError(result.error)
     Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) =>

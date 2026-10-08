@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { AnalyticsScript } from '@/components/analytics-script'
 import { publicEnv } from '@/lib/env'
 import { LOCALES } from '@/i18n/config'
 import { I18nProvider } from '@/i18n/client'
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<'/[lang]'>) {
         <I18nProvider locale={locale} dict={dict}>
           {children}
         </I18nProvider>
+        <AnalyticsScript />
       </body>
     </html>
   )

@@ -7,11 +7,20 @@ import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
 
 const AUTH_ROUTES = ['/login', '/verify-otp']
-// Reachable signed in or out (legal pages are linked from the sign-up flow and app stores).
-const PUBLIC_ROUTES = ['/privacy', '/terms']
+// Open to everyone, signed in or not (the landing page "/" is handled separately).
+const PUBLIC_ROUTES = ['/privacy', '/terms', '/opengraph-image', '/twitter-image']
 
 function matches(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
+}
+
+// Generated metadata images get a hash suffix: /en/opengraph-image-abc123.
+function isPublic(pathname: string) {
+  return (
+    matches(pathname, PUBLIC_ROUTES) ||
+    pathname.startsWith('/opengraph-image-') ||
+    pathname.startsWith('/twitter-image-')
+  )
 }
 
 // 1. Adds the locale prefix (/swipe → /en/swipe). The admin panel is unprefixed.
@@ -55,10 +64,13 @@ export async function updateSession(request: NextRequest) {
   const isSignedIn = Boolean(data?.claims)
   const lang = locale ?? preferredLocale(request)
 
-  if (!isSignedIn && !matches(rest, AUTH_ROUTES) && !matches(rest, PUBLIC_ROUTES)) {
+  const isLanding = rest === '/'
+
+  if (!isSignedIn && !isLanding && !isPublic(rest) && !matches(rest, AUTH_ROUTES)) {
     return redirectWithCookies(request, response, localePath(lang, '/login'))
   }
-  if (isSignedIn && matches(rest, AUTH_ROUTES)) {
+  // Signed-in users skip the landing page and the sign-in screens.
+  if (isSignedIn && (isLanding || matches(rest, AUTH_ROUTES))) {
     return redirectWithCookies(request, response, localePath(lang, '/swipe'))
   }
   if (locale && request.cookies.get(LOCALE_COOKIE)?.value !== locale) {

@@ -1,7 +1,9 @@
 import type { Dictionary } from './en'
+import { landingMs } from './landing/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan sembang rawak.' },
+  landing: landingMs,
   common: {
     continue: 'Teruskan',
     save: 'Simpan',
@@ -52,6 +54,7 @@ export const ms: Dictionary = {
     termsRequired: 'Sila sahkan anda berumur 18+ dan menerima Terma serta Dasar Privasi',
     deleteConfirmMismatch: 'Taip perkataan tepat seperti yang ditunjukkan',
     accountDeleteFailed: 'Akaun tidak dapat dipadam. Cuba lagi.',
+    captchaFailed: 'Semakan keselamatan gagal. Sila cuba lagi.',
   },
   gender: { male: 'Lelaki', female: 'Perempuan', other: 'Lain-lain' },
   auth: {

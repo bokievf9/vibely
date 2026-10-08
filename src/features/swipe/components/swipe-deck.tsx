@@ -10,6 +10,7 @@ import { FormError } from '@/components/ui/field'
 import { PageSpinner } from '@/components/ui/spinner'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { trackOnce } from '@/lib/analytics'
 import { loadCandidates, swipe } from '../actions'
 import type { Candidate, SwipeFilters } from '../schemas'
 import { FilterSheet } from './filter-sheet'
@@ -81,7 +82,9 @@ export function SwipeDeck({ defaultFilters }: { defaultFilters: SwipeFilters }) 
     if (rest.length < REFILL_AT && !exhausted && !loading) void topUp()
     const result = await swipe({ targetId: top.id, direction: dir })
     if (!result.ok) return setError(result.error)
-    if (result.data.matchId) setMatch({ id: result.data.matchId, name: top.name })
+    if (!result.data.matchId) return
+    trackOnce('first_match')
+    setMatch({ id: result.data.matchId, name: top.name })
   }
 
   const [top, next] = cards

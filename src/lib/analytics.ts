@@ -1,0 +1,37 @@
+// Funnel events for the optional, cookieless analytics script (Umami or Plausible).
+// Every call is a no-op when no script is configured or it was blocked.
+
+export type AnalyticsEvent =
+  'signup_otp_sent' | 'profile_created' | 'selfie_submitted' | 'first_match'
+
+type Props = Record<string, string | number | boolean>
+
+declare global {
+  interface Window {
+    umami?: { track: (event: string, data?: Props) => void }
+    plausible?: (event: string, options?: { props?: Props }) => void
+  }
+}
+
+export function track(event: AnalyticsEvent, props?: Props): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (window.umami) window.umami.track(event, props)
+    else if (window.plausible) window.plausible(event, props ? { props } : undefined)
+  } catch {
+    // Analytics must never break the app.
+  }
+}
+
+// Once per device, e.g. the first match.
+export function trackOnce(event: AnalyticsEvent, props?: Props): void {
+  if (typeof window === 'undefined') return
+  const key = `vibely_tracked_${event}`
+  try {
+    if (window.localStorage.getItem(key)) return
+    window.localStorage.setItem(key, '1')
+  } catch {
+    // Storage unavailable (private mode): track anyway.
+  }
+  track(event, props)
+}
