@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Constants } from '@/types/database.types'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { ageFromBirthDate } from '@/lib/utils'
+import { aboutSchema, promptsSchema } from './about-schemas'
 
 const e = (key: ErrorKey) => ({ error: key })
 
@@ -27,6 +28,9 @@ export const editableProfileSchema = z.object({
   location: z
     .object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) })
     .nullable(),
+  // Edit page only (onboarding stays short): optional "about me" fields and prompts.
+  about: aboutSchema.optional(),
+  prompts: promptsSchema.optional(),
 })
 
 export const profileSchema = editableProfileSchema.extend({

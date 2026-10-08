@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import type { Enums } from '@/types/database.types'
+import { aboutFromRow, promptsFromRows, type AboutInput, type ProfilePrompt } from './about-schemas'
 
 export type Tag = { id: number; slug: string }
 
@@ -21,6 +22,8 @@ export type OwnProfile = {
   bio: string
   city: string
   tagIds: number[]
+  about: AboutInput
+  prompts: ProfilePrompt[]
 }
 
 const SIGNED_URL_TTL_S = 60 * 60
@@ -35,7 +38,9 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
   const supabase = await createClient()
   const { data } = await supabase
     .from('profiles')
-    .select('display_name, birth_date, gender, interested_in, bio, city, profile_tags(tag_id)')
+    .select(
+      'display_name, birth_date, gender, interested_in, bio, city, profile_tags(tag_id), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
+    )
     .eq('id', userId)
     .maybeSingle()
   if (!data) return null
@@ -47,6 +52,8 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
     bio: data.bio ?? '',
     city: data.city ?? '',
     tagIds: data.profile_tags.map((t) => t.tag_id),
+    about: aboutFromRow(data),
+    prompts: promptsFromRows(data.profile_prompts),
   }
 }
 

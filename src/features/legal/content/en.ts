@@ -13,6 +13,7 @@ export const en: LegalContent = {
         list: [
           'Phone number: used to sign you in with an SMS code. It is stored by our sign-in provider and is never shown to other users.',
           'Profile: your name, date of birth (others only see your age), gender, who you are interested in, city, bio and interests.',
+          'Optional profile details, only if you add them: what you are looking for, height, job, education, languages, smoking, drinking, pets, children, answers to profile prompts and religion. Religion is sensitive personal data: it is entirely optional, shown only on your profile and never used for matching, ranking, ads or anything else. You can remove any of these details at any time.',
           'Photos you upload to your profile.',
           'Approximate location: if you allow it, your device location is used to calculate how far you are from other users. Your exact location is never shown to anyone. Others only see a rounded distance, such as "5 km away".',
           'Verification selfie: a photo of you doing a gesture, used only to confirm that you match your profile photos (see section 3).',

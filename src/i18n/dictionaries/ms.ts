@@ -1,3 +1,4 @@
+import { aboutMs } from './about/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 
@@ -38,6 +39,11 @@ export const ms: Dictionary = {
     bioTooLong: 'Paling banyak 500 aksara',
     tooManyTags: 'Paling banyak 10 minat',
     profileSaveFailed: 'Profil tidak dapat disimpan',
+    jobTooLong: 'Maksimum 60 aksara',
+    tooManyLanguages: 'Maksimum 6 bahasa',
+    promptAnswerRequired: 'Tulis jawapan atau buang soalan ini',
+    promptAnswerTooLong: 'Maksimum 200 aksara',
+    promptDuplicate: 'Setiap soalan hanya boleh digunakan sekali',
     photoUploadFailed: 'Foto tidak dapat dimuat naik. Cuba foto lain.',
     invalidFile: 'Fail ini tidak dibenarkan',
     profileRequired: 'Lengkapkan profil anda dahulu',
@@ -276,6 +282,7 @@ export const ms: Dictionary = {
     deleteType: 'Taip {word} untuk mengesahkan',
     deleteConfirm: 'Padam selama-lamanya',
   },
+  about: aboutMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',

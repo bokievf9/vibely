@@ -1,3 +1,4 @@
+import { aboutRu } from './about/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 
@@ -38,6 +39,11 @@ export const ru: Dictionary = {
     bioTooLong: 'Максимум 500 символов',
     tooManyTags: 'Не больше 10 интересов',
     profileSaveFailed: 'Не удалось сохранить профиль',
+    jobTooLong: 'Не больше 60 символов',
+    tooManyLanguages: 'Не больше 6 языков',
+    promptAnswerRequired: 'Напишите ответ или удалите вопрос',
+    promptAnswerTooLong: 'Не больше 200 символов',
+    promptDuplicate: 'Каждый вопрос можно выбрать только один раз',
     photoUploadFailed: 'Не удалось загрузить фото. Попробуйте другое.',
     invalidFile: 'Недопустимый файл',
     profileRequired: 'Сначала заполните профиль',
@@ -273,6 +279,7 @@ export const ru: Dictionary = {
     deleteType: 'Введите {word} для подтверждения',
     deleteConfirm: 'Удалить навсегда',
   },
+  about: aboutRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',

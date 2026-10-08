@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { genderSchema } from '@/features/profile/schemas'
+import type { AboutInput, ProfilePrompt } from '@/features/profile/about-schemas'
 
 export const AGE_MIN = 18
 export const AGE_MAX = 99
@@ -30,4 +31,6 @@ export type Candidate = {
   distanceKm: number | null
   tags: string[]
   photos: { url: string; width: number; height: number }[]
+  about: AboutInput
+  prompts: ProfilePrompt[]
 }

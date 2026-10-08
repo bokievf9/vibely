@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, MessageCircle } from 'lucide-react'
 import { PageSpinner } from '@/components/ui/spinner'
 import { getViewer } from '@/features/auth/session'
 import { unmatch } from '@/features/chat/actions'
+import { AboutDetails, PromptCards } from '@/features/profile/components/about-details'
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { getMatchedProfile } from '@/features/profile/public-profile'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
@@ -67,6 +68,8 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
           </p>
         )}
         {profile.bio && <p className="whitespace-pre-wrap">{profile.bio}</p>}
+        <PromptCards prompts={profile.prompts} t={dict.about} />
+        <AboutDetails about={profile.about} t={dict.about} title={dict.about.about} />
         {profile.tags.length > 0 && (
           <ul className="flex flex-wrap gap-2">
             {profile.tags.map((slug) => (

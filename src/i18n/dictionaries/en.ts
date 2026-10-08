@@ -1,3 +1,4 @@
+import { aboutEn } from './about/en'
 import { landingEn } from './landing/en'
 
 export const en = {
@@ -37,6 +38,11 @@ export const en = {
     bioTooLong: 'At most 500 characters',
     tooManyTags: 'At most 10 interests',
     profileSaveFailed: 'Could not save your profile',
+    jobTooLong: 'At most 60 characters',
+    tooManyLanguages: 'At most 6 languages',
+    promptAnswerRequired: 'Write an answer or remove the prompt',
+    promptAnswerTooLong: 'At most 200 characters',
+    promptDuplicate: 'Each prompt can only be used once',
     photoUploadFailed: 'Could not upload the photo. Try another one.',
     invalidFile: 'This file is not allowed',
     profileRequired: 'Complete your profile first',
@@ -271,6 +277,7 @@ export const en = {
     deleteType: 'Type {word} to confirm',
     deleteConfirm: 'Delete forever',
   },
+  about: aboutEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

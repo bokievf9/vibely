@@ -1,11 +1,9 @@
 'use client'
 
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion'
-import { MapPin } from 'lucide-react'
-import { fmt } from '@/i18n/config'
-import { useI18n } from '@/i18n/client'
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import type { Candidate } from '../schemas'
+import { SwipeCardInfo } from './swipe-card-info'
 
 const SWIPE_THRESHOLD_PX = 110
 
@@ -25,7 +23,6 @@ type Props = {
 }
 
 export function SwipeCard({ candidate, active, onSwipe }: Props) {
-  const { dict } = useI18n()
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-300, 300], [-18, 18])
   const likeOpacity = useTransform(x, [20, SWIPE_THRESHOLD_PX], [0, 1])
@@ -62,32 +59,7 @@ export function SwipeCard({ candidate, active, onSwipe }: Props) {
       >
         NOPE
       </motion.span>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-5 pt-20 text-white">
-        <h2 className="text-3xl font-bold">
-          {candidate.name}, <span className="font-normal">{candidate.age}</span>
-        </h2>
-        {(candidate.city || candidate.distanceKm !== null) && (
-          <p className="flex items-center gap-1 text-sm text-white/80">
-            <MapPin className="size-4" aria-hidden />
-            {[
-              candidate.city,
-              candidate.distanceKm !== null && fmt(dict.swipe.km, { km: candidate.distanceKm }),
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        )}
-        {candidate.bio && <p className="line-clamp-2 text-sm text-white/90">{candidate.bio}</p>}
-        {candidate.tags.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5 pt-1">
-            {candidate.tags.slice(0, 5).map((slug) => (
-              <li key={slug} className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs">
-                {dict.tags[slug] ?? slug}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <SwipeCardInfo candidate={candidate} />
     </motion.article>
   )
 }

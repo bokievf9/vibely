@@ -2,6 +2,7 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { ageFromBirthDate } from '@/lib/utils'
 import { signPhotoPaths } from './queries'
+import { aboutFromRow, promptsFromRows, type AboutInput, type ProfilePrompt } from './about-schemas'
 
 export type PublicProfile = {
   id: string
@@ -11,6 +12,8 @@ export type PublicProfile = {
   bio: string | null
   tags: string[]
   photos: { url: string; width: number; height: number }[]
+  about: AboutInput
+  prompts: ProfilePrompt[]
   matchId: string
 }
 
@@ -31,7 +34,7 @@ export async function getMatchedProfile(
     supabase
       .from('profiles')
       .select(
-        'id, display_name, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(storage_path, width, height, position)',
+        'id, display_name, birth_date, city, bio, profile_tags(tags(slug)), profile_photos(storage_path, width, height, position), relationship_goal, height_cm, job_title, education, languages, religion, smoking, drinking, pets, children, profile_prompts(prompt_key, answer, position)',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -51,6 +54,8 @@ export async function getMatchedProfile(
       const url = urls.get(ph.storage_path)
       return url ? [{ url, width: ph.width, height: ph.height }] : []
     }),
+    about: aboutFromRow(p),
+    prompts: promptsFromRows(p.profile_prompts),
     matchId: match.id,
   }
 }
