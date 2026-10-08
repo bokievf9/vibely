@@ -107,6 +107,27 @@ export const en = {
     },
   },
   banned: { title: 'Account blocked', reason: 'Reason: {reason}' },
+  moderation: {
+    rejection: {
+      gesture_mismatch: 'The gesture does not match the task',
+      face_not_visible: 'Your face is not clearly visible',
+      face_mismatch: 'The face does not match your profile photos',
+      screen_photo: 'Photo of a screen or a printout',
+      no_face_photo: 'Your profile has no photo showing your face',
+    },
+    ban: {
+      harassment: 'Harassment or insults',
+      spam: 'Spam or advertising',
+      scam: 'Scam or fraud',
+      fake: 'Fake profile',
+      underage: 'Under 18',
+      other: 'Breaking the community rules',
+    },
+  },
+  chatSafety: {
+    riskWarning:
+      "Never send money or move to other apps with people you haven't met. Report suspicious behaviour.",
+  },
   nav: {
     swipe: 'Discover',
     chats: 'Chats',

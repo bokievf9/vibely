@@ -7,6 +7,7 @@ import { BannedBadge, VerificationBadge, formatDate } from '@/features/admin/com
 import { PhotoStrip } from '@/features/admin/components/photo-strip'
 import { UserActions } from '@/features/admin/components/user-actions'
 import { getUserDetail } from '@/features/admin/queries/users'
+import { readableBan, readableRejection, readableReportReason } from '@/features/admin/labels'
 import { GENDER_LABELS } from '@/features/profile/schemas'
 
 export const metadata: Metadata = { title: 'Пользователь' }
@@ -43,7 +44,7 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
           постов: {user.postCount}
         </p>
         {user.banReason && (
-          <p className="text-sm text-red-400">Причина блокировки: {user.banReason}</p>
+          <p className="text-sm text-red-400">Причина блокировки: {readableBan(user.banReason)}</p>
         )}
       </header>
 
@@ -84,7 +85,9 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
               )}
               <VerificationBadge status={v.status} />
               <span className="text-muted">{formatDate(v.createdAt)}</span>
-              {v.rejectionReason && <span className="text-red-400">{v.rejectionReason}</span>}
+              {v.rejectionReason && (
+                <span className="text-red-400">{readableRejection(v.rejectionReason)}</span>
+              )}
             </li>
           ))}
         </ul>
@@ -96,7 +99,7 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
           {user.reportsAgainst.map((r, i) => (
             <li key={i}>
               <span className="text-muted">{formatDate(r.createdAt)} · </span>
-              {r.reason}{' '}
+              {readableReportReason(r.reason)}{' '}
               {r.resolvedAt ? (
                 <span className="text-muted">(закрыта)</span>
               ) : (

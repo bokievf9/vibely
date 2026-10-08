@@ -1,20 +1,31 @@
 import { z } from 'zod'
 import { Constants } from '@/types/database.types'
+import { BAN_CODES, REJECTION_CODES, hasReasonCode } from '@/features/safety/reason-codes'
 
 const reason = z.string().trim().max(500)
 const requiredReason = reason.min(3, { error: 'Укажите причину (минимум 3 символа)' })
+// Shown to users, translated: must start with a known code ("code" or "code: note").
+const codedReason = (codes: readonly string[]) =>
+  requiredReason.refine(hasReasonCode(codes), { error: 'Выберите причину из списка' })
+const banReason = codedReason(BAN_CODES)
 
 export const reviewVerificationSchema = z.discriminatedUnion('approve', [
   z.object({ requestId: z.uuid(), approve: z.literal(true) }),
-  z.object({ requestId: z.uuid(), approve: z.literal(false), reason: requiredReason }),
+  z.object({
+    requestId: z.uuid(),
+    approve: z.literal(false),
+    reason: codedReason(REJECTION_CODES),
+  }),
 ])
 
 export const banSchema = z.discriminatedUnion('banned', [
-  z.object({ userId: z.uuid(), banned: z.literal(true), reason: requiredReason }),
+  z.object({ userId: z.uuid(), banned: z.literal(true), reason: banReason }),
   z.object({ userId: z.uuid(), banned: z.literal(false) }),
 ])
 
 export const revokeSchema = z.object({ userId: z.uuid(), reason: requiredReason })
+
+export const deletePhotoSchema = z.object({ photoId: z.uuid(), reason: requiredReason })
 
 export const contentSchema = z.object({
   type: z.enum(['post', 'comment']),
@@ -42,7 +53,7 @@ export const resolveSchema = z.discriminatedUnion('decision', [
     targetType: z.enum(Constants.public.Enums.report_target),
     targetId: z.uuid(),
     offenderId: z.uuid(),
-    reason: requiredReason,
+    reason: banReason,
   }),
 ])
 

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { notifySelfieSubmitted } from '@/features/moderation-notify/telegram'
 import { CHALLENGE_IDS, isChallengeId, type ChallengeId } from './challenges'
 
 // The server picks the gesture and remembers it, so the client can't choose an easy one.
@@ -48,5 +49,6 @@ export async function submitVerification(input: { path: string }): Promise<UserR
   if (error) return fail(error.code === '23505' ? 'verificationPending' : 'selfieFailed')
 
   cookieStore.delete(CHALLENGE_COOKIE)
+  notifySelfieSubmitted()
   return ok(undefined)
 }

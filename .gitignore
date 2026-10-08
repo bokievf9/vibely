@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Supabase CLI cache (linked project, versions, pooler host)
 supabase/.temp/
+
+# Claude Code agent worktrees
+.claude/

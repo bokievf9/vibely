@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
+import { readableBan } from './labels'
 import {
   banSchema,
   contentSchema,
@@ -128,7 +129,7 @@ export async function resolveReports(input: z.input<typeof resolveSchema>) {
             p_banned: true,
             p_reason: d.reason,
           }),
-          resolve(`Пользователь заблокирован: ${d.reason}`),
+          resolve(`Пользователь заблокирован: ${readableBan(d.reason)}`),
         ]
     }
   })

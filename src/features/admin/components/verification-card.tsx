@@ -10,16 +10,12 @@ import { reviewVerification } from '../actions'
 import type { PendingVerification } from '../queries/verification'
 import { formatDate } from './badges'
 import { PhotoStrip } from './photo-strip'
+import { REJECTION_CODES } from '@/features/safety/reason-codes'
+import { REJECTION_LABELS, presetsOf } from '../labels'
 import { ReasonDialog } from './reason-dialog'
 import { useModeration } from './use-moderation'
 
-const REJECT_PRESETS = [
-  'Жест не совпадает с заданием',
-  'Лицо плохо видно',
-  'Лицо не совпадает с фото профиля',
-  'Фото с экрана или распечатки',
-  'В профиле нет фото с лицом',
-]
+const REJECT_PRESETS = presetsOf(REJECTION_CODES, REJECTION_LABELS)
 
 export function VerificationCard({ request }: { request: PendingVerification }) {
   const { pending, error, run } = useModeration()
@@ -76,6 +72,7 @@ export function VerificationCard({ request }: { request: PendingVerification }) 
         title="Отклонить селфи"
         confirmLabel="Отклонить"
         presets={REJECT_PRESETS}
+        coded
         danger
         pending={pending}
         error={error}

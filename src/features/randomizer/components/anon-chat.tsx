@@ -7,6 +7,7 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { formatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
+import { RiskWarning } from '@/features/safety/components/risk-warning'
 import { sendRandom } from '../actions'
 import type { RandomMessage } from '../types'
 
@@ -84,6 +85,7 @@ export function AnonChat({
             <time className="text-muted px-1 text-[10px]" dateTime={m.createdAt}>
               {formatTime(m.createdAt, locale)}
             </time>
+            {!m.mine && <RiskWarning text={m.body} />}
           </li>
         ))}
         {partnerTyping && (

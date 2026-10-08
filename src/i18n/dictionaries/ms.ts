@@ -111,6 +111,27 @@ export const ms: Dictionary = {
     },
   },
   banned: { title: 'Akaun disekat', reason: 'Sebab: {reason}' },
+  moderation: {
+    rejection: {
+      gesture_mismatch: 'Isyarat tidak sepadan dengan tugasan',
+      face_not_visible: 'Wajah anda tidak jelas kelihatan',
+      face_mismatch: 'Wajah tidak sepadan dengan foto profil anda',
+      screen_photo: 'Foto skrin atau cetakan',
+      no_face_photo: 'Profil anda tiada foto yang menunjukkan wajah',
+    },
+    ban: {
+      harassment: 'Gangguan atau penghinaan',
+      spam: 'Spam atau iklan',
+      scam: 'Penipuan',
+      fake: 'Profil palsu',
+      underage: 'Bawah 18 tahun',
+      other: 'Melanggar peraturan komuniti',
+    },
+  },
+  chatSafety: {
+    riskWarning:
+      'Jangan sekali-kali hantar wang atau beralih ke aplikasi lain dengan orang yang belum anda temui. Laporkan tingkah laku yang mencurigakan.',
+  },
   nav: {
     swipe: 'Teroka',
     chats: 'Sembang',
