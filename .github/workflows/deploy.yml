@@ -26,28 +26,56 @@ jobs:
       - run: npm run test:sql
       - run: npm run test:unit
 
+  # Builds in CI (the 1 GB droplet never compiles), ships a standalone release, switches
+  # /var/www/vibely/current atomically and rolls back if /api/health fails.
+  #
+  # Repository secrets: VPS_HOST, VPS_USER (deploy), VPS_SSH_KEY, VPS_KNOWN_HOSTS.
+  # Repository variables (public values, inlined into the client bundle at build time):
+  #   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SITE_URL
+  #   optional: NEXT_PUBLIC_VAPID_PUBLIC_KEY, NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+  #             NEXT_PUBLIC_ANALYTICS_SRC, NEXT_PUBLIC_ANALYTICS_SITE_ID
+  # Server-only secrets live in /var/www/vibely/shared/.env.production on the VPS.
   deploy:
     needs: check
     runs-on: ubuntu-24.04
     environment: production
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+      NEXT_PUBLIC_ANALYTICS_SRC: ${{ vars.NEXT_PUBLIC_ANALYTICS_SRC }}
+      NEXT_PUBLIC_ANALYTICS_SITE_ID: ${{ vars.NEXT_PUBLIC_ANALYTICS_SITE_ID }}
     steps:
-      # Secrets (Settings → Secrets and variables → Actions): VPS_HOST, VPS_USER, VPS_SSH_KEY.
-      # Runtime env lives only on the server in /var/www/vibely/.env.production (or .env.local / .env).
-      # Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY. Admin panel also needs SUPABASE_SECRET_KEY.
-      - uses: appleboy/ssh-action@v1.2.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 20m
-          script: |
-            set -euo pipefail
-            cd /var/www/vibely
-            # Fail before touching the running app if no env file exists (Next reads any of these).
-            [ -f .env.production ] || [ -f .env.local ] || [ -f .env ] || { echo "No .env.production/.env.local/.env in /var/www/vibely"; exit 1; }
-            git fetch --depth 1 origin main
-            git reset --hard origin/main
-            npm ci --no-audit --no-fund
-            NODE_OPTIONS=--max-old-space-size=1536 npm run build
-            pm2 restart vibely --update-env || pm2 start ecosystem.config.cjs
-            pm2 save
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Assemble release
+        run: |
+          RELEASE="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+          scripts/deploy/assemble.sh "release/$RELEASE"
+          tar -czf release.tgz -C release "$RELEASE"
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      - name: Upload and activate
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
+          SSH="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes release.tgz "$TARGET:/tmp/$RELEASE.tgz"
+          $SSH "$TARGET" "set -e
+            mkdir -p /var/www/vibely/releases
+            tar -xzf /tmp/$RELEASE.tgz -C /var/www/vibely/releases && rm /tmp/$RELEASE.tgz
+            /var/www/vibely/releases/$RELEASE/activate.sh $RELEASE"
+      - name: Public health check
+        run: curl -fsS --retry 5 --retry-delay 3 --retry-all-errors https://vibelydate.com/api/health

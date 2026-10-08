@@ -1,61 +1,49 @@
-# Деплой на VPS (vibelydate.com)
+# Деплой (vibelydate.com)
 
-Схема: push в `main` → GitHub Actions (typecheck + lint) → SSH на VPS → `git reset` на `origin/main`
-→ `npm ci` → `npm run build` → `pm2 restart vibely`.
+Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и unit-тесты) → сборка в CI
+(`output: 'standalone'`) → релиз загружается на VPS в `/var/www/vibely/releases/<время>-<sha>` →
+`activate.sh` атомарно переключает симлинк `current`, перезапускает PM2 и проверяет
+`/api/health`. Если релиз не поднялся — автоматический откат на предыдущий. Хранятся 5 последних релизов.
 
-## Один раз на сервере
+## Раскладка на сервере (пользователь `deploy`)
 
-```bash
-# Node 22 LTS, не ниже 22.22: этого требует jsdom (isomorphic-dompurify), Node 20 не подходит
-node -v
-cd /var/www/vibely && git remote -v        # должен смотреть на GitHub-репозиторий
-
-# Переменные окружения: только здесь, не в git. Нужны и при сборке (NEXT_PUBLIC_* вшиваются в бандл).
-cat > /var/www/vibely/.env.production <<'ENV'
-NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-SUPABASE_SECRET_KEY=<service_role / secret key>
-NEXT_PUBLIC_SITE_URL=https://vibelydate.com
-ENV
-chmod 600 /var/www/vibely/.env.production
-
-pm2 start ecosystem.config.cjs && pm2 save && pm2 startup   # если процесс vibely ещё не создан
+```
+/var/www/vibely/
+├── current -> releases/<id>          # живой релиз
+├── releases/<id>/                    # server.js, .next/static, public, ecosystem.config.cjs, activate.sh
+└── shared/.env.production            # серверные секреты (chmod 600), не попадают в релизы
 ```
 
-Сборка Next 16 на дроплете с 1 ГБ RAM может упасть по памяти: workflow ограничивает heap до 1.5 ГБ,
-на маленьком дроплете добавьте swap (`fallocate -l 2G /swapfile && mkswap /swapfile && swapon /swapfile`).
+`shared/.env.production`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`.
+
+Ручной откат: `ln -sfn /var/www/vibely/releases/<id> /var/www/vibely/current && pm2 restart vibely`.
 
 ## GitHub → Settings → Secrets and variables → Actions
 
 | Secret | Значение |
 |---|---|
 | `VPS_HOST` | `68.183.177.183` |
-| `VPS_USER` | пользователь деплоя (лучше не root) |
-| `VPS_SSH_KEY` | приватный ключ, чей публичный ключ в `~/.ssh/authorized_keys` этого пользователя |
+| `VPS_USER` | `deploy` |
+| `VPS_SSH_KEY` | приватный ключ `/home/deploy/.ssh/gha_deploy` |
+| `VPS_KNOWN_HOSTS` | вывод `ssh-keyscan 68.183.177.183` |
 
-## Nginx
+Variables (публичные значения, вшиваются в бандл при сборке): `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_ANALYTICS_SRC`, `NEXT_PUBLIC_ANALYTICS_SITE_ID`.
 
-Приложение слушает `127.0.0.1:3000`. Минимальный `location`:
+## Сервер
 
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-}
-```
+- SSH только по ключу (`/etc/ssh/sshd_config.d/00-vibely-hardening.conf`), fail2ban для sshd.
+- Node 22 (NodeSource), PM2 под `deploy` с автозапуском (`pm2-deploy.service`) и `pm2-logrotate`.
+- Nginx: `www` и `http` → `https://vibelydate.com`; лимит POST на `/{lang}/login|verify-otp`
+  20/мин с IP (`/etc/nginx/conf.d/vibely-limits.conf`); прокси на `127.0.0.1:3000`.
+- Swap 2 ГБ.
 
-`www.vibelydate.com` лучше редиректить на `vibelydate.com` (301) в отдельном `server` блоке,
-чтобы cookies сессии были на одном домене. Realtime идёт напрямую в Supabase, Nginx его не проксирует.
+## Supabase Dashboard
 
-## Supabase Dashboard для прода
-
-- Authentication → URL Configuration: Site URL `https://vibelydate.com`, Redirect URLs `https://vibelydate.com/**`.
-- Authentication → Sign In / Providers → Phone: включить, SMS-провайдер Twilio. Email-регистрацию выключить.
-- Authentication → Hooks → Before User Created → `public.hook_before_user_created` (только Малайзия).
-- Realtime → Settings: выключить «Allow public access» (используются только private-каналы).
+- Auth → Hooks → Before User Created → `public.hook_before_user_created` (только Малайзия).
+- Realtime → private only (включено).
+- Капча: сначала задеплоить с `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, потом включить Turnstile в
+  Auth → Bot and Abuse Protection (иначе отправка SMS сломается).

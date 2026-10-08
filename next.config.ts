@@ -24,6 +24,8 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle: built in CI, shipped to the VPS as a release (scripts/deploy).
+  output: 'standalone',
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
