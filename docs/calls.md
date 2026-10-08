@@ -1,5 +1,15 @@
 # Звонки (аудио/видео) и их запись
 
+> **Текущая схема (с 2026-10-09): всё на одном дроплете** `68.183.177.183` (8 ГБ / 4 vCPU), рядом с сайтом.
+> - `/opt/vibely-media` — docker compose: LiveKit `v1.13.9`, Egress `v1.15.0`, Redis; секреты в `.env` (600).
+> - HTTPS/WSS `rtc.vibelydate.com` → Nginx (`/etc/nginx/sites-available/vibely-rtc`, Certbot) → `127.0.0.1:7880`.
+> - TURN: UDP 443 (Nginx занимает только TCP 443), TURN/TLS 5349 с сертификатом Let's Encrypt
+>   (копируется хуком `/etc/letsencrypt/renewal-hooks/deploy/vibely-livekit.sh`, LiveKit перезапускается).
+> - Порты ufw: 443/udp, 5349/tcp, 7881/tcp, 50000–60000/udp (медиа), 30000–40000/udp (TURN relay).
+> - Записи → DigitalOcean Spaces `vibely-call-recordings` (sgp1), очистка 90 дней: `/etc/cron.d/vibely-calls-purge`.
+> - Проверено: тестовая комната с синтетическим участником записалась (EGRESS_COMPLETE) и легла в Spaces.
+> Раздел «Развёртывание» ниже описывает вариант с отдельным дроплетом — пригодится, когда звонков станет много.
+
 Звонки между пользователями с совпадением: самостоятельно размещённый **LiveKit** (SFU + встроенный
 TURN) и **LiveKit Egress** для записи. По протоколу безопасности (CLAUDE.md) **каждый звонок
 записывается на сервере**, хранится **до 90 дней**, пользователь предупреждён до включения звонков и

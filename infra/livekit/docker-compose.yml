@@ -1,8 +1,9 @@
-# Vibely media server ("vibely-media" droplet, Singapore). See docs/calls.md.
-#   livekit  SFU + built-in TURN (UDP 443 / TLS via Caddy on 443)
+# Vibely media stack, on the same droplet as the web app (see docs/calls.md):
+#   livekit  SFU + built-in TURN (TURN/UDP 443, TURN/TLS 5349 with the Let's Encrypt certificate)
 #   egress   server-side call recording → S3-compatible bucket
 #   redis    shared state between livekit and egress (localhost only)
-#   caddy    TLS for rtc.vibelydate.com (HTTPS/WSS) and turn.vibelydate.com (TURN/TLS) on 443
+# HTTPS/WSS for rtc.vibelydate.com is terminated by the host Nginx (it already owns TCP 443) and
+# proxied to 127.0.0.1:7880.
 #
 # Secrets come from ./.env (chmod 600, never committed; template: .env.example).
 # All services use the host network: WebRTC needs the real UDP port range and public IP.
@@ -23,7 +24,7 @@ services:
       retries: 5
 
   livekit:
-    image: livekit/livekit-server:v1.9.1
+    image: livekit/livekit-server:v1.13.9
     network_mode: host
     restart: unless-stopped
     depends_on:
@@ -35,9 +36,11 @@ services:
       LIVEKIT_KEYS: ${LIVEKIT_KEYS:?set LIVEKIT_KEYS in .env}
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
+      # TURN/TLS certificate (rtc + turn SANs), copied here by the certbot deploy hook.
+      - ./certs:/etc/livekit-certs:ro
 
   egress:
-    image: livekit/egress:v1.10.0
+    image: livekit/egress:v1.15.0
     network_mode: host
     restart: unless-stopped
     depends_on:
@@ -56,16 +59,3 @@ services:
       - ./egress.yaml:/etc/egress.yaml:ro
     # Chrome needs shared memory for video composites.
     shm_size: 1gb
-
-  caddy:
-    # Caddy with the layer4 plugin (SNI routing of TURN/TLS and HTTPS on the same port 443).
-    image: livekit/caddyl4:latest
-    network_mode: host
-    restart: unless-stopped
-    command: run --config /etc/caddy.yaml --adapter yaml
-    volumes:
-      - ./caddy.yaml:/etc/caddy.yaml:ro
-      - caddy-data:/data
-
-volumes:
-  caddy-data:
