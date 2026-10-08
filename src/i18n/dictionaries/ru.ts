@@ -1,6 +1,7 @@
 import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
 import { discoverRu } from './discover/ru'
+import { discoverUiRu } from './discoverui/ru'
 import { feedRu } from './feed/ru'
 import { callErrorsRu, callsRu } from './calls/ru'
 import type { Dictionary } from './en'
@@ -310,6 +311,7 @@ export const ru: Dictionary = {
   settings: settingsRu,
   likes: likesRu,
   discover: discoverRu,
+  discoverui: discoverUiRu,
   media: mediaRu,
   calls: callsRu,
   pwa: {

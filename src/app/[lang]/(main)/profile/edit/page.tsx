@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/page-header'
-import { PageSpinner } from '@/components/ui/spinner'
 import { getViewer } from '@/features/auth/session'
 import { ProfileForm } from '@/features/profile/components/profile-form'
+import { EditProfileSkeleton } from '@/features/profile/components/profile-skeleton'
 import { getOwnProfile, getTags } from '@/features/profile/queries'
 import { getDictionary } from '@/i18n/server'
 
@@ -16,7 +16,7 @@ export default async function EditProfilePage() {
   return (
     <>
       <PageHeader title={dict.profile.editTitle} />
-      <Suspense fallback={<PageSpinner />}>
+      <Suspense fallback={<EditProfileSkeleton />}>
         <Edit />
       </Suspense>
     </>
