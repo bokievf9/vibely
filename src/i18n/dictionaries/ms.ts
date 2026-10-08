@@ -13,6 +13,7 @@ import { tagCategoriesMs, tagsMs } from './tags/ms'
 import { usernameMs, usernameErrorsMs } from './username/ms'
 import { flowsMs } from './flowsui/ms'
 import { reportsMs } from './reports/ms'
+import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 
 export const ms: Dictionary = {
@@ -35,6 +36,7 @@ export const ms: Dictionary = {
   errors: {
     ...callErrorsMs,
     ...usernameErrorsMs,
+    ...passwordErrorsMs,
     ...sanctionErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
@@ -372,6 +374,7 @@ export const ms: Dictionary = {
   tagCategories: tagCategoriesMs,
   avatar: avatarMs,
   username: usernameMs,
+  password: passwordMs,
   flows: flowsMs,
   reports: reportsMs,
   sanctions: sanctionsMs,

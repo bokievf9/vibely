@@ -55,6 +55,13 @@ Variables (публичные значения, вшиваются в бандл
 - Realtime → private only (включено).
 - Капча: сначала задеплоить с `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, потом включить Turnstile в
   Auth → Bot and Abuse Protection (иначе отправка SMS сломается).
+- Вход по @username + паролю (`20261009000180_password_login.sql`): отдельного переключателя нет,
+  пароль для телефона входит в провайдер Phone (Auth → Sign In / Providers → Phone: включён).
+  Auth → Providers → Email (общие настройки паролей): **Secure password change** = on,
+  **Minimum password length** = 10, **Password requirements** = пусто (правила проверяет
+  приложение); **Leaked password protection** = on (только на Pro-плане, после апгрейда).
+  Капча Turnstile проверяется Supabase и на входе по паролю. Nginx должен передавать
+  `proxy_set_header X-Real-IP $remote_addr;` (лимит 20 неудачных попыток с IP за 15 минут).
 
 ## Telegram-бот модерации (`src/features/telegram`)
 

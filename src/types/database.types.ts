@@ -641,6 +641,27 @@ export type Database = {
           },
         ]
       }
+      password_login_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip: unknown
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip?: unknown
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip?: unknown
+          username?: string
+        }
+        Relationships: []
+      }
       phone_blocklist: {
         Row: {
           created_at: string
@@ -2374,6 +2395,7 @@ export type Database = {
           banned_until: string
         }[]
       }
+      my_has_password: { Args: never; Returns: boolean }
       my_sanctions: { Args: never; Returns: Json }
       my_username: {
         Args: never
@@ -2389,6 +2411,17 @@ export type Database = {
         Returns: string[]
       }
       normalize_username: { Args: { u: string }; Returns: string }
+      password_login_check: {
+        Args: { p_ip: unknown; p_username: string }
+        Returns: {
+          limited: boolean
+          phone: string
+        }[]
+      }
+      password_login_record: {
+        Args: { p_ip: unknown; p_success: boolean; p_username: string }
+        Returns: undefined
+      }
       phone_e164: { Args: { p_phone: string }; Returns: string }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
@@ -2414,6 +2447,7 @@ export type Database = {
       }
       randomizer_stats: { Args: never; Returns: number }
       refresh_user_risk: { Args: { p_user: string }; Returns: number }
+      remove_my_password: { Args: never; Returns: boolean }
       reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
       report_claim_ttl: { Args: never; Returns: string }
       report_is_personal: {

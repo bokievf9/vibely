@@ -12,6 +12,7 @@ import { tagCategoriesEn, tagsEn } from './tags/en'
 import { usernameEn, usernameErrorsEn } from './username/en'
 import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
+import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 
 export const en = {
@@ -34,6 +35,7 @@ export const en = {
   errors: {
     ...callErrorsEn,
     ...usernameErrorsEn,
+    ...passwordErrorsEn,
     ...sanctionErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
@@ -367,6 +369,7 @@ export const en = {
   tagCategories: tagCategoriesEn,
   avatar: avatarEn,
   username: usernameEn,
+  password: passwordEn,
   flows: flowsEn,
   reports: reportsEn,
   sanctions: sanctionsEn,

@@ -13,6 +13,7 @@ import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
 import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
+import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 
 export const ru: Dictionary = {
@@ -35,6 +36,7 @@ export const ru: Dictionary = {
   errors: {
     ...callErrorsRu,
     ...usernameErrorsRu,
+    ...passwordErrorsRu,
     ...sanctionErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
@@ -370,6 +372,7 @@ export const ru: Dictionary = {
   tagCategories: tagCategoriesRu,
   avatar: avatarRu,
   username: usernameRu,
+  password: passwordRu,
   flows: flowsRu,
   reports: reportsRu,
   sanctions: sanctionsRu,
