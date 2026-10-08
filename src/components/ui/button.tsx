@@ -6,12 +6,14 @@ const variants = {
   primary: 'bg-accent text-accent-foreground active:opacity-90',
   secondary: 'bg-surface text-foreground border border-border active:bg-border',
   ghost: 'text-foreground active:bg-surface',
-  danger: 'bg-red-600 text-white active:opacity-90',
+  danger: 'bg-danger text-white active:opacity-90',
 } as const
 
+// sm is 40px tall but its ::before hit area reaches 44px, so small buttons still pass touch-target
+// guidelines without looking heavier.
 const sizes = {
   md: 'h-12 px-5 text-base',
-  sm: 'h-9 px-3 text-sm',
+  sm: "h-10 px-3.5 text-sm before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-['']",
   icon: 'size-12 p-0',
 } as const
 
@@ -39,7 +41,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold select-none',
+        'relative inline-flex items-center justify-center gap-2 rounded-2xl font-semibold select-none',
         // Press feedback on touch-down, not on release (.claude/skills/emil-design-eng).
         'transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.97]',
         'focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
