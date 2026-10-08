@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Pencil, Settings } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { getViewer } from '@/features/auth/session'
+import { PlanButton } from '@/features/plans/components/plan-picker'
+import { getOwnPlan } from '@/features/plans/queries'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { CompletenessNudge } from '@/features/profile/components/completeness-nudge'
 import { OwnProfileHeader } from '@/features/profile/components/own-profile-header'
@@ -41,12 +43,13 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags] = await Promise.all([
+  const [photos, profile, tags, plan] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
+    getOwnPlan(viewer.id),
   ])
-  const card = profile && ownCandidate(viewer.id, profile, photos, tags)
+  const card = profile && { ...ownCandidate(viewer.id, profile, photos, tags), plan: plan?.tag }
 
   return (
     <div className="flex flex-col gap-8 px-4 pb-6">
@@ -66,6 +69,7 @@ async function OwnProfile() {
         >
           <Pencil className="size-5" /> {dict.profile.edit}
         </Link>
+        {plan !== undefined && <PlanButton initial={plan} variant="row" />}
         {card && <ProfilePreview candidate={card} />}
       </section>
       {profile && (

@@ -10,6 +10,7 @@ import { AboutDetails, PromptCards } from '@/features/profile/components/about-d
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { PublicProfileSkeleton } from '@/features/profile/components/profile-skeleton'
 import { getPublicProfile } from '@/features/profile/public-profile'
+import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
 import { ProfileLikeButton } from '@/features/username/components/profile-like-button'
 import { localePath } from '@/i18n/config'
@@ -19,17 +20,24 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).profile.title, robots: { index: false } }
 }
 
-export default function MatchedProfilePage({ params }: PageProps<'/[lang]/profile/[userId]'>) {
+export default function MatchedProfilePage({
+  params,
+  searchParams,
+}: PageProps<'/[lang]/profile/[userId]'>) {
   return (
     <Suspense fallback={<PublicProfileSkeleton />}>
-      <ProfileView params={params} />
+      <ProfileView params={params} searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'>, 'params'>) {
-  const [{ userId }, viewer, locale, dict] = await Promise.all([
+async function ProfileView({
+  params,
+  searchParams,
+}: Pick<PageProps<'/[lang]/profile/[userId]'>, 'params' | 'searchParams'>) {
+  const [{ userId }, { from }, viewer, locale, dict] = await Promise.all([
     params,
+    searchParams,
     getViewer(),
     getLocale(),
     getDictionary(),
@@ -37,8 +45,14 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
   const profile =
     viewer && /^[0-9a-f-]{36}$/.test(userId) ? await getPublicProfile(userId, viewer.id) : null
   if (!profile) notFound()
-  // Matched: back to the chat. Opened from people search: back to the search.
-  const backHref = profile.matchId ? `/chats/${profile.matchId}` : '/search'
+  // Matched: back to the chat. Opened from Discover (crossed paths): back to Discover.
+  // Opened from people search: back to the search.
+  const fromDiscover = from === 'discover'
+  const backHref = profile.matchId
+    ? `/chats/${profile.matchId}`
+    : fromDiscover
+      ? '/swipe'
+      : '/search'
 
   return (
     <article className="flex flex-col">
@@ -47,7 +61,9 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[3] flex items-center justify-between p-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <Link
             href={localePath(locale, backHref)}
-            aria-label={profile.matchId ? dict.common.back : dict.username.backToSearch}
+            aria-label={
+              profile.matchId || fromDiscover ? dict.common.back : dict.username.backToSearch
+            }
             className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94] active:bg-black/70"
           >
             <ChevronLeft className="size-6" />
@@ -73,6 +89,11 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
             <MapPin className="size-4 shrink-0" aria-hidden />
             <span className="truncate">{profile.city}</span>
           </p>
+        )}
+        {profile.plan && (
+          <div className="flex">
+            <PlanBadge tag={profile.plan} label={dict.plans.tags[profile.plan]} />
+          </div>
         )}
         {profile.bio && (
           <p className="[overflow-wrap:anywhere] whitespace-pre-wrap">{profile.bio}</p>

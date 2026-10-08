@@ -15,6 +15,7 @@ import { swipe } from '@/features/swipe/actions'
 import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
 import { LikeSheet } from './like-sheet'
+import { PLAN_ICONS } from '@/features/plans/tags'
 
 // "Who liked you": a photo grid; tapping opens the full card with Pass / Like back.
 // Like back goes through the normal swipe() action, so the DB trigger creates the match at once.
@@ -58,6 +59,9 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   className="bg-surface relative block aspect-[3/4] w-full overflow-hidden rounded-2xl text-left transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   <GridPhoto person={person} eager={i < 4} />
+                  {person.plan && (
+                    <GridPlan tag={person.plan} label={dict.plans.tags[person.plan]} />
+                  )}
                   <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-gradient-to-t from-black/85 to-transparent p-3 pt-10 font-semibold text-white">
                     <span className="truncate">{person.name}</span>
                     <span className="shrink-0 font-normal">, {person.age}</span>
@@ -81,6 +85,17 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
       </AnimatePresence>
       <MatchModal match={match} onClose={() => setMatch(null)} />
     </section>
+  )
+}
+
+// Plan badge on the photo's top-left corner; the full label is in the like sheet.
+function GridPlan({ tag, label }: { tag: NonNullable<Candidate['plan']>; label: string }) {
+  const Icon = PLAN_ICONS[tag]
+  return (
+    <span className="bg-accent/90 text-accent-foreground absolute top-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+      <Icon className="size-3 shrink-0" aria-hidden />
+      <span className="truncate">{label}</span>
+    </span>
   )
 }
 

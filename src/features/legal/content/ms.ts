@@ -1,4 +1,5 @@
 import { callsLegal } from './calls'
+import { nearbyLegal } from './nearby'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -57,6 +58,9 @@ export const ms: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.privacy,
       // --- end calls ---
+      // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
+      nearbyLegal.ms.privacy,
+      // --- end crossed paths & plans ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [

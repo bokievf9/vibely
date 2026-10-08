@@ -13,6 +13,7 @@ import { usernameEn, usernameErrorsEn } from './username/en'
 import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
+import { crossedEn, plansEn } from './nearby/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
@@ -370,6 +371,8 @@ export const en = {
   flows: flowsEn,
   reports: reportsEn,
   sanctions: sanctionsEn,
+  crossed: crossedEn,
+  plans: plansEn,
 }
 
 export type Dictionary = typeof en

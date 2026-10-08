@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/layout/page-header'
 import { DeleteAccount } from '@/features/account/components/delete-account'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { getViewer } from '@/features/auth/session'
+import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
+import { CrossedPathsToggle } from '@/features/crossed-paths/components/crossed-paths-toggle'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { PushToggle } from '@/features/push/components/push-toggle'
@@ -57,11 +59,12 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username] = await Promise.all([
+  const [privacy, prefs, blocked, username, crossed] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
     getUsernameSettings(),
+    crossedPathsEnabled(),
   ])
 
   return (
@@ -78,6 +81,7 @@ async function Settings() {
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
+        {crossed !== null && <CrossedPathsToggle initial={crossed} />}
       </SettingsSection>
       <SettingsSection title={dict.settings.blocked}>
         <BlockedUsers initial={blocked} />

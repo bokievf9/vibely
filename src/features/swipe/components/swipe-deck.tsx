@@ -26,12 +26,16 @@ type Props = {
   defaultFilters: SwipeFilters
   // Extra header buttons rendered by the server (e.g. "Who liked you" with its count).
   headerActions?: ReactNode
+  // Optional strip above the deck (e.g. "You crossed paths"), rendered by the server.
+  aboveDeck?: ReactNode
+  // Plans exist on this database: the filter sheet offers "Similar plans first".
+  plansAvailable?: boolean
 }
 
 const roundButton =
   'size-16 rounded-full shadow-lg shadow-black/30 active:scale-[0.92] [&_svg]:transition-transform'
 
-export function SwipeDeck({ defaultFilters, headerActions }: Props) {
+export function SwipeDeck({ defaultFilters, headerActions, aboveDeck, plansAvailable }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
@@ -141,6 +145,7 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
         </Button>
       </PageHeader>
       <section className="flex flex-1 flex-col gap-4 px-4 pb-4">
+        {aboveDeck}
         <FormError message={errorText(error)} />
         {!top && !settling && loading && <DeckSkeleton />}
         {!top && !settling && !loading && (
@@ -201,6 +206,7 @@ export function SwipeDeck({ defaultFilters, headerActions }: Props) {
           value={filters}
           onClose={() => setFiltersOpen(false)}
           onApply={changeFilters}
+          plansAvailable={plansAvailable}
         />
       )}
       <MatchModal match={match} onClose={() => setMatch(null)} />
