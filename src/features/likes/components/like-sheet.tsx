@@ -106,7 +106,7 @@ export function LikeSheet({ person, busy, onDecide, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label={dict.common.back}
-            className="active:bg-surface -ml-2 flex size-11 items-center justify-center rounded-full transition-[transform,background-color] duration-150 ease-out active:scale-[0.94]"
+            className="active:bg-surface -ml-2 flex size-11 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
           >
             <ChevronDown className="size-6" />
           </button>

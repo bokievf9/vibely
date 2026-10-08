@@ -74,7 +74,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
               data-no-drag
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
-              className="pointer-events-auto relative mt-1 flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/20 px-3 text-sm font-medium backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out before:absolute before:-inset-x-1 before:-inset-y-1.5 active:scale-[0.96] active:bg-white/30"
+              className="pointer-events-auto relative mt-1 flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/20 px-3 text-sm font-medium backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-x-1 before:-inset-y-1.5 active:scale-[0.96] active:bg-white/30"
             >
               {open ? dict.about.less : dict.about.more}
               <ChevronUp

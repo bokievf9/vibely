@@ -40,7 +40,7 @@ export function CallsSheet(props: Props) {
           <LocaleLink href="/privacy" className="text-accent text-sm underline">
             {t.privacy}
           </LocaleLink>
-          {props.error && <p className="text-sm text-red-400">{props.error}</p>}
+          {props.error && <p className="text-danger text-sm">{props.error}</p>}
           <Button fullWidth loading={props.pending} onClick={props.onAcceptNotice}>
             {t.noticeAccept}
           </Button>
@@ -88,7 +88,7 @@ export function CallsSheet(props: Props) {
           <span className="size-2 shrink-0 rounded-full bg-red-500" aria-hidden />
           {t.noticeText}
         </p>
-        {props.error && <p className="text-sm text-red-400">{props.error}</p>}
+        {props.error && <p className="text-danger text-sm">{props.error}</p>}
         <div className="flex gap-3">
           <Button fullWidth disabled={!both} onClick={() => props.onCall('audio')}>
             <Phone className="size-5" /> {t.audio}

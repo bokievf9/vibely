@@ -16,7 +16,7 @@ export async function LikesButton() {
     <Link
       href={localePath(locale, '/likes')}
       aria-label={fmt(dict.likes.open, { count })}
-      className="active:bg-surface relative flex size-12 items-center justify-center rounded-2xl transition-[transform,background-color] duration-150 ease-out active:scale-[0.94]"
+      className="active:bg-surface relative flex size-12 items-center justify-center rounded-2xl transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
     >
       <Heart className="size-6" />
       {count > 0 && (

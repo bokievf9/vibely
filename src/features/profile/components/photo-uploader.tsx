@@ -138,7 +138,7 @@ export function PhotoUploader({ userId, photos, nextHref }: Props) {
               onClick={() => inputRef.current?.click()}
               disabled={pending}
               aria-label={dict.onboarding.addPhoto}
-              className="border-border text-muted active:bg-surface active:border-accent/60 active:text-accent flex size-full items-center justify-center rounded-2xl border-2 border-dashed transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50"
+              className="border-border text-muted active:bg-surface active:border-accent/60 active:text-accent flex size-full items-center justify-center rounded-2xl border-2 border-dashed transition-[transform,scale,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50"
             >
               <Plus className="size-7" />
             </button>

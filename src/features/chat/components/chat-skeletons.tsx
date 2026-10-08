@@ -49,7 +49,7 @@ export function ChatRoomSkeleton() {
           </div>
         </div>
       </div>
-      <div className="flex flex-1 flex-col justify-end gap-1.5 px-4 pt-[var(--chat-header-h)] pb-3">
+      <div className="flex flex-1 flex-col justify-end gap-1.5 px-4 pt-[var(--header-h)] pb-3">
         {BUBBLES.map((b, i) => (
           <Skeleton key={i} className={cn(b.w, b.h, b.mine ? 'self-end' : 'self-start')} />
         ))}

@@ -48,7 +48,7 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
           <Link
             href={localePath(locale, backHref)}
             aria-label={profile.matchId ? dict.common.back : dict.username.backToSearch}
-            className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out active:scale-[0.94] active:bg-black/70"
+            className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94] active:bg-black/70"
           >
             <ChevronLeft className="size-6" />
           </Link>
@@ -90,7 +90,7 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
         {profile.matchId ? (
           <Link
             href={localePath(locale, `/chats/${profile.matchId}`)}
-            className="bg-accent text-accent-foreground mt-2 flex h-12 items-center justify-center gap-2 rounded-2xl font-semibold transition-[transform,opacity] duration-150 ease-out select-none active:scale-[0.97] active:opacity-90"
+            className="bg-accent text-accent-foreground mt-2 flex h-12 items-center justify-center gap-2 rounded-2xl font-semibold transition-[transform,scale,opacity] duration-150 ease-out select-none active:scale-[0.97] active:opacity-90"
           >
             <MessageCircle className="size-5" /> {dict.swipe.sendMessage}
           </Link>

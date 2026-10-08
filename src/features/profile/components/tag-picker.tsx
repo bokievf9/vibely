@@ -144,7 +144,7 @@ export function TagPicker({ tags, value, onChange }: Props) {
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            className="text-accent active:bg-accent/10 -mx-2 flex h-11 items-center gap-1 self-start rounded-full px-3 text-sm font-semibold transition-[transform,background-color] duration-150 ease-out active:scale-[0.97]"
+            className="text-accent active:bg-accent/10 -mx-2 flex h-11 items-center gap-1 self-start rounded-full px-3 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.97]"
           >
             {expanded
               ? dict.discoverui.showFewerTags

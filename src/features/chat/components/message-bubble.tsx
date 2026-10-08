@@ -221,7 +221,7 @@ function FailedRow(props: {
   return (
     <span
       role="alert"
-      className="flex flex-wrap items-center justify-end gap-x-1 text-xs text-red-400"
+      className="text-danger flex flex-wrap items-center justify-end gap-x-1 text-xs"
     >
       <AlertCircle className="size-3.5 shrink-0" aria-hidden />
       {props.label}

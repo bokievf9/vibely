@@ -127,7 +127,7 @@ function LinkCard({ href, icon: Icon, title, text }: LinkCardProps) {
   return (
     <LocaleLink
       href={href}
-      className="bg-surface border-border active:bg-border flex min-h-16 items-center gap-3 rounded-2xl border p-4 transition-[transform,background-color] duration-150 ease-out select-none active:scale-[0.98]"
+      className="bg-surface border-border active:bg-border flex min-h-16 items-center gap-3 rounded-2xl border p-4 transition-[transform,scale,background-color] duration-150 ease-out select-none active:scale-[0.98]"
     >
       <span className="bg-accent/10 text-accent flex size-10 shrink-0 items-center justify-center rounded-full">
         <Icon className="size-5" aria-hidden />

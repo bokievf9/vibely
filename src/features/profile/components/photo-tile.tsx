@@ -127,7 +127,7 @@ function Control({ label, className, children, ...props }: ControlProps) {
       )}
       {...props}
     >
-      <span className="flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out group-active:scale-90 group-active:bg-black/80">
+      <span className="flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out group-active:scale-90 group-active:bg-black/80">
         {children}
       </span>
     </button>

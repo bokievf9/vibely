@@ -98,7 +98,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
         className="flex min-h-0 flex-1 flex-col-reverse overflow-x-hidden overflow-y-auto overscroll-contain [overflow-anchor:none]"
       >
         {/* One content box: column-reverse puts the scroll origin at the bottom. */}
-        <div className="flex shrink-0 flex-col pt-[var(--chat-header-h)]">
+        <div className="flex shrink-0 flex-col pt-[var(--header-h)]">
           <MessageList
             messages={chat.messages}
             outbox={outbox}

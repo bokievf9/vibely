@@ -139,7 +139,7 @@ export function MessageList({
             <li
               key={`day-${item.key}`}
               // Sticks right under the translucent header (its height includes the notch).
-              className="pointer-events-none sticky top-[calc(var(--chat-header-h)+0.5rem)] z-20 flex justify-center py-2"
+              className="pointer-events-none sticky top-[calc(var(--header-h)+0.5rem)] z-20 flex justify-center py-2"
             >
               <span className="bg-surface/85 text-muted rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur">
                 {dayLabel(item.at)}
@@ -159,7 +159,7 @@ export function MessageList({
               if (el && fresh.current.delete(m.id)) rise(el, mine)
             }}
             className={cn(
-              'flex max-w-[85%] min-w-0 scroll-mt-[calc(var(--chat-header-h)+1rem)] flex-col',
+              'flex max-w-[85%] min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] flex-col',
               mine ? 'self-end' : 'self-start',
               item.groupStart ? 'mt-2' : 'mt-0.5',
             )}

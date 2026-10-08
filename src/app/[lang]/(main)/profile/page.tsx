@@ -26,7 +26,7 @@ export default async function ProfilePage() {
         <Link
           href={localePath(locale, '/settings')}
           aria-label={dict.settings.open}
-          className="active:bg-surface flex size-12 items-center justify-center rounded-2xl transition-[transform,background-color] duration-150 ease-out active:scale-[0.94]"
+          className="active:bg-surface flex size-12 items-center justify-center rounded-2xl transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
         >
           <Settings className="size-6" />
         </Link>
@@ -62,7 +62,7 @@ async function OwnProfile() {
         />
         <Link
           href={localePath(locale, '/profile/edit')}
-          className="bg-surface border-border active:bg-border flex h-12 items-center justify-center gap-2 rounded-2xl border font-semibold transition-[transform,background-color] duration-150 ease-out select-none active:scale-[0.98]"
+          className="bg-surface border-border active:bg-border flex h-12 items-center justify-center gap-2 rounded-2xl border font-semibold transition-[transform,scale,background-color] duration-150 ease-out select-none active:scale-[0.98]"
         >
           <Pencil className="size-5" /> {dict.profile.edit}
         </Link>

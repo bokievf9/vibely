@@ -25,7 +25,7 @@ export default async function LikesPage() {
             <Link
               href={localePath(locale, '/swipe')}
               aria-label={dict.common.back}
-              className="active:bg-surface -ml-3 flex size-11 shrink-0 items-center justify-center rounded-full transition-[transform,background-color] duration-150 ease-out active:scale-[0.94]"
+              className="active:bg-surface -ml-3 flex size-11 shrink-0 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
             >
               <ChevronLeft className="size-6" />
             </Link>
