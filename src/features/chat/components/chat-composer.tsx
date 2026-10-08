@@ -12,8 +12,12 @@ import type { ChatMessage } from '../types'
 import { ComposerBanner, type ComposerMode } from './composer-banner'
 import { usePhotoSend } from './use-photo-send'
 
+// Text put into the composer from outside (an icebreaker); `at` makes repeated picks distinct.
+export type ComposerPrefill = { text: string; at: number }
+
 type Props = {
   matchId: string
+  prefill?: ComposerPrefill | null
   mode: ComposerMode | null
   quoteAuthor: string
   // Floating content above the composer (the "scroll down" button).
@@ -24,7 +28,7 @@ type Props = {
   onTyping: () => void
 }
 
-export function ChatComposer({ matchId, mode, quoteAuthor, aside, ...on }: Props) {
+export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const [draft, setDraft] = useState('')
@@ -45,6 +49,16 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, ...on }: Props
   useEffect(() => {
     if (mode) inputRef.current?.focus()
   }, [mode])
+
+  // Adopt a new prefill during render (React's "adjust state on prop change" pattern), then focus.
+  const [prefilled, setPrefilled] = useState(prefill)
+  if (prefill !== prefilled) {
+    setPrefilled(prefill)
+    if (prefill) setDraft(prefill.text)
+  }
+  useEffect(() => {
+    if (prefill) inputRef.current?.focus()
+  }, [prefill])
 
   const submit = () =>
     startTransition(async () => {

@@ -1,4 +1,5 @@
 import { aboutEn } from './about/en'
+import { discoverEn } from './discover/en'
 import { landingEn } from './landing/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 
@@ -310,6 +311,7 @@ export const en = {
     deleteConfirm: 'Delete forever',
   },
   about: aboutEn,
+  discover: discoverEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyNewPeople } from '@/features/push/notify-new-people'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
 import { readableBan } from './labels'
@@ -46,22 +47,28 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
   ])
   // `moderate` has validated the input and authorized the admin.
   const parsed = reviewVerificationSchema.safeParse(input)
-  if (result.ok && parsed.success) await deleteReviewedSelfie(parsed.data.requestId)
+  if (result.ok && parsed.success) {
+    const userId = await deleteReviewedSelfie(parsed.data.requestId)
+    // A newly verified person: alert opted-in users nearby (fire-and-forget, after the response).
+    if (parsed.data.approve && userId) notifyNewPeople(userId)
+  }
   return result
 }
 
 // The selfie is needed only for the review (Privacy Policy): delete the file right after it.
 // The decision is already saved, so a storage error is logged rather than reported as a failure.
-async function deleteReviewedSelfie(requestId: string) {
+// Returns the reviewed user's id.
+async function deleteReviewedSelfie(requestId: string): Promise<string | null> {
   const db = createAdminClient()
   const { data } = await db
     .from('verification_requests')
-    .select('selfie_path')
+    .select('selfie_path, user_id')
     .eq('id', requestId)
     .maybeSingle()
-  if (!data) return
+  if (!data) return null
   const { error } = await db.storage.from('selfies').remove([data.selfie_path])
   if (error) console.error('Selfie deletion failed', requestId, error.message)
+  return data.user_id
 }
 
 export async function setBan(input: z.input<typeof banSchema>) {

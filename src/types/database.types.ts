@@ -293,6 +293,44 @@ export type Database = {
         }
         Relationships: []
       }
+      new_people_alerts: {
+        Row: {
+          created_at: string
+          genders: Database['public']['Enums']['gender'][]
+          last_notified_at: string | null
+          max_age: number
+          max_km: number
+          min_age: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          genders: Database['public']['Enums']['gender'][]
+          last_notified_at?: string | null
+          max_age: number
+          max_km: number
+          min_age: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          genders?: Database['public']['Enums']['gender'][]
+          last_notified_at?: string | null
+          max_age?: number
+          max_km?: number
+          min_age?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'new_people_alerts_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       post_aliases: {
         Row: {
           alias_no: number
@@ -536,6 +574,7 @@ export type Database = {
           last_active_at: string
           location: unknown
           pets: Database['public']['Enums']['pets_status'] | null
+          referred_by: string | null
           relationship_goal: Database['public']['Enums']['relationship_goal'] | null
           religion: Database['public']['Enums']['religion'] | null
           show_last_seen: boolean
@@ -565,6 +604,7 @@ export type Database = {
           last_active_at?: string
           location?: unknown
           pets?: Database['public']['Enums']['pets_status'] | null
+          referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
           show_last_seen?: boolean
@@ -594,6 +634,7 @@ export type Database = {
           last_active_at?: string
           location?: unknown
           pets?: Database['public']['Enums']['pets_status'] | null
+          referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
           religion?: Database['public']['Enums']['religion'] | null
           show_last_seen?: boolean
@@ -775,6 +816,32 @@ export type Database = {
             foreignKeyName: 'random_chat_sessions_user_b_fkey'
             columns: ['user_b']
             isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'referral_codes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1050,6 +1117,16 @@ export type Database = {
       array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
       can_view_profile: { Args: { target: string }; Returns: boolean }
+      claim_referral: { Args: { p_code: string }; Returns: boolean }
+      count_swipe_candidates: {
+        Args: {
+          p_genders: Database['public']['Enums']['gender'][]
+          p_max_age?: number
+          p_max_km?: number
+          p_min_age?: number
+        }
+        Returns: number
+      }
       chat_media_match: { Args: { object_name: string }; Returns: string }
       create_comment: {
         Args: { p_body: string; p_post_id: string }
@@ -1067,6 +1144,10 @@ export type Database = {
           src: Database['public']['Enums']['match_source']
         }
         Returns: string
+      }
+      get_my_referral: {
+        Args: never
+        Returns: { code: string; invited: number }[]
       }
       get_random_messages: {
         Args: { p_before?: string; p_limit?: number; p_session_id: string }
@@ -1116,6 +1197,7 @@ export type Database = {
           prompts: Json
           relationship_goal: Database['public']['Enums']['relationship_goal']
           religion: Database['public']['Enums']['religion']
+          second_chance: boolean
           smoking: Database['public']['Enums']['habit_frequency']
           tags: string[]
         }[]
@@ -1136,6 +1218,7 @@ export type Database = {
         Returns: undefined
       }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      new_people_alert_recipients: { Args: { p_profile: string }; Returns: string[] }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
@@ -1156,6 +1239,16 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      set_new_people_alert: {
+        Args: {
+          p_enabled: boolean
+          p_genders?: Database['public']['Enums']['gender'][]
+          p_max_age?: number
+          p_max_km?: number
+          p_min_age?: number
+        }
+        Returns: boolean
+      }
       set_message_reaction: {
         Args: { p_emoji: string; p_message: string }
         Returns: undefined

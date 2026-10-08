@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { claimReferralFromCookie } from '@/features/referrals/claim'
 import {
   editableProfileSchema,
   newProfileSchema,
@@ -79,6 +80,7 @@ export async function createProfile(input: NewProfileInput): Promise<UserResult>
   if (error) return fail(error.code === '23514' ? 'tooYoung' : 'profileSaveFailed')
 
   await replaceTags(tagIds, viewer.id)
+  await claimReferralFromCookie()
   return ok(undefined)
 }
 

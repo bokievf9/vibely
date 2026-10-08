@@ -42,6 +42,7 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
       }),
       about: aboutFromRow(c),
       prompts: parsePrompts(c.prompts),
+      secondChance: c.second_chance,
     })),
   )
 }
