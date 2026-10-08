@@ -1,36 +1,38 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { SearchX, Shuffle } from 'lucide-react'
+import { SearchX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
-import { getRandomSession, leaveRandom, pingRandom } from '../actions'
-import type { RandomSession } from '../types'
-import { usePairedSignal } from './use-random-channel'
+import { getBlindSession, leaveBlind, pingBlind } from '../actions'
+import type { BlindSession } from '../types'
+import { AliasAvatar } from './alias-avatar'
+import { useOwnBlindSignals } from './use-blind-channel'
 import { SearchingNow } from './searching-now'
 
 const PING_MS = 20_000
 const POLL_MS = 8_000
 const TIMEOUT_MS = 30_000
 
-type Props = { userId: string; onPaired: (s: RandomSession) => void; onCancel: () => void }
+type Props = { userId: string; onPaired: (s: BlindSession) => void; onCancel: () => void }
 
 // Keeps the user "present" in the queue and waits for a partner: a broadcast signal,
-// with polling as a fallback if the socket drops. After 30 seconds it suggests widening filters;
-// the user stays in the queue until they leave.
+// with polling as a fallback if the socket drops. After 30 seconds it suggests widening the
+// preferences; the user stays in the queue until they leave.
 export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
   const { dict } = useI18n()
+  const t = dict.blindDate
   const [round, setRound] = useState(0)
   const [timedOut, setTimedOut] = useState(false)
 
   const check = async () => {
-    const session = await getRandomSession()
+    const session = await getBlindSession()
     if (session) onPaired(session)
   }
-  usePairedSignal(userId, true, () => void check())
+  useOwnBlindSignals(userId, true, { onPaired: () => void check() })
 
   useEffect(() => {
-    const ping = setInterval(() => void pingRandom(), PING_MS)
+    const ping = setInterval(() => void pingBlind(), PING_MS)
     const poll = setInterval(() => void check(), POLL_MS)
     return () => {
       clearInterval(ping)
@@ -45,7 +47,7 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
   }, [round])
 
   const leave = () => {
-    void leaveRandom()
+    void leaveBlind()
     onCancel()
   }
 
@@ -55,14 +57,14 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
         <SearchX className="text-muted size-14" aria-hidden />
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold" role="status">
-            {dict.random.timeoutTitle}
+            {t.timeoutTitle}
           </h2>
-          <p className="text-muted">{dict.random.timeoutHint}</p>
+          <p className="text-muted">{t.timeoutHint}</p>
         </div>
         <SearchingNow className="justify-center" />
         <div className="flex w-full max-w-xs flex-col gap-2">
           <Button fullWidth onClick={leave}>
-            {dict.random.widenFilters}
+            {t.widenFilters}
           </Button>
           <Button
             fullWidth
@@ -70,10 +72,10 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
             onClick={() => {
               setTimedOut(false)
               setRound((r) => r + 1)
-              void pingRandom()
+              void pingBlind()
             }}
           >
-            {dict.random.keepWaiting}
+            {t.keepWaiting}
           </Button>
         </div>
       </div>
@@ -82,20 +84,21 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-      {/* CSS spin: runs on the compositor, keeps turning while the JS thread polls and pings. */}
-      <div className="relative flex size-24 items-center justify-center" aria-hidden>
+      {/* CSS animation: runs on the compositor, keeps going while the JS thread polls and pings. */}
+      <div className="relative flex size-28 items-center justify-center" aria-hidden>
         <span className="border-accent/15 border-t-accent absolute inset-0 animate-spin rounded-full border-[3px] [animation-duration:1.4s]" />
-        <Shuffle className="text-accent size-9" />
+        <AliasAvatar alias={((round * 97 + 311) % 900) + 100} size={76} className="blur-[1px]" />
+        <span className="text-foreground/90 absolute text-2xl font-bold">?</span>
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-semibold" role="status">
-          {dict.random.searching}
+          {t.searching}
         </h2>
-        <p className="text-muted">{dict.random.searchingHint}</p>
+        <p className="text-muted text-pretty">{t.searchingHint}</p>
       </div>
       <SearchingNow className="justify-center" />
       <Button variant="secondary" onClick={leave}>
-        {dict.random.cancel}
+        {t.cancel}
       </Button>
     </div>
   )

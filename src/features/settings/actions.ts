@@ -6,7 +6,7 @@ import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { notificationTypeSchema, type NotificationType } from '@/features/push/prefs'
 
-// Pause = hidden from Discover, "Who liked you" and the random-chat queue; matches keep working.
+// Pause = hidden from Discover, "Who liked you" and the blind date queue; matches keep working.
 export async function setDiscoverable(discoverable: boolean): Promise<UserResult> {
   const value = z.boolean().safeParse(discoverable)
   if (!value.success) return fail('invalidInput')

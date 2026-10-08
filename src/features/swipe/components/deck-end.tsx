@@ -8,8 +8,8 @@ import {
   MessagesSquare,
   RotateCw,
   SearchX,
-  Shuffle,
   SlidersHorizontal,
+  VenetianMask,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { fmt, type Locale } from '@/i18n/config'
@@ -102,8 +102,8 @@ export function DeckEnd({ filters, onWiden, onRefresh, onOpenFilters, onAlertCha
       </div>
       <p className="text-muted text-footnote px-2 text-center">{t.secondChanceHint}</p>
       <LinkCard
-        href="/randomizer"
-        icon={Shuffle}
+        href="/blind-date"
+        icon={VenetianMask}
         title={t.random}
         text={info?.searching ? fmt(t.randomCount, { count: info.searching }) : t.randomIdle}
       />

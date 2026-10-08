@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, type MouseEvent } from 'react'
 import { usePathname } from 'next/navigation'
-import { Flame, MessageCircle, Newspaper, Shuffle, User, type LucideIcon } from 'lucide-react'
+import { Flame, MessageCircle, Newspaper, User, VenetianMask, type LucideIcon } from 'lucide-react'
 import { useUnreadCount } from '@/features/chat/components/use-unread-count'
 import { NavAvatar } from '@/features/profile/components/nav-avatar'
 import { usePresenceHeartbeat } from '@/features/presence/use-heartbeat'
@@ -17,7 +17,7 @@ type Fill = 'solid' | 'tint' | 'none'
 const ITEMS: readonly { href: string; key: TabKey; icon: LucideIcon; fill: Fill }[] = [
   { href: '/swipe', key: 'swipe', icon: Flame, fill: 'solid' },
   { href: '/feed', key: 'feed', icon: Newspaper, fill: 'tint' },
-  { href: '/randomizer', key: 'randomizer', icon: Shuffle, fill: 'none' },
+  { href: '/blind-date', key: 'randomizer', icon: VenetianMask, fill: 'tint' },
   { href: '/chats', key: 'chats', icon: MessageCircle, fill: 'solid' },
   { href: '/profile', key: 'profile', icon: User, fill: 'solid' },
 ]

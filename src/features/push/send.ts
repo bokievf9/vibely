@@ -127,12 +127,14 @@ export function notifyNewMessage(
   })
 }
 
-export function notifyRandomReveal(userId: string, matchId: string | null) {
+// Both people pressed Connect on a blind date. Sent to the one who connected first (the other
+// is the one who just completed it). Preference key stays 'random_reveal' (DB column).
+export function notifyBlindMatch(userId: string, matchId: string | null) {
   inBackground(() =>
     sendToUser(userId, 'random_reveal', (dict, locale) => ({
       title: dict.push.randomReveal,
       body: dict.push.randomRevealBody,
-      url: matchId ? chatUrl(locale, matchId) : localePath(locale, '/randomizer'),
+      url: matchId ? chatUrl(locale, matchId) : localePath(locale, '/blind-date'),
       tag: `reveal-${matchId ?? userId}`,
     })),
   )

@@ -5,18 +5,18 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
-import { getRandomStats } from '../actions'
+import { getBlindStats } from '../actions'
 
 const POLL_MS = 15_000
 
-// "People searching now: N" — polled while the filters or waiting screen is open.
+// "People searching now: N" — polled while the start or waiting screen is open.
 export function SearchingNow({ className }: { className?: string }) {
   const { dict } = useI18n()
   const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
     let alive = true
-    const load = () => void getRandomStats().then((n) => alive && setCount(n))
+    const load = () => void getBlindStats().then((n) => alive && setCount(n))
     load()
     const timer = setInterval(load, POLL_MS)
     return () => {
@@ -39,7 +39,7 @@ export function SearchingNow({ className }: { className?: string }) {
         <span className="bg-accent absolute inline-flex size-full animate-ping rounded-full opacity-60" />
         <span className="bg-accent relative inline-flex size-2 rounded-full" />
       </span>
-      {fmt(dict.random.searchingNow, { count })}
+      {fmt(dict.blindDate.searchingNow, { count })}
     </p>
   )
 }

@@ -5,9 +5,9 @@ import {
   MessageCircle,
   Phone,
   Newspaper,
-  Shuffle,
   Sparkles,
   UserPlus,
+  VenetianMask,
   type LucideIcon,
 } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
@@ -24,7 +24,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   messages: MessageCircle,
   likes: Sparkles,
   feed_replies: Newspaper,
-  random_reveal: Shuffle,
+  random_reveal: VenetianMask,
   new_people: UserPlus,
   calls: Phone,
 }

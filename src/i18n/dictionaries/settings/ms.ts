@@ -10,14 +10,14 @@ export const settingsMs: SettingsDictionary = {
     messages: 'Mesej',
     likes: 'Seseorang menyukai anda',
     feed_replies: 'Balasan dalam suapan',
-    random_reveal: 'Pendedahan sembang rawak',
+    random_reveal: 'Padanan temu janji buta',
     new_people: 'Orang baharu berdekatan',
     calls: 'Panggilan masuk',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',
   pauseHint:
-    'Anda tidak akan muncul dalam Teroka atau “Siapa suka anda”. Padanan dan sembang anda kekal. Sembang rawak hanya memadankan anda apabila anda sendiri mencari.',
+    'Anda tidak akan muncul dalam Teroka atau “Siapa suka anda”. Padanan dan sembang anda kekal. Temu janji buta hanya memadankan anda apabila anda sendiri mencari.',
   blocked: 'Pengguna yang disekat',
   blockedEmpty: 'Anda belum menyekat sesiapa.',
   blockedEmptyHint:

@@ -4,40 +4,43 @@ import { PageHeader } from '@/components/layout/page-header'
 import { PageSpinner } from '@/components/ui/spinner'
 import { getViewer } from '@/features/auth/session'
 import { getOwnProfile, getTags } from '@/features/profile/queries'
-import { getRandomSession, loadRandomMessages } from '@/features/randomizer/actions'
-import { RandomChat } from '@/features/randomizer/components/random-chat'
+import { getBlindSession, loadBlindMessages } from '@/features/blind-date/actions'
+import { BlindDate } from '@/features/blind-date/components/blind-date'
 import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getDictionary()).random.title }
+  return { title: (await getDictionary()).blindDate.title }
 }
 
-export default async function RandomizerPage() {
+// The header lives in <BlindDate/>: during a date it shows the partner's alias and the menu.
+export default async function BlindDatePage() {
   const dict = await getDictionary()
   return (
-    <>
-      <PageHeader title={dict.random.title} />
-      <section className="flex flex-1 flex-col px-4">
-        <Suspense fallback={<PageSpinner />}>
-          <Randomizer />
-        </Suspense>
-      </section>
-    </>
+    <Suspense
+      fallback={
+        <>
+          <PageHeader title={dict.blindDate.title} />
+          <PageSpinner />
+        </>
+      }
+    >
+      <BlindDateScreen />
+    </Suspense>
   )
 }
 
-// Resumes an active session after a reload; otherwise starts at the filters.
-async function Randomizer() {
+// Resumes an active date after a reload; otherwise starts at the intro and preferences.
+async function BlindDateScreen() {
   const viewer = await getViewer()
   if (!viewer) return null
   const [profile, tags, session] = await Promise.all([
     getOwnProfile(viewer.id),
     getTags(),
-    getRandomSession(),
+    getBlindSession(),
   ])
-  const messages = session ? await loadRandomMessages(session.id) : []
+  const messages = session ? await loadBlindMessages(session.id) : []
   return (
-    <RandomChat
+    <BlindDate
       userId={viewer.id}
       tags={tags}
       defaults={{

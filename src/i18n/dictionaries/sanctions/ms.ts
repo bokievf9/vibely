@@ -19,7 +19,7 @@ export const sanctionsMs: SanctionsDictionary = {
   warningOk: 'Saya faham',
   mutedTitle: 'Anda tidak boleh menghantar mesej buat masa ini',
   mutedBody:
-    'Sehingga {date} anda tidak boleh menghantar mesej sembang, mesej sembang rawak, hantaran atau komen. Sebab: {reason}.',
+    'Sehingga {date} anda tidak boleh menghantar mesej sembang, mesej temu janji buta, hantaran atau komen. Sebab: {reason}.',
   mutedOk: 'OK',
 }
 

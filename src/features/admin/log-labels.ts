@@ -35,7 +35,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'admin.remove': 'Удалил из команды',
   'view.selfie': 'Просмотр селфи',
   'view.phone': 'Просмотр номера телефона',
-  'view.transcript': 'Просмотр переписки рандом-чата',
+  'view.transcript': 'Просмотр переписки блайнд-дейта',
   'export.audit_log': 'Выгрузил журнал (CSV)',
   'legal.export': 'Выгрузил данные по юр. запросу',
 }

@@ -9,8 +9,8 @@ import { formatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { useAutoGrow } from '@/features/feed/components/use-auto-grow'
 import { RiskWarning } from '@/features/safety/components/risk-warning'
-import { sendRandom } from '../actions'
-import type { RandomMessage } from '../types'
+import { sendBlind } from '../actions'
+import type { BlindMessage } from '../types'
 
 const TYPING_THROTTLE_MS = 2_500
 // Closer than this to the end counts as "reading the latest": new messages keep the view pinned.
@@ -18,12 +18,14 @@ const NEAR_BOTTOM_PX = 160
 
 type Props = {
   sessionId: string
-  messages: RandomMessage[]
+  messages: BlindMessage[]
+  // "Partner #402", shown with the typing indicator.
+  partnerLabel: string
   partnerTyping: boolean
   disabled: boolean
   // Replaces the composer in the same bottom slot (the "chat ended" card), so nothing above moves.
   footer?: ReactNode
-  onSent: (m: RandomMessage) => void
+  onSent: (m: BlindMessage) => void
   onTyping: () => void
 }
 
@@ -33,6 +35,7 @@ const distanceFromBottom = () =>
 export function AnonChat({
   sessionId,
   messages,
+  partnerLabel,
   partnerTyping,
   disabled,
   footer,
@@ -88,7 +91,7 @@ export function AnonChat({
     const body = draft.trim()
     if (!body || pending || disabled) return
     startTransition(async () => {
-      const result = await sendRandom(sessionId, body)
+      const result = await sendBlind(sessionId, body)
       if (!result.ok) return setError(result.error)
       setError(undefined)
       setDraft('')
@@ -125,7 +128,7 @@ export function AnonChat({
         ))}
         {partnerTyping && (
           <li className="text-muted text-sm italic">
-            {dict.random.stranger} {dict.random.typing}
+            {partnerLabel} {dict.blindDate.typing}
           </li>
         )}
       </ol>

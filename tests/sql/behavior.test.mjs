@@ -92,8 +92,10 @@ export async function run(db) {
   ok('first reveal waits', (await as(U[3], `select randomizer_reveal($1) v`, [sid])).rows[0].v === false)
   ok('still hidden after one consent', (await as(U[2], `select partner from get_random_session()`)).rows[0].partner === null)
   ok('mutual reveal', (await as(U[2], `select randomizer_reveal($1) v`, [sid])).rows[0].v === true)
-  const after = (await as(U[2], `select * from get_random_session()`)).rows[0]
-  ok('partner revealed + match', after.partner?.id === U[3] && !!after.match_id, JSON.stringify(after))
+  // Blind Dating (20261009000190): a mutual reveal (= Connect) ends the session; the reveal is read
+  // with get_blind_session(id).
+  const after = (await as(U[2], `select * from get_blind_session($1)`, [sid])).rows[0]
+  ok('partner revealed + match', after.partner?.id === U[3] && !!after.match_id && after.state === 'matched', JSON.stringify(after))
   ok('match source = randomizer', (await su(`select source from matches where id=$1`, [after.match_id])).rows[0].source === 'randomizer')
   // storage
   ok('storage: no upload to foreign folder', !!(await fails(() => as(U[0], `insert into storage.objects (bucket_id, name) values ('profile-photos', $1)`, [`${U[1]}/a.jpg`]))))
@@ -1771,6 +1773,188 @@ export async function run(db) {
     ok('password: removed account no longer resolves', (await check('pwtest0')).phone === null)
   })()
   // ===== end password login =====
+
+  // ===== blind dating (20261009000190) =====
+  // Aliases, no profile data before a mutual Connect, Connect/Pass combinations, transcript copy,
+  // idempotency, blocks, bans, mutes, rate limits, realtime authorization. Own scope, fresh users.
+  await (async () => {
+    const B = ['b1d00000-0000-4000-8000-000000000001', 'b1d00000-0000-4000-8000-000000000002',
+               'b1d00000-0000-4000-8000-000000000003', 'b1d00000-0000-4000-8000-000000000004',
+               'b1d00000-0000-4000-8000-000000000005', 'b1d00000-0000-4000-8000-000000000006',
+               'b1d00000-0000-4000-8000-000000000007']
+    const [M1, F1, F2, M2, F3, M3, X] = B
+    for (const [i, u] of B.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013777000' + i])
+    for (const [u, name, g, w] of [[M1, 'Hafiz', 'male', '{female}'], [F1, 'Nurul', 'female', '{male}'], [F2, 'Mei', 'female', '{male}'],
+      [M2, 'Ravi', 'male', '{female}'], [F3, 'Siti', 'female', '{male}'], [M3, 'Kumar', 'male', '{female}'], [X, 'Outsider', 'male', '{female}']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1996-04-04',$2,$3,'Melaka','SRID=4326;POINT(102.25 2.19)')`, [name, g, w])
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [B])
+    await su(`delete from random_chat_queue`)
+    const decide = async (u, s, c) => (await as(u, `select blind_decide($1, $2) r`, [s, c])).rows[0].r
+    const bs = async (u, s = null) => (await as(u, `select * from get_blind_session($1)`, [s])).rows[0]
+    const events = async (topic) => (await su(`select event, payload from realtime.messages where topic=$1 order by id`, [topic])).rows
+    const pairOf = async (a, b) => (await su(`select count(*)::int c from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0].c
+    const pair = async (m, f) => {
+      await su(`delete from random_chat_queue`)
+      await as(m, `select randomizer_join('{female}',18,99)`)
+      return (await as(f, `select randomizer_join('{male}',18,99) s`)).rows[0].s
+    }
+    const session = async (a, b) => (await su(`insert into random_chat_sessions (user_a, user_b) values ($1,$2) returning id`, [a, b])).rows[0].id
+
+    // --- aliases and what a client can see before a match
+    const s1 = await pair(M1, F1)
+    ok('blind: paired', !!s1)
+    const m1v = await bs(M1), f1v = await bs(F1)
+    ok('blind: aliases are 3 digits and differ', m1v.my_alias >= 100 && m1v.my_alias <= 999 && m1v.partner_alias >= 100 && m1v.my_alias !== m1v.partner_alias, JSON.stringify(m1v))
+    ok('blind: aliases mirror between sides', m1v.my_alias === f1v.partner_alias && m1v.partner_alias === f1v.my_alias)
+    ok('blind: aliases stable per session', (await bs(M1, s1)).partner_alias === m1v.partner_alias)
+    ok('blind: fresh session is active, undecided', m1v.state === 'active' && m1v.my_decision === null && m1v.id === s1)
+    ok('blind: get_blind_session columns', JSON.stringify(Object.keys(m1v).sort()) ===
+       '["common_tags","id","match_id","my_alias","my_decision","my_side","partner","partner_alias","started_at","state"]', JSON.stringify(Object.keys(m1v)))
+    const leaks = (row) => { const j = JSON.stringify(row); return j.includes(F1) || j.includes(M1) || j.includes('Nurul') || j.includes('Hafiz') }
+    ok('blind: no profile data or ids before connect', m1v.partner === null && m1v.match_id === null && !leaks(m1v) && !leaks(f1v))
+    const old = (await as(M1, `select * from get_random_session()`)).rows[0]
+    ok('blind: get_random_session leaks nothing', old.partner === null && old.partner_revealed === false && !leaks(old), JSON.stringify(old))
+    ok('blind: sessions table still closed', !!(await fails(() => as(M1, `select alias_a from random_chat_sessions`))))
+    await as(M1, `select randomizer_send($1,'hi there')`, [s1])
+    await as(F1, `select randomizer_send($1,'hello!')`, [s1])
+    await as(M1, `select randomizer_send($1,'how is your day?')`, [s1])
+    const hist = (await as(F1, `select * from get_random_messages($1)`, [s1])).rows
+    ok('blind: history has no sender ids', hist.length === 3 && !leaks(hist))
+    ok('blind: outsider sees no session', (await as(X, `select * from get_blind_session($1)`, [s1])).rows.length === 0)
+    ok('blind: outsider cannot decide', !!(await fails(() => decide(X, s1, true))))
+    ok('blind: decision required', !!(await fails(() => as(M1, `select blind_decide($1, null)`, [s1]))))
+
+    // --- one Connect: "waiting", and the partner learns nothing
+    const w = await decide(M1, s1, true)
+    ok('blind: first connect waits', w.state === 'waiting' && w.match_id === null, JSON.stringify(w))
+    ok('blind: my decision recorded', (await bs(M1)).my_decision === true)
+    const fw = await bs(F1)
+    ok('blind: partner sees no decision', fw.my_decision === null && fw.state === 'active' && fw.partner === null && !leaks(fw), JSON.stringify(fw))
+    ok('blind: get_random_session hides the connect', (await as(F1, `select partner_revealed p from get_random_session()`)).rows[0].p === false)
+    ok('blind: nothing broadcast to the partner', (await events('random:' + s1)).every((e) => e.event === 'message') && (await events('randomizer:' + F1)).every((e) => e.event === 'paired'))
+    ok('blind: decided sent to the decider only', (await events('randomizer:' + M1)).some((e) => e.event === 'decided' && e.payload.decision === true && e.payload.session_id === s1))
+    ok('blind: repeated connect is idempotent', (await decide(M1, s1, true)).state === 'waiting' && (await pairOf(M1, F1)) === 0)
+
+    // --- mutual Connect: match, transcript, reveal
+    const mm = await decide(F1, s1, true)
+    ok('blind: mutual connect matches', mm.state === 'matched' && !!mm.match_id && mm.just_matched === true, JSON.stringify(mm))
+    ok('blind: one match, source randomizer', (await pairOf(M1, F1)) === 1 && (await su(`select source from matches where id=$1`, [mm.match_id])).rows[0].source === 'randomizer')
+    const orig = (await su(`select sender_id, body, created_at from random_chat_messages where session_id=$1 order by created_at`, [s1])).rows
+    const copied = (await su(`select sender_id, body, created_at, read_at, deleted_at from messages where match_id=$1 order by created_at`, [mm.match_id])).rows
+    ok('blind: transcript copied in order with senders and times', copied.length === 3 &&
+       copied.every((c, i) => c.sender_id === orig[i].sender_id && c.body === orig[i].body && +c.created_at === +orig[i].created_at), JSON.stringify(copied))
+    ok('blind: copy is read and not deleted', copied.every((c) => c.read_at !== null && c.deleted_at === null))
+    ok('blind: participants read the copy', (await as(F1, `select count(*)::int c from messages where match_id=$1`, [mm.match_id])).rows[0].c === 3)
+    ok('blind: blind messages kept too', (await su(`select count(*)::int c from random_chat_messages where session_id=$1`, [s1])).rows[0].c === 3)
+    const rev = await bs(M1, s1)
+    ok('blind: reveal after match', rev.state === 'matched' && rev.partner?.id === F1 && rev.partner.display_name === 'Nurul' && rev.partner.age >= 18 && rev.match_id === mm.match_id, JSON.stringify(rev))
+    ok('blind: matched broadcast with match id', (await events('random:' + s1)).some((e) => e.event === 'matched' && e.payload.match_id === mm.match_id))
+    ok('blind: session no longer active', (await as(M1, `select * from get_random_session()`)).rows.length === 0 && (await as(M1, `select * from get_blind_session()`)).rows.length === 0)
+    const again = await decide(F1, s1, true)
+    ok('blind: connect after match is idempotent', again.state === 'matched' && again.match_id === mm.match_id && !again.just_matched &&
+       (await su(`select count(*)::int c from messages where match_id=$1`, [mm.match_id])).rows[0].c === 3)
+    ok('blind: pass after match changes nothing', (await decide(M1, s1, false)).state === 'matched' && (await pairOf(M1, F1)) === 1)
+    ok('blind: cannot send after match', !!(await fails(() => as(M1, `select randomizer_send($1,'x')`, [s1]))))
+
+    // --- an existing match is reused, its chat continues
+    const s2 = await pair(M1, F1)
+    ok('blind: matched pair can meet blind again', !!s2 && s2 !== s1)
+    await as(F1, `select randomizer_send($1,'again?')`, [s2])
+    await decide(F1, s2, true)
+    const m2 = await decide(M1, s2, true)
+    ok('blind: existing match reused', m2.state === 'matched' && m2.match_id === mm.match_id && (await pairOf(M1, F1)) === 1)
+    ok('blind: second transcript appended', (await su(`select count(*)::int c from messages where match_id=$1`, [mm.match_id])).rows[0].c === 4)
+
+    // --- Pass
+    const s3 = await pair(M1, F2)
+    await decide(M1, s3, true)
+    const p = await decide(F2, s3, false)
+    ok('blind: pass ends the session', p.state === 'passed' && (await su(`select status from random_chat_sessions where id=$1`, [s3])).rows[0].status === 'ended')
+    const m1s3 = await bs(M1, s3)
+    ok('blind: the other side only sees "ended"', m1s3.state === 'ended' && m1s3.partner === null && m1s3.match_id === null, JSON.stringify(m1s3))
+    ok('blind: ended broadcast', (await events('random:' + s3)).some((e) => e.event === 'ended'))
+    ok('blind: no match after pass', (await pairOf(M1, F2)) === 0)
+    ok('blind: connect after pass stays ended', (await decide(M1, s3, true)).state === 'ended' && (await pairOf(M1, F2)) === 0)
+    ok('blind: cannot send after pass', !!(await fails(() => as(M1, `select randomizer_send($1,'x')`, [s3]))))
+    const s4 = await pair(M1, F2)
+    ok('blind: both can search again after pass', !!s4)
+    ok('blind: pass first', (await decide(M1, s4, false)).state === 'passed' && (await bs(F2, s4)).state === 'ended')
+    const s5 = await pair(M1, F2)
+    await decide(F2, s5, true)
+    ok('blind: connect then pass', (await decide(F2, s5, false)).state === 'passed' && (await bs(M1, s5)).state === 'ended' && (await pairOf(M1, F2)) === 0)
+    const s6 = await pair(M1, F2)
+    await as(M1, `select randomizer_end($1)`, [s6])
+    ok('blind: randomizer_end = pass', (await bs(M1, s6)).state === 'passed' && (await bs(F2, s6)).state === 'ended')
+    const s7 = await pair(M1, F2)
+    await as(M1, `select randomizer_reveal($1)`, [s7])
+    ok('blind: randomizer_reveal = connect', (await bs(M1, s7)).my_decision === true && (await as(F2, `select randomizer_reveal($1) v`, [s7])).rows[0].v === true &&
+       (await pairOf(M1, F2)) === 1 && (await bs(F2, s7)).partner?.id === M1)
+    await su(`delete from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [M1, F2])
+
+    // --- blocks
+    const s8 = await pair(M1, F2)
+    await as(F2, `select randomizer_send($1,'creepy?')`, [s8])
+    await decide(M1, s8, true)
+    await as(F2, `select blind_block($1)`, [s8])
+    ok('blind: block from the session ends it', (await bs(M1, s8)).state === 'ended' && (await bs(F2, s8)).state === 'passed')
+    ok('blind: block stored without revealing', (await su(`select count(*)::int c from blocks where blocker_id=$1 and blocked_id=$2`, [F2, M1])).rows[0].c === 1)
+    ok('blind: blocked pair not paired again', !(await pair(M1, F2)))
+    ok('blind: report still possible after block', !(await fails(() => as(F2, `insert into reports (target_type, target_id, reason) values ('random_session', $1, 'harassment')`, [s8]))))
+    ok('blind: outsider cannot block via session', !!(await fails(() => as(X, `select blind_block($1)`, [s8]))))
+    const s9 = await session(M2, F2)
+    await as(M2, `insert into blocks (blocked_id) values ($1)`, [F2])
+    ok('blind: connect across a block ends instead of matching', (await decide(F2, s9, true)).state === 'ended' && (await pairOf(M2, F2)) === 0)
+    await su(`delete from blocks where blocker_id in ($1, $2)`, [F2, M2])
+    await su(`delete from random_chat_queue`)
+
+    // --- bans
+    const s10 = await session(M2, F2)
+    await su(`update profiles set banned_at=now(), is_active=false where id=$1`, [F2])
+    ok('blind: banned user cannot connect', !!(await fails(() => decide(F2, s10, true))))
+    await su(`update random_chat_sessions set status='ended', ended_at=now() where id=$1`, [s10]) // what admin_set_ban does
+    ok('blind: session ended by a ban never matches', (await decide(M2, s10, true)).state === 'ended' && (await pairOf(M2, F2)) === 0)
+    await su(`update profiles set banned_at=null, is_active=true where id=$1`, [F2])
+
+    // --- mutes and risk flags: the copy is a system action
+    const s11 = await session(M2, F3)
+    await as(M2, `select randomizer_send($1,'whatsapp me +60 12 345 6789')`, [s11])
+    const flagsBefore = (await su(`select count(*)::int c from message_flags where sender_id=$1`, [M2])).rows[0].c
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [M2])
+    ok('blind: muted user cannot send', (await fails(() => as(M2, `select randomizer_send($1,'hi')`, [s11])))?.includes('muted'))
+    await decide(M2, s11, true)
+    const mu = await decide(F3, s11, true)
+    ok('blind: muted user can still match, transcript copied', mu.state === 'matched' && (await su(`select count(*)::int c from messages where match_id=$1 and sender_id=$2`, [mu.match_id, M2])).rows[0].c === 1)
+    ok('blind: copy not flagged twice', flagsBefore >= 1 && (await su(`select count(*)::int c from message_flags where sender_id=$1`, [M2])).rows[0].c === flagsBefore)
+    ok('blind: mute still blocks normal chat', (await fails(() => as(M2, `insert into messages (match_id, body) values ($1,'hi')`, [mu.match_id])))?.includes('muted'))
+    await su(`update profiles set muted_until = null where id=$1`, [M2])
+    const fl = (await as(F3, `insert into messages (match_id, body) values ($1,'call me 012-345 6789') returning id`, [mu.match_id])).rows[0].id
+    ok('blind: normal chat still flagged after copy', (await su(`select count(*)::int c from message_flags where message_id=$1`, [fl])).rows[0].c >= 1)
+
+    // --- rate limits: copying never trips the 30/min limit, normal sending still does
+    const rm = (await su(`select ensure_match($1, $2, 'swipe') id`, [M3, F1])).rows[0].id
+    for (let i = 0; i < 10; i++) await as(M3, `insert into messages (match_id, body) values ($1, $2)`, [rm, 'm' + i])
+    const s12 = await session(M3, F1)
+    for (let i = 0; i < 25; i++) await as(M3, `select randomizer_send($1, $2)`, [s12, 'b' + i])
+    await decide(F1, s12, true)
+    const rl = await decide(M3, s12, true)
+    ok('blind: copy ignores the rate limit', rl.state === 'matched' && rl.match_id === rm &&
+       (await su(`select count(*)::int c from messages where match_id=$1`, [rm])).rows[0].c === 35)
+    ok('blind: rate limit still applies afterwards', !!(await fails(() => as(M3, `insert into messages (match_id, body) values ($1,'over')`, [rm]))))
+
+    // --- realtime authorization unchanged
+    const t = 'random:' + s1
+    ok('blind: realtime participants receive', (await as(F1, `select count(*)::int c from realtime.messages where topic=$1`, [t], t)).rows[0].c >= 1)
+    ok('blind: realtime outsider blocked', (await as(X, `select count(*)::int c from realtime.messages where topic=$1`, [t], t)).rows[0].c === 0)
+    ok('blind: realtime client cannot write random:', !!(await fails(() => as(F1, `insert into realtime.messages (topic, event, payload) values ($1,'matched','{}')`, [t], t))))
+    const own = 'randomizer:' + M1
+    ok('blind: realtime own topic readable', (await as(M1, `select count(*)::int c from realtime.messages where topic=$1`, [own], own)).rows[0].c >= 1)
+    ok('blind: realtime others\' topic hidden', (await as(F1, `select count(*)::int c from realtime.messages where topic=$1`, [own], own)).rows[0].c === 0)
+    ok('blind: anon cannot call the RPCs', (await su(`select has_function_privilege('anon', 'public.blind_decide(uuid, boolean)', 'execute') a,
+       has_function_privilege('anon', 'public.get_blind_session(uuid)', 'execute') b, has_function_privilege('anon', 'public.blind_block(uuid)', 'execute') c`)).rows
+       .every((r) => !r.a && !r.b && !r.c))
+  })()
+
+  // ===== end blind dating =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail

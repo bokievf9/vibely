@@ -18,7 +18,7 @@ export const en: LegalContent = {
           'Photos you upload to your profile.',
           'Approximate location: if you allow it, your device location is used to calculate how far you are from other users. Your exact location is never shown to anyone. Others only see a rounded distance, such as "5 km away".',
           'Verification selfie: a photo of you doing a gesture, used only to confirm that you match your profile photos (see section 3).',
-          'Activity in the app: likes and passes, matches, chat messages (text, photos, voice messages and video messages), audio and video calls (recorded, see section 3), posts, comments and likes in the feed, random chat messages, blocks and reports.',
+          'Activity in the app: likes and passes, matches, chat messages (text, photos, voice messages and video messages), audio and video calls (recorded, see section 3), posts, comments and likes in the feed, blind date messages and decisions (Connect or Pass), blocks and reports.',
           'Technical data: cookies that keep you signed in and remember your language. We do not use advertising trackers.',
         ],
       },
@@ -32,7 +32,7 @@ export const en: LegalContent = {
       {
         heading: '3. Safety recording and selfie verification',
         paragraphs: [
-          'To keep people safe, everything that happens in Vibely is recorded and stored: chat messages, photos, voice and video messages, random chats, feed content and all audio and video calls (calls are recorded on our servers, and you always see a "This call is recorded" notice during a call). We never record anything without telling you.',
+          'To keep people safe, everything that happens in Vibely is recorded and stored: chat messages, photos, voice and video messages, blind dates, feed content and all audio and video calls (calls are recorded on our servers, and you always see a "This call is recorded" notice during a call). We never record anything without telling you.',
           'These recordings are kept for up to 90 days and then deleted automatically. Material connected to an open report or moderation case is kept until that case is resolved. Recordings are stored privately and are never shown to other users. Only our moderators can open them, only while handling a report, and every access is logged.',
           'Every profile must pass a selfie check. Your selfie is reviewed by a human moderator only and is never published or shown to other users. The selfie file is kept for up to 90 days (so moderators can check it if the account is reported) and then deleted automatically; we keep the result (approved or rejected, and the reason for a rejection).',
           'Your verification selfie, together with up to 3 of your profile photos, may be reviewed by our moderators through a private moderation channel in Telegram, and these photos are removed from that channel after the review or within 2 days at the latest.',
@@ -46,9 +46,10 @@ export const en: LegalContent = {
         ],
       },
       {
-        heading: '5. Random chat',
+        heading: '5. Blind dating',
         paragraphs: [
-          'Random chats are anonymous until both people agree to reveal their profiles. Random chat messages are kept for 90 days and then deleted automatically. If a chat is reported, it is kept until the report is resolved.',
+          'In a blind date you chat with another verified person without seeing each other: each of you is shown only as an alias (for example "Partner #402") with an abstract picture. Your photos, name, age and profile are not sent to the other person unless you both press Connect. Shared interests may be shown as a hint. If either of you presses Pass, the chat ends for both; the other person only sees that it ended.',
+          'Blind date messages are kept for 90 days and then deleted automatically. If a blind date is reported, it is kept until the report is resolved. When you both press Connect, you become a match, your profiles are shown to each other and the blind date messages are copied into your regular chat with that person, where they are kept like other chat messages.',
         ],
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
@@ -59,7 +60,7 @@ export const en: LegalContent = {
         paragraphs: [
           'When you report someone, our moderators see the reported content and its context (for example, the chat in question). The person you report is not told who reported them. Moderators may hide content or block accounts, and every decision is recorded.',
           'When you block someone, you stop seeing each other and any match between you is removed.',
-          'Our systems automatically check chat and random chat messages for signs of scams or unsafe contact (for example phone numbers, links to other messengers or requests for money). This never blocks or changes your messages. It only flags them so that a moderator can take a look, and flags are deleted after 90 days.',
+          'Our systems automatically check chat and blind date messages for signs of scams or unsafe contact (for example phone numbers, links to other messengers or requests for money). This never blocks or changes your messages. It only flags them so that a moderator can take a look, and flags are deleted after 90 days.',
           'If you break our rules, we may give you a warning, temporarily stop you from sending messages and posts, limit who can see your content, or suspend or ban your account. We keep a record of these decisions and the reason for them. If your account is suspended or banned, you can appeal from the app and a moderator will review your appeal.',
           'Every time a moderator opens a selfie, a phone number, a conversation, media or a call recording, this is logged. If you unmatch or block someone while a report between you is open, the conversation is kept for the moderators until the report is resolved.',
         ],
@@ -86,7 +87,7 @@ export const en: LegalContent = {
       {
         heading: '9. How long we keep data',
         paragraphs: [
-          'We keep your data while your account exists, except for safety recordings: photos, voice and video messages sent in chats, call recordings, verification selfies and random chat messages are deleted automatically after 90 days, unless they are part of an open report. A chat photo, voice or video message that has expired is shown as "expired".',
+          'We keep your data while your account exists, except for safety recordings: photos, voice and video messages sent in chats, call recordings, verification selfies and blind date messages are deleted automatically after 90 days, unless they are part of an open report. A chat photo, voice or video message that has expired is shown as "expired".',
           'When you delete your account, we immediately delete your profile, photos, selfies, matches, messages, posts, comments, likes, blocks and the reports you made. Reports other people made about you and moderation records may be kept to prevent abuse, for example to stop a banned person from returning. Backups are overwritten within a limited period.',
           'We may keep specific data longer than 90 days when it is needed to deal with a serious safety issue, a legal claim or a request from Malaysian authorities. In that case it is kept only as long as necessary and access to it is logged.',
         ],

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 
-// Full-screen screens (chat room, thread, random chat, match, like sheet) hide the tab bar and
+// Full-screen screens (chat room, thread, blind date, match, like sheet) hide the tab bar and
 // the install banner while they are on screen. This lives in an effect, not in a CSS :has()
 // on the DOM: with cacheComponents, Next keeps the previous route mounted inside a hidden
 // <Activity>, so its markup stays in the document after you navigate away. Effects are cleaned
