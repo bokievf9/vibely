@@ -35,6 +35,7 @@ export const en: LegalContent = {
           'To keep people safe, everything that happens in Vibely is recorded and stored: chat messages, photos, voice and video messages, random chats, feed content and all audio and video calls (calls are recorded on our servers, and you always see a "This call is recorded" notice during a call). We never record anything without telling you.',
           'These recordings are kept for up to 90 days and then deleted automatically. Material connected to an open report or moderation case is kept until that case is resolved. Recordings are stored privately and are never shown to other users. Only our moderators can open them, only while handling a report, and every access is logged.',
           'Every profile must pass a selfie check. Your selfie is reviewed by a human moderator only and is never published or shown to other users. The selfie file is kept for up to 90 days (so moderators can check it if the account is reported) and then deleted automatically; we keep the result (approved or rejected, and the reason for a rejection).',
+          'Your verification selfie, together with up to 3 of your profile photos, may be reviewed by our moderators through a private moderation channel in Telegram, and these photos are removed from that channel after the review or within 2 days at the latest.',
         ],
       },
       {

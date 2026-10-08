@@ -49,6 +49,6 @@ export async function submitVerification(input: { path: string }): Promise<UserR
   if (error) return fail(error.code === '23505' ? 'verificationPending' : 'selfieFailed')
 
   cookieStore.delete(CHALLENGE_COOKIE)
-  notifySelfieSubmitted()
+  notifySelfieSubmitted(viewer.id)
   return ok(undefined)
 }

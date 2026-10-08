@@ -5,7 +5,7 @@ import type { LegalContent } from './types'
 // NOTE: These texts are a plain-language draft that reflects how the app actually works.
 // They MUST be reviewed by a Malaysian lawyer (PDPA 2010) before launch. When the wording
 // changes, update LEGAL_UPDATED_AT and all three locales together.
-export const LEGAL_UPDATED_AT = '2026-10-08'
+export const LEGAL_UPDATED_AT = '2026-10-09'
 export const PRIVACY_EMAIL = 'privacy@vibelydate.com'
 
 const contents: Record<Locale, () => Promise<LegalContent>> = {

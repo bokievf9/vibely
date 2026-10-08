@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
+import {
+  notifyBanChanged,
+  notifyReportsResolved,
+  notifyVerificationDecided,
+} from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
 import { readableBan } from './labels'
@@ -50,6 +55,16 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
   ])
   // `moderate` has validated the input and authorized the admin.
   const parsed = reviewVerificationSchema.safeParse(input)
+  if (result.ok && parsed.success) {
+    // The Telegram copy shows the decision and the selfie photos leave the chat.
+    const d = parsed.data
+    notifyVerificationDecided(
+      d.requestId,
+      await requireAdmin(),
+      d.approve,
+      d.approve ? undefined : d.reason,
+    )
+  }
   if (result.ok && parsed.success && parsed.data.approve) {
     // A newly verified person: alert opted-in users nearby (fire-and-forget, after the response).
     const userId = await reviewedUserId(parsed.data.requestId)
@@ -68,7 +83,7 @@ async function reviewedUserId(requestId: string): Promise<string | null> {
 }
 
 export async function setBan(input: z.input<typeof banSchema>) {
-  return moderate(banSchema, input, (d, admin) => [
+  const result = await moderate(banSchema, input, (d, admin) => [
     createAdminClient().rpc('admin_set_ban', {
       p_admin: admin,
       p_user: d.userId,
@@ -76,6 +91,12 @@ export async function setBan(input: z.input<typeof banSchema>) {
       p_reason: d.banned ? d.reason : undefined,
     }),
   ])
+  const parsed = banSchema.safeParse(input)
+  if (result.ok && parsed.success) {
+    const d = parsed.data
+    notifyBanChanged(await requireAdmin(), d.userId, d.banned, d.banned ? d.reason : undefined)
+  }
+  return result
 }
 
 export async function revokeVerification(input: z.input<typeof revokeSchema>) {
@@ -101,7 +122,7 @@ export async function setContentHidden(input: z.input<typeof contentSchema>) {
 }
 
 export async function resolveReports(input: z.input<typeof resolveSchema>) {
-  return moderate(resolveSchema, input, (d, admin) => {
+  const result = await moderate(resolveSchema, input, (d, admin) => {
     const db = createAdminClient()
     const resolve = (resolution: string) =>
       db.rpc('admin_resolve_reports', {
@@ -136,4 +157,18 @@ export async function resolveReports(input: z.input<typeof resolveSchema>) {
         ]
     }
   })
+  const parsed = resolveSchema.safeParse(input)
+  if (result.ok && parsed.success) {
+    const d = parsed.data
+    const adminId = await requireAdmin()
+    notifyReportsResolved(d.targetType, d.targetId, adminId, RESOLVED_LABELS[d.decision])
+    if (d.decision === 'ban') notifyBanChanged(adminId, d.offenderId, true, d.reason)
+  }
+  return result
 }
+
+const RESOLVED_LABELS = {
+  dismiss: 'Отклонено: нарушения нет',
+  hide: '🙈 Скрыто',
+  ban: '🔨 Пользователь заблокирован',
+} as const

@@ -38,6 +38,7 @@ export const ms: LegalContent = {
           'Untuk memastikan semua orang selamat, semua yang berlaku dalam Vibely dirakam dan disimpan: mesej sembang, foto, mesej suara dan video, sembang rawak, kandungan suapan dan semua panggilan audio dan video (panggilan dirakam di pelayan kami, dan anda sentiasa melihat notis "Panggilan ini dirakam" semasa panggilan). Kami tidak pernah merakam apa-apa tanpa memberitahu anda.',
           'Rakaman ini disimpan sehingga 90 hari dan kemudian dipadam secara automatik. Bahan yang berkaitan dengan laporan atau kes moderasi yang masih terbuka disimpan sehingga kes itu selesai. Rakaman disimpan secara peribadi dan tidak pernah ditunjukkan kepada pengguna lain. Hanya moderator kami boleh membukanya, hanya semasa mengendalikan laporan, dan setiap akses direkodkan.',
           'Setiap profil mesti lulus semakan swafoto. Swafoto anda hanya disemak oleh moderator manusia dan tidak pernah diterbitkan atau ditunjukkan kepada pengguna lain. Fail swafoto disimpan sehingga 90 hari (supaya moderator boleh menyemaknya jika akaun dilaporkan) dan kemudian dipadam secara automatik; kami menyimpan keputusan (diluluskan atau ditolak, serta sebab penolakan).',
+          'Swafoto pengesahan anda, bersama sehingga 3 foto profil anda, mungkin disemak oleh moderator kami melalui saluran moderasi peribadi di Telegram, dan foto ini dipadam daripada saluran tersebut selepas semakan atau selewat-lewatnya dalam masa 2 hari.',
         ],
       },
       {

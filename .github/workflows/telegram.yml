@@ -1,0 +1,45 @@
+name: Telegram bot jobs
+
+# Telegram moderation bot (src/features/telegram), same pattern as retention.yml: the work happens
+# in the app, authorized with the CRON_SECRET repo secret (= CRON_SECRET in shared/.env.production).
+# - hourly: POST /api/cron/telegram-sweep removes selfie photos from the moderators chat once
+#   decided or 46 h old (Telegram lets bots delete only messages younger than 48 h)
+# - daily 09:00 Malaysia time (01:00 UTC): POST /api/cron/telegram-digest posts the digest
+# Both are no-ops (HTTP 200) while the bot is not configured on the server.
+on:
+  schedule:
+    - cron: '23 * * * *'
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'sweep or digest'
+        required: true
+        default: sweep
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-${{ github.event.schedule || inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      JOB: ${{ github.event.schedule == '0 1 * * *' && 'digest' || inputs.job || 'sweep' }}
+    steps:
+      - name: POST /api/cron/telegram-${{ env.JOB }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Repository secret CRON_SECRET is not set"
+            exit 1
+          fi
+          case "$JOB" in sweep|digest) ;; *) echo "::error::unknown job"; exit 1 ;; esac
+          status=$(curl -sS -o body.txt -w '%{http_code}' --max-time 120 -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" "https://vibelydate.com/api/cron/telegram-${JOB}") || status=000
+          echo "HTTP $status $(head -c 300 body.txt 2>/dev/null)"
+          [ "$status" = "200" ]
