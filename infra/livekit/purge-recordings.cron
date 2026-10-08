@@ -1,4 +1,4 @@
-# /etc/cron.d/vibely-calls-purge on the media droplet (docs/calls.md, "Retention").
+# /etc/cron.d/vibely-calls-purge on the droplet (docs/calls.md, "Retention").
 # Daily at 04:10 Malaysia time = 20:10 UTC (droplet clock in UTC): deletes recordings older than
 # 90 days that are not evidence in an open report, then their call rows.
 # Reads CALLS_PURGE_SECRET from /opt/vibely-media/.env (the same value is in the app's env).

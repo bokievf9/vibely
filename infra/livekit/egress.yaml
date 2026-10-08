@@ -31,6 +31,8 @@ storage:
 #     force_path_style: true
 
 # Refuse new recordings instead of overloading the box (a call that can't be recorded is not
-# connected, see src/features/calls/actions.ts). Defaults assume a dedicated 4 vCPU machine.
+# connected, see src/features/calls/actions.ts). The droplet (4 vCPU) also serves the web app, so
+# egress reserves CPU per recording: video composites cost 2 cores, audio-only far less.
 cpu_cost:
   room_composite_cpu_cost: 2.0
+  audio_room_composite_cpu_cost: 0.5
