@@ -1037,6 +1037,272 @@ export async function run(db) {
   void ko
 
   // ===== batch-4: admin sanctions (only that branch edits between these markers) =====
+  // roles, warnings, mutes, shadow-bans, bans, appeals, notes, phone blocklist, access log,
+  // evidence hold, legal export, stats (20261009000150-154). Own scope, fresh users.
+  await (async () => {
+    const S = ['5a000000-0000-4000-8000-000000000001', '5a000000-0000-4000-8000-000000000002',
+               '5a000000-0000-4000-8000-000000000003', '5a000000-0000-4000-8000-000000000004',
+               '5a000000-0000-4000-8000-000000000005', '5a000000-0000-4000-8000-000000000006',
+               '5a000000-0000-4000-8000-000000000007', '5a000000-0000-4000-8000-000000000008']
+    const [OWNER, MOD, VIEW, ADM, A, B, C, D] = S
+    const phone = (i) => '6013888000' + i
+    for (const [i, u] of S.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, phone(i)])
+    // A, C female; B, D male; all verified, same city
+    for (const [u, name, g, w] of [[A, 'Aisyah', 'female', '{male}'], [B, 'Badrul', 'male', '{female}'], [C, 'Chen', 'female', '{male}'], [D, 'Dev', 'male', '{female}']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1996-03-03',$2,$3,'Ipoh','SRID=4326;POINT(101.08 4.6)')`, [name, g, w])
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [[A, B, C, D]])
+    const rpc = (fn, args) => su(`select ${fn}(${args.map((_, i) => '$' + (i + 1)).join(',')}) r`, args).then((r) => r.rows[0]?.r)
+    const err = (fn, args) => fails(() => rpc(fn, args))
+    const logged = async (action, target) => (await su(`select count(*)::int c from moderation_actions where action=$1 and target_id=$2`, [action, target])).rows[0].c
+    const prof = async (u) => (await su(`select * from profiles where id=$1`, [u])).rows[0]
+
+    // --- roles & team
+    await su(`insert into admins (user_id) values ($1)`, [ADM])
+    ok('roles: insert without a role defaults to admin', (await su(`select role from admins where user_id=$1`, [ADM])).rows[0].role === 'admin')
+    await su(`update admins set role='owner' where user_id=$1`, [ADM])
+    await rpc('admin_set_member_role', [ADM, OWNER, 'owner'])
+    await su(`update admins set role='admin' where user_id=$1`, [ADM])
+    await rpc('admin_set_member_role', [OWNER, MOD, 'moderator'])
+    await rpc('admin_set_member_role', [OWNER, VIEW, 'viewer'])
+    ok('team: owner adds members, logged', (await logged('admin.add', MOD)) === 1 && (await logged('admin.add', VIEW)) === 1)
+    ok('team: role order', (await su(`select 'viewer'::admin_role < 'moderator' and 'admin'::admin_role < 'owner' v`)).rows[0].v === true)
+    ok('team: admin cannot manage the team', (await err('admin_set_member_role', [ADM, VIEW, 'moderator']))?.includes('owner'))
+    ok('team: moderator cannot list the team', !!(await err('admin_list_team', [MOD])))
+    ok('team: owner lists the team', (await su(`select * from admin_list_team($1)`, [OWNER])).rows.length >= 4)
+    ok('team: last owner cannot be demoted', (await err('admin_set_member_role', [OWNER, OWNER, 'admin']))?.includes('last owner'))
+    ok('team: last owner cannot be removed', (await err('admin_remove_member', [OWNER, OWNER, null]))?.includes('last owner'))
+    await rpc('admin_set_member_role', [OWNER, VIEW, 'moderator'])
+    ok('team: role change logged', (await logged('admin.role', VIEW)) === 1)
+    await rpc('admin_remove_member', [OWNER, VIEW, 'test'])
+    ok('team: removal logged', (await logged('admin.remove', VIEW)) === 1 && (await su(`select count(*)::int c from admins where user_id=$1`, [VIEW])).rows[0].c === 0)
+    await rpc('admin_set_member_role', [OWNER, VIEW, 'viewer'])
+    ok('team: resolve user by phone, @username and id', (await rpc('admin_resolve_user', [OWNER, '+60 13888 0004'])) === A &&
+       (await rpc('admin_resolve_user', [OWNER, '@' + (await prof(B)).username])) === B && (await rpc('admin_resolve_user', [OWNER, C])) === C)
+    ok('team: RPCs not callable by users', !!(await fails(() => as(OWNER, `select admin_set_member_role($1,$2,'owner')`, [OWNER, A]))))
+    // viewer is read only
+    ok('roles: viewer can search users', (await su(`select * from admin_find_users($1, 'Aisyah', 5)`, [VIEW])).rows.some((r) => r.id === A))
+    ok('roles: viewer cannot use moderator RPCs', (await err('admin_warn_user', [VIEW, A, 'spam', null, 30]))?.includes('moderator') &&
+       !!(await err('admin_resolve_reports', [VIEW, 'user', A, 'x'])))
+    ok('roles: non-member refused', (await err('admin_find_users', [A, '', 5]))?.includes('Not a moderator'))
+    ok('roles: revoke verification needs admin', !!(await err('admin_revoke_verification', [MOD, A, 'x'])))
+
+    // --- warnings
+    const w1 = await rpc('admin_warn_user', [MOD, A, 'spam: links', 'first strike', 30])
+    ok('warn: logged', (await logged('user.warn', A)) === 1)
+    const mine = async (u) => (await as(u, `select my_sanctions() s`)).rows[0].s
+    ok('warn: user sees active warning', (await mine(A)).warnings.length === 1 && (await mine(A)).warnings[0].reason === 'spam: links')
+    ok('warn: note never shown to the user', !JSON.stringify(await mine(A)).includes('first strike'))
+    ok('warn: table closed to users', !!(await fails(() => as(A, `select * from user_warnings`))))
+    await as(B, `select acknowledge_warning($1)`, [w1])
+    ok('warn: others cannot acknowledge', (await mine(A)).warnings.length === 1)
+    await as(A, `select acknowledge_warning($1)`, [w1])
+    ok('warn: shown once (acknowledged)', (await mine(A)).warnings.length === 0)
+    const w2 = await rpc('admin_warn_user', [MOD, A, 'harassment', null, 7])
+    await rpc('admin_revoke_warning', [MOD, w2, 'mistake'])
+    ok('warn: revoked warning not shown', (await mine(A)).warnings.length === 0 && (await logged('warning.revoke', A)) === 1)
+    await su(`insert into user_warnings (user_id, reason, created_at, expires_at) values ($1, 'spam', now() - interval '10 days', now() - interval '1 day')`, [A])
+    ok('warn: expired warning not shown', (await mine(A)).warnings.length === 0)
+
+    // --- mutes
+    const mAB = (await su(`select ensure_match($1,$2,'swipe') id`, [A, B])).rows[0].id
+    const rs = (await su(`insert into random_chat_sessions (user_a, user_b) values ($1,$2) returning id`, [A, B])).rows[0].id
+    const postB = (await as(B, `select create_post('post by B') id`)).rows[0].id
+    await rpc('admin_set_mute', [MOD, A, 2, 'spam'])
+    ok('mute: logged', (await logged('user.mute', A)) === 1)
+    ok('mute: message blocked', (await fails(() => as(A, `insert into messages (match_id, body) values ($1,'hi')`, [mAB])))?.includes('muted'))
+    ok('mute: random message blocked', (await fails(() => as(A, `select randomizer_send($1,'hi')`, [rs])))?.includes('muted'))
+    ok('mute: post blocked', (await fails(() => as(A, `select create_post('x')`)))?.includes('muted'))
+    ok('mute: comment blocked', (await fails(() => as(A, `select create_comment($1,'x')`, [postB])))?.includes('muted'))
+    ok('mute: SQLSTATE VS001', (await su(`select count(*)::int c from pg_proc where proname='enforce_not_muted' and prosrc like '%VS001%'`)).rows[0].c === 1)
+    ok('mute: partner unaffected', !(await fails(() => as(B, `insert into messages (match_id, body) values ($1,'hey')`, [mAB]))))
+    ok('mute: user is told', (await mine(A)).muted_until !== null && (await mine(A)).mute_reason === 'spam')
+    ok('mute: column hidden from clients', !!(await fails(() => as(B, `select muted_until from profiles where id=$1`, [A]))))
+    ok('mute: hours bounded', !!(await err('admin_set_mute', [MOD, A, 1000, 'spam'])))
+    ok('mute: viewer cannot mute', !!(await err('admin_set_mute', [VIEW, A, 1, 'spam'])))
+    await su(`update profiles set muted_until = now() - interval '1 second' where id=$1`, [A])
+    ok('mute: expired mute cleared', (await prof(A)).muted_until === null && !(await fails(() => as(A, `insert into messages (match_id, body) values ($1,'back')`, [mAB]))))
+    await rpc('admin_set_mute', [MOD, A, 1, 'spam'])
+    await rpc('admin_set_mute', [MOD, A, 0, null])
+    ok('mute: unmute', (await prof(A)).muted_until === null && (await logged('user.unmute', A)) === 1)
+    await su(`update random_chat_sessions set status='ended' where id=$1`, [rs])
+
+    // --- shadow-ban
+    const postA = (await as(A, `select create_post('post by A', true) id`)).rows[0].id
+    await as(A, `select create_comment($1,'comment by A')`, [postB])
+    const feedHas = async (u, id) => (await as(u, `select count(*)::int c from feed_posts where id=$1`, [id])).rows[0].c === 1
+    const commentsSeen = async (u) => (await as(u, `select count(*)::int c from post_comments where post_id=$1`, [postB])).rows[0].c
+    const deck = async (u) => (await as(u, `select id from get_swipe_candidates('{female}', 18, 60, 100)`)).rows.map((r) => r.id)
+    ok('shadow: visible before', (await feedHas(B, postA)) && (await commentsSeen(B)) === 1 && (await deck(D)).includes(A))
+    ok('shadow: moderator cannot shadow-ban', !!(await err('admin_set_shadow_ban', [MOD, A, true, 'spam'])))
+    await rpc('admin_set_shadow_ban', [ADM, A, true, 'spam'])
+    ok('shadow: logged', (await logged('user.shadow_ban', A)) === 1)
+    ok('shadow: posts hidden from others', !(await feedHas(B, postA)) && !(await feedHas(C, postA)))
+    ok('shadow: own posts still visible', await feedHas(A, postA))
+    ok('shadow: comments hidden from others, visible to self', (await commentsSeen(B)) === 0 && (await commentsSeen(A)) === 1)
+    ok('shadow: out of the swipe deck', !(await deck(D)).includes(A) && (await deck(D)).includes(C))
+    await as(A, `insert into swipes (swiped_id, direction) values ($1,'like')`, [D])
+    ok('shadow: likes not shown to the liked person', (await as(D, `select count_incoming_likes() n`)).rows[0].n === 0)
+    ok('shadow: flag not readable by clients', !!(await fails(() => as(A, `select shadow_banned from profiles where id=$1`, [A]))))
+    await rpc('admin_set_shadow_ban', [ADM, A, false, null])
+    ok('shadow: lifted', (await feedHas(B, postA)) && (await deck(B)).includes(C) && (await as(D, `select count_incoming_likes() n`)).rows[0].n === 1)
+
+    // --- bans: roles, temporary bans, expiry, side effects
+    ok('ban: moderator cannot ban permanently', (await err('admin_ban_user', [MOD, C, 'spam', null]))?.includes('admin'))
+    ok('ban: moderator cannot ban for 8 days', !!(await err('admin_ban_user', [MOD, C, 'spam', 8])))
+    ok('ban: moderator cannot use admin_set_ban', !!(await err('admin_set_ban', [MOD, C, true, 'spam'])))
+    await rpc('admin_ban_user', [MOD, C, 'spam', 3])
+    let pc = await prof(C)
+    ok('temp_ban: moderator bans for 3 days', pc.banned_at !== null && pc.banned_until !== null && pc.is_active === false && (await logged('user.temp_ban', C)) === 1)
+    await fails(() => as(C, `update profiles set is_active=true where id=$1`, [C]))
+    ok('temp_ban: user cannot reactivate', (await prof(C)).is_active === false)
+    ok('temp_ban: banned_until readable by the owner', (await as(C, `select banned_until from profiles where id=$1`, [C])).rows[0]?.banned_until !== null)
+    ok('temp_ban: moderator cannot unban', !!(await err('admin_unban_user', [MOD, C, null])))
+    // expiry: on any write of the row (trigger) ...
+    await su(`update profiles set banned_until = now() - interval '1 minute' where id=$1`, [C])
+    pc = await prof(C)
+    ok('temp_ban: expired ban lifted on write', pc.banned_at === null && pc.banned_until === null && pc.ban_reason === null && pc.is_active === true)
+    ok('temp_ban: auto.unban logged', (await logged('auto.unban', C)) === 1)
+    // ... by the scheduled job ...
+    const expireNow = async (u) => {
+      await su(`alter table profiles disable trigger profiles_enforce_ban`)
+      await su(`update profiles set banned_at = now() - interval '2 days', ban_reason='spam', banned_until = now() - interval '1 minute', is_active=false where id=$1`, [u])
+      await su(`alter table profiles enable trigger profiles_enforce_ban`)
+    }
+    await expireNow(C)
+    ok('temp_ban: lift_expired_sanctions', (await su(`select lift_expired_sanctions() n`)).rows[0].n >= 1 && (await prof(C)).is_active === true && (await logged('auto.unban', C)) === 2)
+    ok('temp_ban: job not callable by users', !!(await fails(() => as(C, `select lift_expired_sanctions()`))))
+    // ... and on read by the user
+    await expireNow(C)
+    const st = (await as(C, `select * from my_ban_status()`)).rows[0]
+    ok('temp_ban: my_ban_status lifts an expired ban', st.banned_at === null && (await prof(C)).is_active === true)
+    await rpc('admin_ban_user', [ADM, C, 'scam', null])
+    ok('ban: admin bans permanently', (await prof(C)).banned_until === null && (await logged('user.ban', C)) === 1)
+    ok('ban: moderator cannot shorten a permanent ban', (await err('admin_ban_user', [MOD, C, 'spam', 1]))?.includes('shorten'))
+    ok('ban: still banned after the refused shortening', (await as(C, `select * from my_ban_status()`)).rows[0].banned_at !== null)
+    // side effects: random chats, calls and sessions of D end
+    await su(`create table if not exists auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid)`)
+    await su(`insert into auth.sessions (user_id) values ($1), ($1), ($2)`, [D, A])
+    const mAD = (await su(`select ensure_match($1,$2,'swipe') id`, [A, D])).rows[0].id
+    for (const u of [A, D]) { await as(u, `select accept_calls_notice()`); await as(u, `select set_call_permission($1, true)`, [mAD]) }
+    const call = (await as(A, `select start_call($1,'audio') id`, [mAD])).rows[0].id
+    const rsD = (await su(`insert into random_chat_sessions (user_a, user_b) values ($1,$2) returning id`, [B, D])).rows[0].id
+    const ended = (await su(`select admin_ban_user($1,$2,'harassment',null) r`, [ADM, D])).rows[0].r
+    ok('ban: ends live calls and returns their ids', JSON.stringify(ended) === JSON.stringify([call]) && (await su(`select status from calls where id=$1`, [call])).rows[0].status === 'missed')
+    ok('ban: ends random chats', (await su(`select status from random_chat_sessions where id=$1`, [rsD])).rows[0].status === 'ended')
+    ok('ban: signs the user out everywhere (auth.sessions)', (await su(`select count(*)::int c from auth.sessions where user_id=$1`, [D])).rows[0].c === 0 &&
+       (await su(`select count(*)::int c from auth.sessions where user_id=$1`, [A])).rows[0].c === 1)
+    await su(`drop table auth.sessions`)
+    ok('ban: unban needs admin, logged', !!(await err('admin_set_ban', [MOD, D, false, null])) && !(await err('admin_set_ban', [ADM, D, false, null])) &&
+       (await prof(D)).is_active === true && (await logged('user.unban', D)) === 1)
+
+    // --- appeals (C is banned permanently)
+    const appeal = (u, text) => as(u, `select submit_appeal($1) id`, [text]).then((r) => r.rows[0].id)
+    ok('appeal: not banned cannot appeal', !!(await fails(() => appeal(A, 'Please review my account'))))
+    ok('appeal: text length checked', !!(await fails(() => appeal(C, 'short'))) && !!(await fails(() => appeal(C, 'x'.repeat(1001)))))
+    const ap1 = await appeal(C, 'I did not scam anyone, please check again.')
+    ok('appeal: one open at a time', !!(await fails(() => appeal(C, 'Second appeal while the first is open'))))
+    ok('appeal: my_appeal shows status', (await as(C, `select * from my_appeal()`)).rows[0]?.status === 'open')
+    ok('appeal: table closed to users', !!(await fails(() => as(C, `select * from appeals`))))
+    ok('appeal: rejection needs a note', !!(await err('admin_decide_appeal', [MOD, ap1, false, null])))
+    ok('appeal: moderator cannot accept', !!(await err('admin_decide_appeal', [MOD, ap1, true, null])))
+    await rpc('admin_decide_appeal', [MOD, ap1, false, 'Evidence confirmed'])
+    ok('appeal: rejected, logged, still banned', (await as(C, `select * from my_appeal()`)).rows[0].status === 'rejected' &&
+       (await logged('appeal.reject', C)) === 1 && (await prof(C)).banned_at !== null)
+    ok('appeal: decided appeal cannot be decided again', !!(await err('admin_decide_appeal', [ADM, ap1, true, null])))
+    const ap2 = await appeal(C, 'Second try with more details, please.')
+    await rpc('admin_decide_appeal', [ADM, ap2, true, 'Mistake'])
+    pc = await prof(C)
+    ok('appeal: accepted lifts the ban', pc.banned_at === null && pc.is_active === true && (await logged('appeal.accept', C)) === 1)
+    await rpc('admin_ban_user', [ADM, C, 'scam', null])
+    await appeal(C, 'Third appeal in thirty days, ok.')
+    await su(`update appeals set status='rejected', decided_at=now() where user_id=$1 and status='open'`, [C])
+    ok('appeal: rate limit 3 per 30 days', (await fails(() => appeal(C, 'Fourth appeal is too many.')))?.includes('Rate limit'))
+
+    // --- notes
+    const n1 = await rpc('admin_add_note', [MOD, A, 'Talked to reporter'])
+    const n2 = await rpc('admin_add_note', [ADM, A, 'Admin note'])
+    ok('notes: viewer cannot add', !!(await err('admin_add_note', [VIEW, A, 'x'])))
+    ok('notes: moderator cannot delete others\' notes', !!(await err('admin_delete_note', [MOD, n2])))
+    await rpc('admin_delete_note', [MOD, n1])
+    ok('notes: author deletes own', (await su(`select count(*)::int c from user_notes where id=$1`, [n1])).rows[0].c === 0)
+    const n3 = await rpc('admin_add_note', [MOD, A, 'Another'])
+    await rpc('admin_delete_note', [ADM, n3])
+    ok('notes: admin deletes any, logged', (await su(`select count(*)::int c from user_notes where user_id=$1`, [A])).rows[0].c === 1 && (await logged('note.delete', A)) === 2 && (await logged('note.add', A)) === 3)
+    ok('notes: closed to users', !!(await fails(() => as(A, `select * from user_notes`))))
+
+    // --- phone blocklist & auth hook
+    const hook = async (p) => {
+      await db.exec('reset role; set role supabase_auth_admin')
+      try { return (await db.query(`select public.hook_before_user_created($1) r`, [{ user: { phone: p } }])).rows[0].r } finally { await db.exec('reset role') }
+    }
+    ok('blocklist: Malaysian number passes', JSON.stringify(await hook(phone(6))) === '{}')
+    ok('blocklist: config test numbers pass', JSON.stringify(await hook('60123456781')) === '{}' && JSON.stringify(await hook('60123456782')) === '{}')
+    ok('blocklist: moderator cannot block', !!(await err('admin_block_phone', [MOD, null, C, 'x'])))
+    const bl = (await su(`select admin_block_phone($1, null, $2, 'ban evasion') r`, [ADM, C])).rows[0].r
+    ok('blocklist: stored as E.164', (await su(`select phone from phone_blocklist where id=$1`, [bl])).rows[0].phone === '+' + phone(6))
+    ok('blocklist: hook rejects the number in any format', (await hook(phone(6))).error?.http_code === 403 && (await hook('+60 13-888 0006')).error?.message.includes('cannot be used'))
+    ok('blocklist: other numbers still pass', JSON.stringify(await hook(phone(5))) === '{}')
+    ok('blocklist: Malaysia-only rule unchanged', (await hook('998901234567')).error?.message.includes('Malaysian'))
+    ok('blocklist: closed to users', !!(await fails(() => as(A, `select * from phone_blocklist`))) && !!(await fails(() => as(A, `select is_phone_blocked('x')`))))
+    ok('blocklist: by number', !(await err('admin_block_phone', [ADM, '+60 19-000 1111', null, 'spam'])) && (await hook('60190001111')).error?.http_code === 403)
+    ok('blocklist: invalid number refused', !!(await err('admin_block_phone', [ADM, 'abc', null, 'x'])))
+    await rpc('admin_unblock_phone', [ADM, bl, 'appeal'])
+    ok('blocklist: unblock, logged', JSON.stringify(await hook(phone(6))) === '{}' && (await logged('phone.block', C)) === 1 && (await logged('phone.unblock', C)) === 1)
+
+    // --- read-access logging
+    await rpc('admin_log_access', [VIEW, 'view.selfie', 'verification_request', [A, B, A], null])
+    ok('access: one row per target', (await logged('view.selfie', A)) === 1 && (await logged('view.selfie', B)) === 1)
+    ok('access: unknown action refused', !!(await err('admin_log_access', [MOD, 'user.ban', 'user', [A], null])))
+    ok('access: transcript needs moderator', !!(await err('admin_log_access', [VIEW, 'view.transcript', 'random_session', [rs], null])) &&
+       !(await err('admin_log_access', [MOD, 'view.transcript', 'random_session', [rs], null])))
+    ok('access: audit export needs admin', !!(await err('admin_log_access', [MOD, 'export.audit_log', 'audit_log', [MOD], null])) &&
+       !(await err('admin_log_access', [ADM, 'export.audit_log', 'audit_log', [ADM], 'filters'])))
+    ok('access: phone view returns and logs', (await rpc('admin_get_phone', [MOD, B])) === phone(5) && (await logged('view.phone', B)) === 1)
+    ok('access: viewer cannot see phones', !!(await err('admin_get_phone', [VIEW, B])))
+
+    // --- evidence hold vs the 90-day purge
+    const oldPostA = (await su(`insert into posts (author_id, body, created_at) values ($1,'old A', now() - interval '100 days') returning id`, [A])).rows[0].id
+    const oldPostB = (await su(`insert into posts (author_id, body, created_at) values ($1,'old B', now() - interval '100 days') returning id`, [B])).rows[0].id
+    const rsOld = (await su(`insert into random_chat_sessions (user_a, user_b, status, started_at, ended_at) values ($1,$2,'ended', now() - interval '100 days', now() - interval '100 days') returning id`, [A, B])).rows[0].id
+    await su(`insert into random_chat_messages (session_id, sender_id, body, created_at) values ($1,$2,'old', now() - interval '100 days')`, [rsOld, A])
+    await su(`insert into storage.objects (bucket_id, name, created_at) values ('selfies', $1, now() - interval '100 days')`, [`${A}/old.jpg`])
+    ok('hold: moderator cannot set', !!(await err('admin_set_evidence_hold', [MOD, A, true, 'case 1'])))
+    ok('hold: reason required', !!(await err('admin_set_evidence_hold', [ADM, A, true, ' '])))
+    await rpc('admin_set_evidence_hold', [ADM, A, true, 'PDRM case 12/2026'])
+    ok('hold: logged', (await logged('user.evidence_hold', A)) === 1)
+    await su(`select purge_old_feed_content()`)
+    const postExists = async (id) => (await su(`select count(*)::int c from posts where id=$1`, [id])).rows[0].c === 1
+    ok('hold: held user\'s old post survives the purge', (await postExists(oldPostA)) && !(await postExists(oldPostB)))
+    await su(`select purge_old_random_messages()`)
+    ok('hold: random chat with a held user kept', (await su(`select count(*)::int c from random_chat_messages where session_id=$1`, [rsOld])).rows[0].c === 1 &&
+       (await su(`select count(*)::int c from random_chat_sessions where id=$1`, [rsOld])).rows[0].c === 1)
+    ok('hold: selfie kept', !(await su(`select * from retention_selfies(1000) n`)).rows.some((r) => r.n === `${A}/old.jpg`))
+    ok('hold: chat media / calls of the match kept', (await su(`select match_under_evidence_hold($1) v`, [mAB])).rows[0].v === true)
+    await su(`update calls set recording_path = 'calls/' || match_id || '/' || id || '.ogg', recording_status='ready', started_at = now() - interval '100 days', ended_at = now() - interval '100 days' where id=$1`, [call])
+    ok('hold: call recording not purged', !(await su(`select * from call_recordings_to_purge(1000)`)).rows.some((r) => r.call_id === call))
+    await rpc('admin_set_evidence_hold', [ADM, A, false, 'case closed'])
+    await su(`select purge_old_feed_content()`); await su(`select purge_old_random_messages()`)
+    ok('hold: released content purged', !(await postExists(oldPostA)) && (await su(`select count(*)::int c from random_chat_messages where session_id=$1`, [rsOld])).rows[0].c === 0 &&
+       (await su(`select * from retention_selfies(1000) n`)).rows.some((r) => r.n === `${A}/old.jpg`) &&
+       (await su(`select * from call_recordings_to_purge(1000)`)).rows.some((r) => r.call_id === call))
+    ok('hold: release logged', (await logged('user.evidence_release', A)) === 1)
+
+    // --- legal export
+    ok('export: owner only', !!(await err('admin_export_user', [ADM, A, 'REQ-1'])))
+    ok('export: reference required', !!(await err('admin_export_user', [OWNER, A, ' '])))
+    const ex = await rpc('admin_export_user', [OWNER, A, 'MCMC-2026-001'])
+    ok('export: contents', ex.profile?.id === A && ex.profile.location === undefined && ex.account.phone === phone(4) &&
+       ex.posts.some((p) => p.id === postA) && ex.messages_metadata.length >= 1 && ex.messages_metadata.every((m) => m.body === undefined) &&
+       ex.sanctions.warnings.length === 3 && ex.matches.length === 2 && ex.request_reference === 'MCMC-2026-001', JSON.stringify(Object.keys(ex)))
+    ok('export: logged with the reference', (await su(`select reason from moderation_actions where action='legal.export' and target_id=$1`, [A])).rows[0]?.reason === 'MCMC-2026-001')
+
+    // --- stats
+    const stats = await rpc('admin_stats', [VIEW, 7])
+    ok('stats: 7 daily rows', stats.series.length === 7 && stats.series.at(-1).bans >= 2, JSON.stringify(stats.series.at(-1)))
+    ok('stats: per-moderator throughput', stats.moderators.some((m) => m.admin_id === MOD && m.sanctions >= 3), JSON.stringify(stats.moderators))
+    ok('stats: 30 days', (await rpc('admin_stats', [VIEW, 30])).series.length === 30)
+    ok('stats: members only', !!(await err('admin_stats', [A, 7])))
+  })()
 
   // ===== end admin sanctions =====
 
