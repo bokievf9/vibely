@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Download, Share, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,9 +22,15 @@ type Mode = { kind: 'native'; event: BeforeInstallPromptEvent } | { kind: 'ios' 
 // there needs the installed app), so it shows the Share, Add to Home Screen steps instead.
 // While visible it publishes its height as --install-prompt-h; globals.css adds that to the page's
 // bottom padding so the card never covers the last row. Immersive screens hide it (globals.css).
+// Only on scrolling list screens, where the page gets extra bottom padding for it. On Discover,
+// profiles and editors it would sit on top of the main actions.
+const LIST_SCREENS = /^\/[a-z]{2}\/(feed|chats)\/?$/
+
 export function InstallPrompt() {
   const { dict } = useI18n()
-  const [mode, setMode] = useState<Mode>(null)
+  const [found, setMode] = useState<Mode>(null)
+  const pathname = usePathname()
+  const mode = pathname && LIST_SCREENS.test(pathname) ? found : null
 
   useEffect(() => {
     if (isStandalone() || readFlag(DISMISSED_KEY)) return

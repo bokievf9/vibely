@@ -65,8 +65,12 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
       >
         <motion.div layout="position" className="flex items-start justify-between gap-2">
           <h2 className="min-w-0 text-3xl leading-tight font-bold [overflow-wrap:anywhere]">
-            {candidate.name}, <span className="font-normal">{candidate.age}</span>
-            <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
+            {candidate.name},{' '}
+            {/* Age and badge stay together, so the badge never wraps onto a line of its own. */}
+            <span className="whitespace-nowrap">
+              <span className="font-normal">{candidate.age}</span>
+              <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
+            </span>
           </h2>
           {hasMore && (
             <button

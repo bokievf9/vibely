@@ -16,7 +16,9 @@ export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
           <VerifiedGate>{children}</VerifiedGate>
         </Suspense>
       </main>
-      <InstallPrompt />
+      <Suspense fallback={null}>
+        <InstallPrompt />
+      </Suspense>
       <BottomNav />
       <Suspense fallback={null}>
         <CallLayerGate />

@@ -12,6 +12,7 @@ import { PushSoftPrompt } from '@/features/push/components/push-soft-prompt'
 import { IcebreakerList } from '@/features/icebreakers/components/icebreaker-list'
 import { stashIcebreaker } from '@/features/icebreakers/stash'
 import { useOwnAvatar } from '@/features/profile/own-avatar'
+import { Immersive } from '@/components/layout/immersive'
 
 export type MatchInfo = { id: string; name: string; photo: string | null }
 
@@ -70,6 +71,7 @@ function Celebration({ match, onClose }: { match: MatchInfo; onClose: () => void
       animate={{ opacity: 1, transition: { duration: 0.25, ease: EASE_OUT } }}
       exit={{ opacity: 0, transition: { duration: 0.18, ease: EASE_OUT } }}
     >
+      <Immersive />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-2/3 bg-[radial-gradient(60%_45%_at_50%_30%,rgb(255_77_125/0.18),transparent)]"

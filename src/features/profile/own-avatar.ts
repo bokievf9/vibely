@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getBrowserClient } from '@/lib/supabase/client'
+import { getBrowserClient, getBrowserUserId } from '@/lib/supabase/client'
 
 // The signed URL of the viewer's main photo (position 0), fetched once per browser session and kept
 // in sessionStorage until shortly before it expires. The photo manager calls invalidateOwnAvatar()
@@ -39,8 +39,7 @@ function writeCache(value: Cached) {
 
 async function fetchOwnAvatar(): Promise<string | null> {
   const supabase = getBrowserClient()
-  const { data: auth } = await supabase.auth.getSession()
-  const uid = auth.session?.user.id
+  const uid = await getBrowserUserId()
   if (!uid) return null
   const cached = readCache(uid)
   if (cached) return cached.url

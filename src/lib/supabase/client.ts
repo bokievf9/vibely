@@ -37,6 +37,20 @@ export function getBrowserClient() {
   return browserClient
 }
 
+// The signed-in user's id, read from the borrowed access token (`supabase.auth` is disabled here).
+export async function getBrowserUserId(): Promise<string | null> {
+  const token = await accessToken()
+  if (!token) return null
+  try {
+    const part = token.split('.')[1] ?? ''
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'))
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub
+    return typeof sub === 'string' ? sub : null
+  } catch {
+    return null
+  }
+}
+
 // Call after sign-out so the next user never reuses the previous token.
 export function resetBrowserToken() {
   cached = null

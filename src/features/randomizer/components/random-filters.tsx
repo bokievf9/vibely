@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Shuffle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
+import { RangeSlider } from '@/components/ui/range-slider'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { GenderPicker } from '@/features/profile/components/gender-picker'
@@ -19,9 +20,6 @@ type Props = {
   error?: string
   onStart: (f: JoinFilters) => void
 }
-
-// The native track stays thin; h-11 makes the thumb a 44px-tall touch target.
-const range = 'accent-accent h-11 w-full cursor-pointer'
 
 export function RandomFilters({ tags, initial, pending, error, onStart }: Props) {
   const { dict } = useI18n()
@@ -39,23 +37,13 @@ export function RandomFilters({ tags, initial, pending, error, onStart }: Props)
         <legend className="text-muted mb-2 text-sm font-medium">
           {fmt(dict.random.age, { min: f.minAge, max: f.maxAge })}
         </legend>
-        <input
-          type="range"
-          aria-label={dict.flows.random.minAge}
-          className={range}
+        <RangeSlider
           min={18}
           max={99}
-          value={f.minAge}
-          onChange={(e) => setF({ ...f, minAge: Math.min(Number(e.target.value), f.maxAge) })}
-        />
-        <input
-          type="range"
-          aria-label={dict.flows.random.maxAge}
-          className={range}
-          min={18}
-          max={99}
-          value={f.maxAge}
-          onChange={(e) => setF({ ...f, maxAge: Math.max(Number(e.target.value), f.minAge) })}
+          values={[f.minAge, f.maxAge]}
+          onChange={([minAge = f.minAge, maxAge = f.maxAge]) => setF({ ...f, minAge, maxAge })}
+          labels={[dict.flows.random.minAge, dict.flows.random.maxAge]}
+          valueText={(age) => String(age)}
         />
       </fieldset>
       <fieldset className="flex flex-col gap-2">

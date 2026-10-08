@@ -1,6 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { CHAT_BAR_MATERIAL_CLASS, CHAT_HEADER_CLASS, CHAT_SHELL_CLASS } from './chat-layout'
+import { Immersive } from '@/components/layout/immersive'
 
 // Server-safe placeholders shaped like the final content, so nothing jumps when it streams in.
 
@@ -38,6 +39,7 @@ const BUBBLES: { mine: boolean; w: string; h: string }[] = [
 export function ChatRoomSkeleton() {
   return (
     <div data-immersive aria-busy="true" className={CHAT_SHELL_CLASS}>
+      <Immersive />
       <div className={CHAT_HEADER_CLASS}>
         <div aria-hidden className={`${CHAT_BAR_MATERIAL_CLASS} border-b`} />
         <div className="relative flex h-14 w-full items-center gap-2 px-2">

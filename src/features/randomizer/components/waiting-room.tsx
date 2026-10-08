@@ -11,12 +11,12 @@ import { SearchingNow } from './searching-now'
 
 const PING_MS = 20_000
 const POLL_MS = 8_000
-const TIMEOUT_MS = 120_000
+const TIMEOUT_MS = 30_000
 
 type Props = { userId: string; onPaired: (s: RandomSession) => void; onCancel: () => void }
 
 // Keeps the user "present" in the queue and waits for a partner: a broadcast signal,
-// with polling as a fallback if the socket drops. After 2 minutes it suggests widening filters;
+// with polling as a fallback if the socket drops. After 30 seconds it suggests widening filters;
 // the user stays in the queue until they leave.
 export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
   const { dict } = useI18n()

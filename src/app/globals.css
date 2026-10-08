@@ -91,6 +91,12 @@
   }
 }
 
+/* A <fieldset> defaults to min-inline-size: min-content, so a horizontally scrolling row inside
+   it (interest chips) widens the whole page instead of scrolling. */
+fieldset {
+  min-inline-size: 0;
+}
+
 /* Mobile baseline (.claude/skills/mobile-native). */
 html {
   -webkit-tap-highlight-color: transparent;
@@ -270,10 +276,10 @@ body:has([data-install-prompt]) [data-main] {
 
 /* Immersive screens (chat room, call, full-screen viewers) render an element with [data-immersive]:
    the tab bar, its bottom padding and the install banner go away while it is mounted. */
-body:has([data-immersive]) [data-tabbar],
-body:has([data-immersive]) [data-install-prompt] {
+body[data-immersive] [data-tabbar],
+body[data-immersive] [data-install-prompt] {
   display: none;
 }
-body:has([data-immersive]) [data-main] {
+body[data-immersive] [data-main] {
   padding-bottom: 0;
 }

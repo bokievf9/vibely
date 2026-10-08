@@ -20,6 +20,7 @@ import { RandomFilters } from './random-filters'
 import { SessionBar } from './session-bar'
 import { useRandomChannel } from './use-random-channel'
 import { WaitingRoom } from './waiting-room'
+import { Immersive } from '@/components/layout/immersive'
 
 type Stage = 'filters' | 'waiting' | 'chat' | 'ended'
 type Props = {
@@ -159,6 +160,7 @@ export function RandomChat({ userId, tags, defaults, initialSession, initialMess
             className="flex flex-1 flex-col gap-3"
             data-immersive={stage === 'chat' || undefined}
           >
+            <Immersive active={stage === 'chat'} />
             {session && (
               <SessionBar
                 session={session}

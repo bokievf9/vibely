@@ -157,7 +157,9 @@ export function OtpForm({ phone }: { phone: string }) {
       <div id="token-msg">
         <FormError message={error} />
       </div>
-      {turnstileSiteKey && (
+      {/* The phone step already passed a captcha; this one only guards "Resend", so it mounts
+          when resend becomes available instead of greeting the user with a second check. */}
+      {turnstileSiteKey && cooldown <= 0 && (
         <Turnstile
           ref={captcha}
           siteKey={turnstileSiteKey}

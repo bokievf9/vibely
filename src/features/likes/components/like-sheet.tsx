@@ -16,6 +16,7 @@ import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { SwipeCardInfo } from '@/features/swipe/components/swipe-card-info'
 import { project } from '@/features/swipe/components/swipe-physics'
 import type { Candidate } from '@/features/swipe/schemas'
+import { Immersive } from '@/components/layout/immersive'
 
 type Props = {
   person: Candidate
@@ -71,6 +72,7 @@ export function LikeSheet({ person, busy, onDecide, onClose }: Props) {
       data-immersive
       className="fixed inset-0 z-50 flex justify-center"
     >
+      <Immersive />
       <motion.div
         aria-hidden
         className="absolute inset-0 bg-black/70"

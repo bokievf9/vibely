@@ -7,7 +7,7 @@ import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { GenderPicker } from '@/features/profile/components/gender-picker'
 import { AGE_MAX, AGE_MIN, DISTANCE_MAX_KM, type SwipeFilters } from '../schemas'
-import { RangeSlider } from './range-slider'
+import { RangeSlider } from '@/components/ui/range-slider'
 
 type Props = {
   open: boolean

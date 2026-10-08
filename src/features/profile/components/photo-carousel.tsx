@@ -42,7 +42,7 @@ export function PhotoCarousel({
 
   return (
     <div
-      className="bg-surface relative size-full"
+      className="bg-surface relative isolate size-full"
       role="group"
       aria-roledescription="carousel"
       aria-label={alt}
