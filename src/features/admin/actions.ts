@@ -35,7 +35,7 @@ async function moderate<S extends z.ZodType>(
 }
 
 export async function reviewVerification(input: z.input<typeof reviewVerificationSchema>) {
-  return moderate(reviewVerificationSchema, input, (d, admin) => [
+  const result = await moderate(reviewVerificationSchema, input, (d, admin) => [
     createAdminClient().rpc('admin_review_verification', {
       p_admin: admin,
       p_request: d.requestId,
@@ -43,6 +43,24 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
       p_reason: d.approve ? undefined : d.reason,
     }),
   ])
+  // `moderate` has validated the input and authorized the admin.
+  const parsed = reviewVerificationSchema.safeParse(input)
+  if (result.ok && parsed.success) await deleteReviewedSelfie(parsed.data.requestId)
+  return result
+}
+
+// The selfie is needed only for the review (Privacy Policy): delete the file right after it.
+// The decision is already saved, so a storage error is logged rather than reported as a failure.
+async function deleteReviewedSelfie(requestId: string) {
+  const db = createAdminClient()
+  const { data } = await db
+    .from('verification_requests')
+    .select('selfie_path')
+    .eq('id', requestId)
+    .maybeSingle()
+  if (!data) return
+  const { error } = await db.storage.from('selfies').remove([data.selfie_path])
+  if (error) console.error('Selfie deletion failed', requestId, error.message)
 }
 
 export async function setBan(input: z.input<typeof banSchema>) {

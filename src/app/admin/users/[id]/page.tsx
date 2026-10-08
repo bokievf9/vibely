@@ -68,7 +68,7 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
               key={v.id}
               className="bg-surface flex w-40 flex-col gap-1.5 rounded-2xl p-2 text-xs"
             >
-              {v.selfieUrl && (
+              {v.selfieUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={v.selfieUrl}
@@ -77,6 +77,10 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
                   height={192}
                   className="aspect-[3/4] w-full rounded-xl object-cover"
                 />
+              ) : (
+                <p className="bg-background text-muted flex aspect-[3/4] w-full items-center justify-center rounded-xl p-2 text-center">
+                  {v.status === 'pending' ? 'Селфи не найдено' : 'Удалено после проверки'}
+                </p>
               )}
               <VerificationBadge status={v.status} />
               <span className="text-muted">{formatDate(v.createdAt)}</span>
