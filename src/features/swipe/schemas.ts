@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { genderSchema } from '@/features/profile/schemas'
 import type { AboutInput, ProfilePrompt } from '@/features/profile/about-schemas'
+import type { PlanTag } from '@/features/plans/tags'
 
 export const AGE_MIN = 18
 export const AGE_MAX = 99
@@ -12,6 +13,8 @@ export const filtersSchema = z
     minAge: z.number().int().min(AGE_MIN).max(AGE_MAX),
     maxAge: z.number().int().min(AGE_MIN).max(AGE_MAX),
     maxKm: z.number().int().min(1).max(DISTANCE_MAX_KM),
+    // "Similar plans": people with the viewer's active plan first (optional: older saved filters).
+    similarPlans: z.boolean().optional(),
   })
   .refine((f) => f.minAge <= f.maxAge)
 
@@ -35,4 +38,6 @@ export type Candidate = {
   prompts: ProfilePrompt[]
   // Passed more than 14 days ago and shown again.
   secondChance: boolean
+  // Active 24-hour plan (optional: not every source knows it).
+  plan?: PlanTag | null
 }

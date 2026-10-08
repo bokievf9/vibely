@@ -11,6 +11,7 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
+import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { swipe } from '@/features/swipe/actions'
 import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
@@ -58,6 +59,14 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   className="bg-surface-raised relative block aspect-[3/4] w-full overflow-hidden rounded-[1.375rem] text-left shadow-[0_2px_4px_rgb(0_0_0/0.3),0_18px_36px_-20px_rgb(0_0_0/0.9)] transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   <GridPhoto person={person} eager={i < 4} />
+                  {person.plan && (
+                    <PlanBadge
+                      tag={person.plan}
+                      label={dict.plans.tags[person.plan]}
+                      tone="dark"
+                      className="absolute top-2 left-2 max-w-[calc(100%-1rem)]"
+                    />
+                  )}
                   <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-[linear-gradient(to_top,rgb(10_6_10/0.9),rgb(10_6_10/0.4)_55%,transparent)] px-3.5 pt-12 pb-3 text-[17px] font-bold tracking-[-0.02em] text-white">
                     <span className="truncate">{person.name}</span>
                     <span className="shrink-0 font-light text-white/90">, {person.age}</span>

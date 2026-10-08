@@ -13,6 +13,7 @@ import {
   PromptCards,
 } from '@/features/profile/components/about-details'
 import { cn } from '@/lib/utils'
+import { PlanBadge } from '@/features/plans/components/plan-badge'
 import type { Candidate } from '../schemas'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
@@ -106,6 +107,11 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
                 .join(' · ')}
             </span>
           </motion.p>
+        )}
+        {candidate.plan && (
+          <motion.div layout="position" className="flex min-w-0">
+            <PlanBadge tag={candidate.plan} label={dict.plans.tags[candidate.plan]} tone="dark" />
+          </motion.div>
         )}
         <AnimatePresence initial={false} mode="popLayout">
           {!open && badges.length > 0 && (

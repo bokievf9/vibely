@@ -392,8 +392,8 @@ export async function run(db) {
      c0.education === 'bachelor' && c0.smoking === 'never' && c0.drinking === 'sometimes' && c0.children === 'not_sure', JSON.stringify(c0))
   ok('candidates: return prompts in order', !!c0 && JSON.stringify(c0.prompts.map((p) => p.key)) === '["mamak_order","karaoke_song","green_flags"]', JSON.stringify(c0?.prompts))
   ok('candidates: still never return location', kc.length > 0 && kc.every((c) => !('location' in c)) &&
-     !(await su(`select pg_get_function_result('public.get_swipe_candidates(public.gender[],int,int,int,int)'::regprocedure) r`)).rows[0].r.includes('location'))
-  ok('candidates: no anon access', (await su(`select has_function_privilege('anon', 'public.get_swipe_candidates(public.gender[],int,int,int,int)', 'execute') v`)).rows[0].v === false)
+     !(await su(`select pg_get_function_result('public.get_swipe_candidates(public.gender[],int,int,int,int,boolean)'::regprocedure) r`)).rows[0].r.includes('location'))
+  ok('candidates: no anon access', (await su(`select has_function_privilege('anon', 'public.get_swipe_candidates(public.gender[],int,int,int,int,boolean)', 'execute') v`)).rows[0].v === false)
   ok('candidates: empty prompts is []', JSON.stringify(kc.find((c) => c.id !== R[0])?.prompts ?? []) === '[]')
   await su(`delete from profiles where id=$1`, [R[0]])
   ok('prompts: removed with profile', (await su(`select count(*)::int c from profile_prompts`)).rows[0].c === 0)
@@ -1955,6 +1955,146 @@ export async function run(db) {
   })()
 
   // ===== end blind dating =====
+
+  // ===== crossed paths & plans (20261009000200) =====
+  await (async () => {
+    const ids = Array.from({ length: 12 }, (_, i) => `c0000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, E, F, G, H, I, J, K, L] = ids
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601477700' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) {
+      const male = u === A || u === G
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,'Kuala Lumpur','SRID=4326;POINT(101.671 3.13)')`, ['Cp' + i, male ? 'male' : 'female', male ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
+    const X = 'w283c9', Y = 'w283fh', HOME = 'w2843k', Z = 'w283cd'
+    const ping = (u, cell, hoursAgo, night = false) => su(`insert into user_location_pings (user_id, cell, day, seen_hour, is_night)
+       select $1, $2, (h at time zone 'Asia/Kuala_Lumpur')::date, h, $4 from (select date_trunc('hour', now()) - make_interval(hours => $3) h) t`, [u, cell, hoursAgo, night])
+    const seen = async (viewer) => (await as(viewer, `select * from get_crossed_paths()`)).rows
+    const sees = async (viewer, other) => (await seen(viewer)).some((r) => r.id === other)
+    const pairCount = async (u) => (await su(`select count(*)::int c from crossed_paths where $1 in (user_a, user_b)`, [u])).rows[0].c
+    const pairOf = async (a, b) => (await su(`select count(*)::int c from crossed_paths where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0].c
+
+    // opt-in: off by default, nothing stored
+    ok('crossed: ping without opt-in stores nothing', (await as(A, `select ping_location(3.13, 101.671) v`)).rows[0].v === false &&
+       (await su(`select count(*)::int c from user_location_pings where user_id=$1`, [A])).rows[0].c === 0)
+    ok('crossed: off by default', (await as(A, `select count(*)::int c from crossed_paths_settings`)).rows[0].c === 0)
+    for (const u of [A, B, D, E, F, G, H, I, J, K, L]) await as(u, `select set_crossed_paths(true)`)
+    ok('crossed: opt-in row visible to owner only', (await as(A, `select user_id from crossed_paths_settings`)).rows.map((r) => r.user_id).join() === A)
+    // coarsening
+    ok('crossed: ping stored', (await as(A, `select ping_location(3.1300123, 101.6710456) v`)).rows[0].v === true)
+    const row = (await su(`select * from user_location_pings where user_id=$1`, [A])).rows
+    ok('crossed: only cell, day, hour window and night flag', row.length === 1 && row[0].cell === X &&
+       JSON.stringify(Object.keys(row[0]).sort()) === '["cell","day","is_night","seen_hour","user_id"]' &&
+       new Date(row[0].seen_hour).getUTCMinutes() === 0 && new Date(row[0].seen_hour).getUTCSeconds() === 0, JSON.stringify(row))
+    const cols = (await su(`select string_agg(table_name || '.' || column_name, ',') c from information_schema.columns
+       where table_name in ('user_location_pings','crossed_paths','crossed_paths_settings','crossed_path_hides')
+         and data_type in ('double precision','numeric','real','USER-DEFINED')`)).rows[0].c
+    ok('crossed: no coordinate columns in history', cols === null, cols)
+    ok('crossed: throttled to one ping per ~10 minutes', (await as(A, `select ping_location(3.2, 101.7) v`)).rows[0].v === false)
+    await su(`update crossed_paths_settings set last_ping_at = null where user_id=$1`, [A])
+    ok('crossed: outside Malaysia not stored', (await as(A, `select ping_location(41.3, 69.24) v`)).rows[0].v === false &&
+       (await su(`select count(*)::int c from user_location_pings where user_id=$1`, [A])).rows[0].c === 1)
+    ok('crossed: pings never readable by clients', !!(await fails(() => as(A, `select * from user_location_pings`))) &&
+       !!(await fails(() => as(A, `select * from crossed_paths`))) && !!(await fails(() => as(A, `select * from areas`))) &&
+       !!(await fails(() => as(A, `select * from crossed_path_hides`))))
+    ok('crossed: clients cannot insert pings or run jobs', !!(await fails(() => as(A, `insert into user_location_pings values ($1,'w283c9',current_date,date_trunc('hour',now()),false)`, [A]))) &&
+       !!(await fails(() => as(A, `select compute_crossed_paths()`))) && !!(await fails(() => as(A, `select purge_crossed_paths()`))) &&
+       !!(await fails(() => as(A, `select * from area_for_cell('w283c9')`))))
+    await su(`delete from user_location_pings where user_id=$1`, [A])
+    // A meets B twice in Bangsar (5 and 6 hours ago); C too, but C never opted in
+    for (const h of [5, 6]) { await ping(A, X, h); await ping(B, X, h); await ping(C, X, h) }
+    // D (blocked by A), E (banned), F (shadow-banned), G (male, not interested in men)
+    for (const u of [D, E, F, G]) for (const h of [5, 6]) await ping(u, X, h)
+    await as(A, `insert into blocks (blocked_id) values ($1)`, [D])
+    await su(`update profiles set banned_at = now(), ban_reason = 'x', is_active = false where id=$1`, [E])
+    await su(`update profiles set shadow_banned = true where id=$1`, [F])
+    // H: only within the last 3 hours (delay); I: only one shared hour
+    for (const h of [1, 2]) { await ping(A, Y, h); await ping(H, Y, h) }
+    await ping(A, Y, 9); await ping(I, Y, 9)
+    // J: only in A's home cell (A has night pings there)
+    await ping(A, HOME, 20, true); await ping(A, HOME, 21, true)
+    for (const h of [7, 8]) { await ping(A, HOME, h); await ping(J, HOME, h) }
+    // K: only in K's dominant cell (8 of 8 hours there)
+    for (let h = 5; h <= 12; h++) await ping(K, Z, h)
+    for (const h of [10, 11]) await ping(A, Z, h)
+    // retention fixtures
+    await ping(L, X, 49)
+    await su(`insert into crossed_paths (user_a, user_b, day, crossings)
+       values (least($1::uuid,$2::uuid), greatest($1::uuid,$2::uuid), (now() at time zone 'Asia/Kuala_Lumpur')::date - 3, 2)`, [A, L])
+    await su(`select compute_crossed_paths()`)
+    const total = (await su(`select coalesce(sum(crossings),0)::int n from crossed_paths
+       where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [A, B])).rows[0].n
+    ok('crossed: pair found with 2 crossings', total === 2, String(total))
+    const aRow = (await seen(A)).find((r) => r.id === B)
+    ok('crossed: both see each other with an area name and a day only', !!aRow && (await sees(B, A)) && aRow.area === 'Bangsar' &&
+       aRow.city === 'Kuala Lumpur' && typeof aRow.is_today === 'boolean' && aRow.crossings >= 1 &&
+       JSON.stringify(Object.keys(aRow).sort()) === '["age","area","city","crossings","display_name","id","is_today","photo"]', JSON.stringify(aRow))
+    ok('crossed: needs both opted in', !(await sees(A, C)) && (await pairCount(C)) === 0)
+    ok('crossed: nothing shown to someone not opted in', (await seen(C)).length === 0)
+    ok('crossed: blocked, banned, shadow-banned and incompatible excluded',
+       !(await sees(A, D)) && !(await sees(A, E)) && !(await sees(A, F)) && !(await sees(A, G)) && !(await sees(D, A)) && !(await sees(G, A)) &&
+       (await pairOf(A, D)) === 0 && (await pairCount(E)) === 0 && (await pairCount(F)) === 0 && (await pairOf(A, G)) === 0)
+    ok('crossed: recent encounters delayed 3 hours', !(await sees(A, H)) && !(await sees(H, A)))
+    ok('crossed: one shared hour is not enough', !(await sees(A, I)))
+    ok('crossed: home (night) cell ignored', !(await sees(A, J)) && !(await sees(J, A)))
+    ok('crossed: dominant cell ignored', !(await sees(A, K)))
+    // block after the computation: hidden at read time
+    await as(B, `insert into blocks (blocked_id) values ($1)`, [A])
+    ok('crossed: block hides at read time', !(await sees(A, B)) && !(await sees(B, A)))
+    await as(B, `delete from blocks where blocked_id=$1`, [A])
+    ok('crossed: unblock shows again', await sees(A, B))
+    await su(`update profiles set discoverable = false where id=$1`, [B])
+    ok('crossed: paused profile hidden', !(await sees(A, B)))
+    await su(`update profiles set discoverable = true where id=$1`, [B])
+    // hide
+    await as(A, `select hide_crossed_path($1)`, [B])
+    ok('crossed: hidden person no longer shown', !(await sees(A, B)) && (await sees(B, A)))
+    ok('crossed: cannot hide yourself', !!(await fails(() => as(A, `select hide_crossed_path($1)`, [A]))))
+    // retention
+    ok('crossed: pings older than 48 h purged', (await su(`select count(*)::int c from user_location_pings where user_id=$1`, [L])).rows[0].c === 0)
+    ok('crossed: old encounters purged', (await pairCount(L)) === 0)
+    ok('crossed: area name, else only the city', JSON.stringify((await su(`select * from area_for_cell('w283c9')`)).rows[0]) === '{"area":"Bangsar","city":"Kuala Lumpur"}' &&
+       JSON.stringify((await su(`select * from area_for_cell('w0000z')`)).rows[0]) === '{"area":null,"city":null}')
+    // turning it off deletes everything
+    await as(B, `select set_crossed_paths(false)`)
+    ok('crossed: turning off deletes pings and encounters', (await su(`select count(*)::int c from user_location_pings where user_id=$1`, [B])).rows[0].c === 0 &&
+       (await pairCount(B)) === 0 && (await as(B, `select ping_location(3.13, 101.671) v`)).rows[0].v === false)
+    ok('crossed: no anon access', (await su(`select has_function_privilege('anon', 'public.get_crossed_paths()', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('anon', 'public.ping_location(double precision, double precision)', 'execute') v`)).rows[0].v === false)
+
+    // ----- plans -----
+    const until = (await as(J, `select set_plan('gym') u`)).rows[0].u
+    const hrs = (new Date(until) - Date.now()) / 3600000
+    ok('plans: expires after 24 h', hrs > 23.9 && hrs <= 24.01, String(hrs))
+    ok('plans: preset tags only', !!(await fails(() => as(J, `select set_plan('anything')`))))
+    ok('plans: no direct writes', !!(await fails(() => as(J, `insert into user_plans (tag) values ('gym')`))) &&
+       !!(await fails(() => as(J, `update user_plans set expires_at = now() + interval '9 days'`))))
+    await as(J, `select set_plan('coffee')`)
+    ok('plans: one active plan per user', (await su(`select string_agg(tag, ',') t from user_plans where user_id=$1`, [J])).rows[0].t === 'coffee')
+    await as(J, `select set_plan('gym')`)
+    ok('plans: visible to others', (await as(A, `select tag from user_plans where user_id=$1`, [J])).rows[0]?.tag === 'gym')
+    await as(A, `select set_plan('gym')`)
+    ok('plans: hidden from blocked users', (await as(D, `select count(*)::int c from user_plans where user_id=$1`, [A])).rows[0].c === 0)
+    // candidate sorting
+    const plain = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50)`)).rows
+    ok('plans: candidates carry their plan', plain.find((r) => r.id === J)?.plan === 'gym' && plain.find((r) => r.id === K)?.plan === null, JSON.stringify(plain))
+    await su(`update profiles set last_active_at = now() - interval '1 day' where id=$1`, [J])
+    const similar = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
+    const usual = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, false)`)).rows
+    ok('plans: "Similar plans" sorts the same plan first', similar[0]?.id === J && usual[0]?.id !== J && similar.length === usual.length, JSON.stringify(similar.slice(0, 3)))
+    ok('plans: blocked, banned and shadow-banned stay out of the deck', !similar.some((r) => r.id === E || r.id === F || r.id === D))
+    await su(`update user_plans set expires_at = now() - interval '1 second' where user_id=$1`, [J])
+    const afterExpiry = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
+    const jc = (await as(A, `select count(*)::int c from user_plans where user_id=$1`, [J])).rows[0].c
+    ok('plans: expired plan hidden everywhere', jc === 0 && afterExpiry.find((r) => r.id === J)?.plan === null && afterExpiry[0]?.id !== J,
+       jc + JSON.stringify(afterExpiry.find((r) => r.id === J)))
+    await su(`select purge_crossed_paths()`)
+    ok('plans: expired plans purged', (await su(`select count(*)::int c from user_plans where user_id=$1`, [J])).rows[0].c === 0)
+    await as(A, `select clear_plan()`)
+    ok('plans: clear removes the plan', (await su(`select count(*)::int c from user_plans where user_id=$1`, [A])).rows[0].c === 0)
+  })()
+  // ===== end crossed paths & plans =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail

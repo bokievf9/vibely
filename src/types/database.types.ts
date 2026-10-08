@@ -85,6 +85,61 @@ export type Database = {
           },
         ]
       }
+      crossed_paths_settings: {
+        Row: {
+          enabled_at: string
+          last_ping_at: string | null
+          user_id: string
+        }
+        Insert: {
+          enabled_at?: string
+          last_ping_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          enabled_at?: string
+          last_ping_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'crossed_paths_settings_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      user_plans: {
+        Row: {
+          created_at: string
+          expires_at: string
+          tag: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          tag: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          tag?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_plans_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -2273,6 +2328,24 @@ export type Database = {
         Returns: undefined
       }
       generate_username: { Args: { p_name: string }; Returns: string }
+      clear_plan: { Args: never; Returns: undefined }
+      get_crossed_paths: {
+        Args: never
+        Returns: {
+          age: number
+          area: string | null
+          city: string | null
+          crossings: number
+          display_name: string
+          id: string
+          is_today: boolean
+          photo: Json
+        }[]
+      }
+      hide_crossed_path: { Args: { p_user: string }; Returns: undefined }
+      ping_location: { Args: { p_lat: number; p_lng: number }; Returns: boolean }
+      set_crossed_paths: { Args: { p_enabled: boolean }; Returns: boolean }
+      set_plan: { Args: { p_tag: string }; Returns: string }
       get_blocked_users: {
         Args: never
         Returns: {
@@ -2358,6 +2431,7 @@ export type Database = {
           p_max_age?: number
           p_max_km?: number
           p_min_age?: number
+          p_similar_plans?: boolean
         }
         Returns: {
           age: number
@@ -2374,6 +2448,7 @@ export type Database = {
           languages: Database['public']['Enums']['spoken_language'][]
           pets: Database['public']['Enums']['pets_status']
           photos: Json
+          plan: string | null
           prompts: Json
           relationship_goal: Database['public']['Enums']['relationship_goal']
           religion: Database['public']['Enums']['religion']
