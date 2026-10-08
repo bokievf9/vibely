@@ -28,6 +28,21 @@
   project unless they verify first that every account they touch was created by that same run.
 - Fake test accounts are tagged `app_metadata.seed = 'fake'`: `npm run fake:seed` / `npm run fake:delete`.
 
+## Safety recording & data retention (project protocol)
+- **Everything that happens in Vibely is recorded and stored for safety**: chat messages, random chat,
+  photos/voice/video messages, feed content, and **all audio and video calls** (recorded server-side).
+- **Retention: up to 90 days**, then deleted automatically (scheduled purge of DB rows and storage
+  objects). Exception: material attached to an open report or moderation case is kept until the case
+  is resolved.
+- **Users must always be told**, in en/ms/ru: in the Terms and Privacy Policy, in the sign-up consent,
+  before enabling calls in a chat, and with a visible "This call is recorded" indicator during a call.
+  Never record silently. Legal texts need review by a Malaysian lawyer (PDPA) before launch.
+- **Access**: recordings and media live in private storage only (signed URLs, short TTL). Only
+  moderators may open them, only while handling a report, and every access is logged in
+  `public.moderation_actions`.
+- **Storage plan**: Supabase free tier (1 GB) for now; the plan will be upgraded at launch. Keep media
+  compact (duration limits, compression) until then.
+
 ## Guidelines for Claude Code
 - Keep code mobile-first (PWA targeting Malaysian market).
 - Use Supabase SSR client for Next.js.
