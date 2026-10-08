@@ -1,3 +1,5 @@
+import type { Enums } from '@/types/database.types'
+
 export type Side = 'a' | 'b'
 
 export type RevealedPartner = {
@@ -6,6 +8,8 @@ export type RevealedPartner = {
   age: number
   city: string | null
   bio: string | null
+  relationshipGoal: Enums<'relationship_goal'> | null
+  jobTitle: string | null
   photo: { url: string; width: number; height: number } | null
 }
 

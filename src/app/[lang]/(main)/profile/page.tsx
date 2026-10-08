@@ -9,7 +9,8 @@ import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { getViewer } from '@/features/auth/session'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
-import { getOwnPhotos } from '@/features/profile/queries'
+import { CompletenessNudge } from '@/features/profile/components/completeness-nudge'
+import { getOwnPhotos, getOwnProfile } from '@/features/profile/queries'
 import { PushToggle } from '@/features/push/components/push-toggle'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
@@ -33,7 +34,7 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const photos = await getOwnPhotos(viewer.id)
+  const [photos, profile] = await Promise.all([getOwnPhotos(viewer.id), getOwnProfile(viewer.id)])
 
   return (
     <div className="flex flex-col gap-8 px-4 pb-6">
@@ -46,6 +47,14 @@ async function OwnProfile() {
           <Pencil className="size-5" /> {dict.profile.edit}
         </Link>
       </section>
+      {profile && (
+        <CompletenessNudge
+          profile={profile}
+          photoCount={photos.length}
+          locale={locale}
+          t={dict.about}
+        />
+      )}
       <section className="flex flex-col gap-3">
         <h2 className="text-muted text-sm font-medium">{dict.profile.photos}</h2>
         <PhotoUploader userId={viewer.id} photos={photos} />

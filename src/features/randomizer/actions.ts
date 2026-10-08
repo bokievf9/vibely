@@ -30,6 +30,8 @@ async function revealedPartner(raw: unknown): Promise<RevealedPartner | null> {
     age: p.age,
     city: p.city,
     bio: p.bio,
+    relationshipGoal: p.relationship_goal,
+    jobTitle: p.job_title,
     photo: url && photo ? { url, width: photo.width, height: photo.height } : null,
   }
 }

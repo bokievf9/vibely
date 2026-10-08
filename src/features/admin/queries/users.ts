@@ -2,6 +2,12 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ageFromBirthDate } from '@/lib/utils'
 import type { Database, Enums } from '@/types/database.types'
+import {
+  aboutFromRow,
+  promptsFromRows,
+  type AboutInput,
+  type ProfilePrompt,
+} from '@/features/profile/about-schemas'
 import { requireAdmin } from '../guard'
 import { signProfilePhotos, signUrls, type SignedPhoto } from './storage'
 
@@ -25,6 +31,8 @@ export type UserDetail = {
   gender: Enums<'gender'>
   city: string | null
   bio: string | null
+  about: AboutInput
+  prompts: ProfilePrompt[]
   verificationStatus: Enums<'verification_status'>
   bannedAt: string | null
   banReason: string | null
@@ -47,7 +55,9 @@ export async function getUserDetail(userId: string): Promise<UserDetail | null> 
   const db = createAdminClient()
   const { data: p } = await db
     .from('profiles')
-    .select('*, profile_photos(storage_path, width, height, position)')
+    .select(
+      '*, profile_photos(storage_path, width, height, position), profile_prompts(prompt_key, answer, position)',
+    )
     .eq('id', userId)
     .maybeSingle()
   if (!p) return null
@@ -79,6 +89,8 @@ export async function getUserDetail(userId: string): Promise<UserDetail | null> 
     gender: p.gender,
     city: p.city,
     bio: p.bio,
+    about: aboutFromRow(p),
+    prompts: promptsFromRows(p.profile_prompts),
     verificationStatus: p.verification_status,
     bannedAt: p.banned_at,
     banReason: p.ban_reason,

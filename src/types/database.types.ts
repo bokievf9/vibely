@@ -375,6 +375,41 @@ export type Database = {
           },
         ]
       }
+      profile_prompts: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          position: number
+          profile_id: string
+          prompt_key: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          position: number
+          profile_id?: string
+          prompt_key: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          position?: number
+          profile_id?: string
+          prompt_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'profile_prompts_profile_id_fkey'
+            columns: ['profile_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profile_tags: {
         Row: {
           profile_id: string
@@ -411,15 +446,25 @@ export type Database = {
           banned_at: string | null
           bio: string | null
           birth_date: string
+          children: Database['public']['Enums']['children_plan'] | null
           city: string | null
           created_at: string
           display_name: string
+          drinking: Database['public']['Enums']['habit_frequency'] | null
+          education: Database['public']['Enums']['education_level'] | null
           gender: Database['public']['Enums']['gender']
+          height_cm: number | null
           id: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active: boolean
+          job_title: string | null
+          languages: Database['public']['Enums']['spoken_language'][] | null
           last_active_at: string
           location: unknown
+          pets: Database['public']['Enums']['pets_status'] | null
+          relationship_goal: Database['public']['Enums']['relationship_goal'] | null
+          religion: Database['public']['Enums']['religion'] | null
+          smoking: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at: string | null
           updated_at: string
           verification_status: Database['public']['Enums']['verification_status']
@@ -429,15 +474,25 @@ export type Database = {
           banned_at?: string | null
           bio?: string | null
           birth_date: string
+          children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
           display_name: string
+          drinking?: Database['public']['Enums']['habit_frequency'] | null
+          education?: Database['public']['Enums']['education_level'] | null
           gender: Database['public']['Enums']['gender']
+          height_cm?: number | null
           id?: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          job_title?: string | null
+          languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
           location?: unknown
+          pets?: Database['public']['Enums']['pets_status'] | null
+          relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
+          religion?: Database['public']['Enums']['religion'] | null
+          smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
           verification_status?: Database['public']['Enums']['verification_status']
@@ -447,15 +502,25 @@ export type Database = {
           banned_at?: string | null
           bio?: string | null
           birth_date?: string
+          children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
           display_name?: string
+          drinking?: Database['public']['Enums']['habit_frequency'] | null
+          education?: Database['public']['Enums']['education_level'] | null
           gender?: Database['public']['Enums']['gender']
+          height_cm?: number | null
           id?: string
           interested_in?: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          job_title?: string | null
+          languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
           location?: unknown
+          pets?: Database['public']['Enums']['pets_status'] | null
+          relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
+          religion?: Database['public']['Enums']['religion'] | null
+          smoking?: Database['public']['Enums']['habit_frequency'] | null
           terms_accepted_at?: string | null
           updated_at?: string
           verification_status?: Database['public']['Enums']['verification_status']
@@ -905,6 +970,7 @@ export type Database = {
         Returns: undefined
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      array_is_distinct: { Args: { arr: unknown[] }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
       can_view_profile: { Args: { target: string }; Returns: boolean }
       create_comment: {
@@ -955,11 +1021,22 @@ export type Database = {
         Returns: {
           age: number
           bio: string
+          children: Database['public']['Enums']['children_plan']
           city: string
           display_name: string
           distance_km: number
+          drinking: Database['public']['Enums']['habit_frequency']
+          education: Database['public']['Enums']['education_level']
+          height_cm: number
           id: string
+          job_title: string
+          languages: Database['public']['Enums']['spoken_language'][]
+          pets: Database['public']['Enums']['pets_status']
           photos: Json
+          prompts: Json
+          relationship_goal: Database['public']['Enums']['relationship_goal']
+          religion: Database['public']['Enums']['religion']
+          smoking: Database['public']['Enums']['habit_frequency']
           tags: string[]
         }[]
       }
@@ -1002,10 +1079,38 @@ export type Database = {
       unread_message_count: { Args: never; Returns: number }
     }
     Enums: {
+      children_plan: 'have' | 'want' | 'dont_want' | 'not_sure'
+      education_level: 'secondary' | 'diploma' | 'bachelor' | 'master' | 'phd' | 'other'
       gender: 'male' | 'female' | 'other'
+      habit_frequency: 'never' | 'sometimes' | 'often'
       match_source: 'swipe' | 'randomizer'
+      pets_status: 'none' | 'cat' | 'dog' | 'both' | 'other'
       random_session_status: 'active' | 'ended'
+      relationship_goal: 'serious' | 'long_term_open' | 'casual' | 'friends' | 'not_sure'
+      religion:
+        | 'islam'
+        | 'buddhism'
+        | 'christianity'
+        | 'hinduism'
+        | 'taoism'
+        | 'sikhism'
+        | 'other'
+        | 'none'
+        | 'prefer_not_to_say'
       report_target: 'user' | 'post' | 'comment' | 'random_session'
+      spoken_language:
+        | 'malay'
+        | 'english'
+        | 'mandarin'
+        | 'cantonese'
+        | 'hokkien'
+        | 'tamil'
+        | 'hindi'
+        | 'arabic'
+        | 'korean'
+        | 'japanese'
+        | 'russian'
+        | 'other'
       swipe_direction: 'like' | 'pass'
       verification_status: 'unverified' | 'pending' | 'approved' | 'rejected'
     }
@@ -1129,10 +1234,40 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      children_plan: ['have', 'want', 'dont_want', 'not_sure'],
+      education_level: ['secondary', 'diploma', 'bachelor', 'master', 'phd', 'other'],
       gender: ['male', 'female', 'other'],
+      habit_frequency: ['never', 'sometimes', 'often'],
       match_source: ['swipe', 'randomizer'],
+      pets_status: ['none', 'cat', 'dog', 'both', 'other'],
       random_session_status: ['active', 'ended'],
+      relationship_goal: ['serious', 'long_term_open', 'casual', 'friends', 'not_sure'],
+      religion: [
+        'islam',
+        'buddhism',
+        'christianity',
+        'hinduism',
+        'taoism',
+        'sikhism',
+        'other',
+        'none',
+        'prefer_not_to_say',
+      ],
       report_target: ['user', 'post', 'comment', 'random_session'],
+      spoken_language: [
+        'malay',
+        'english',
+        'mandarin',
+        'cantonese',
+        'hokkien',
+        'tamil',
+        'hindi',
+        'arabic',
+        'korean',
+        'japanese',
+        'russian',
+        'other',
+      ],
       swipe_direction: ['like', 'pass'],
       verification_status: ['unverified', 'pending', 'approved', 'rejected'],
     },

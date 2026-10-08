@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
+import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import { notifyNewMatch } from '@/features/push/send'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
 
@@ -39,6 +40,8 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
         const url = urls.get(p.path)
         return url ? [{ url, width: p.width, height: p.height }] : []
       }),
+      about: aboutFromRow(c),
+      prompts: parsePrompts(c.prompts),
     })),
   )
 }

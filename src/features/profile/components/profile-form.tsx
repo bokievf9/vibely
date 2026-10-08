@@ -15,6 +15,7 @@ import { TermsConsent } from '@/features/legal/components/terms-consent'
 import { MAX_TAGS, newProfileSchema, profileFormSchema, type NewProfileInput } from '../schemas'
 import { GenderPicker } from './gender-picker'
 import { LocationButton } from './location-button'
+import { MoreAboutSection } from './more-about-section'
 import { TagPicker } from './tag-picker'
 
 type Props = { tags: Tag[]; initial?: OwnProfile }
@@ -122,6 +123,7 @@ export function ProfileForm({ tags, initial }: Props) {
           )}
         />
       </Field>
+      {initial && <MoreAboutSection control={control} register={register} errors={errors} />}
       {!initial && (
         <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
       )}

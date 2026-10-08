@@ -21,6 +21,16 @@ export function RevealPanel({ session, pending, onReveal }: Props) {
           <p className="truncate font-semibold">
             {partner.name}, {partner.age}
           </p>
+          {(partner.jobTitle || partner.relationshipGoal) && (
+            <p className="text-muted truncate text-xs">
+              {[
+                partner.jobTitle,
+                partner.relationshipGoal && dict.about.goal.options[partner.relationshipGoal],
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
           <p className="text-accent text-xs">{dict.random.revealed}</p>
         </div>
         {matchId && (

@@ -8,7 +8,9 @@ import { PhotoStrip } from '@/features/admin/components/photo-strip'
 import { UserActions } from '@/features/admin/components/user-actions'
 import { getUserDetail } from '@/features/admin/queries/users'
 import { readableBan, readableRejection, readableReportReason } from '@/features/admin/labels'
+import { AboutDetails, aboutRows, PromptCards } from '@/features/profile/components/about-details'
 import { GENDER_LABELS } from '@/features/profile/schemas'
+import { aboutRu } from '@/i18n/dictionaries/about/ru'
 
 export const metadata: Metadata = { title: 'Пользователь' }
 
@@ -58,6 +60,15 @@ async function UserDetailView({ params }: Pick<PageProps<'/admin/users/[id]'>, '
         <h2 className="font-semibold">Фото профиля</h2>
         <PhotoStrip photos={user.photos} label="Фото профиля" />
         {user.bio && <p className="text-muted text-sm whitespace-pre-wrap">{user.bio}</p>}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-semibold">О себе и вопросы</h2>
+        {!user.prompts.length && !aboutRows(user.about, aboutRu).length && (
+          <p className="text-muted text-sm">Не заполнено</p>
+        )}
+        <AboutDetails about={user.about} t={aboutRu} />
+        <PromptCards prompts={user.prompts} t={aboutRu} />
       </section>
 
       <section className="flex flex-col gap-2">

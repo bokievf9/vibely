@@ -13,6 +13,7 @@ import {
   type NewProfileInput,
   type PhotoInput,
 } from './schemas'
+import type { AboutInput, ProfilePrompt } from './about-schemas'
 
 function invalid(error: z.ZodError): UserResult<never> {
   return { ok: false, error: zodErrorKey(error), fieldErrors: z.flattenError(error).fieldErrors }
@@ -25,6 +26,34 @@ async function replaceTags(tagIds: number[], userId: string) {
   await supabase.from('profile_tags').delete().eq('profile_id', userId)
   if (tagIds.length)
     await supabase.from('profile_tags').insert(tagIds.map((tag_id) => ({ tag_id })))
+}
+
+function aboutToRow(a: AboutInput) {
+  return {
+    relationship_goal: a.relationshipGoal,
+    height_cm: a.heightCm,
+    job_title: sanitizeText(a.jobTitle) || null,
+    education: a.education,
+    languages: a.languages.length ? a.languages : null,
+    religion: a.religion,
+    smoking: a.smoking,
+    drinking: a.drinking,
+    pets: a.pets,
+    children: a.children,
+  }
+}
+
+// Replaces all prompts (like tags). Answers that sanitize to nothing are dropped.
+async function replacePrompts(prompts: ProfilePrompt[], userId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const rows = prompts
+    .map((p) => ({ prompt_key: p.key, answer: sanitizeText(p.answer) }))
+    .filter((p) => p.answer.length > 0)
+    .map((p, position) => ({ ...p, position }))
+  const { error } = await supabase.from('profile_prompts').delete().eq('profile_id', userId)
+  if (error) return false
+  if (!rows.length) return true
+  return !(await supabase.from('profile_prompts').insert(rows)).error
 }
 
 export async function createProfile(input: NewProfileInput): Promise<UserResult> {
@@ -59,11 +88,12 @@ export async function updateProfile(input: EditableProfileInput): Promise<UserRe
   const viewer = await getViewer()
   if (!viewer?.profile) return fail('unauthorized')
 
-  const { displayName, interestedIn, bio, city, tagIds, location } = parsed.data
+  const { displayName, interestedIn, bio, city, tagIds, location, about, prompts } = parsed.data
   const supabase = await createClient()
   const { error } = await supabase
     .from('profiles')
     .update({
+      ...(about ? aboutToRow(about) : {}),
       display_name: sanitizeText(displayName),
       interested_in: interestedIn,
       bio: sanitizeText(bio) || null,
@@ -75,6 +105,7 @@ export async function updateProfile(input: EditableProfileInput): Promise<UserRe
   if (error) return fail('profileSaveFailed')
 
   await replaceTags(tagIds, viewer.id)
+  if (prompts && !(await replacePrompts(prompts, viewer.id))) return fail('profileSaveFailed')
   return ok(undefined)
 }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { Constants } from '@/types/database.types'
 import { genderSchema } from '@/features/profile/schemas'
 
 export const joinSchema = z
@@ -18,4 +19,6 @@ export const partnerSchema = z.object({
   age: z.number(),
   bio: z.string().nullable(),
   city: z.string().nullable(),
+  relationship_goal: z.enum(Constants.public.Enums.relationship_goal).nullable().catch(null),
+  job_title: z.string().nullable().catch(null),
 })

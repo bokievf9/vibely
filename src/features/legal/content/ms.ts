@@ -16,6 +16,7 @@ export const ms: LegalContent = {
         list: [
           'Nombor telefon: untuk log masuk dengan kod SMS. Ia disimpan oleh penyedia log masuk kami dan tidak pernah ditunjukkan kepada pengguna lain.',
           'Profil: nama, tarikh lahir (orang lain hanya melihat umur anda), jantina, siapa yang anda minati, bandar, bio dan minat.',
+          'Butiran profil pilihan, hanya jika anda menambahnya: apa yang anda cari, ketinggian, pekerjaan, pendidikan, bahasa, merokok, minum alkohol, haiwan peliharaan, anak, jawapan kepada soalan profil dan agama. Agama ialah data peribadi sensitif: ia sepenuhnya pilihan, hanya dipaparkan pada profil anda dan tidak pernah digunakan untuk padanan, susunan, iklan atau apa-apa tujuan lain. Anda boleh membuang butiran ini pada bila-bila masa.',
           'Foto yang anda muat naik ke profil.',
           'Lokasi anggaran: jika anda benarkan, lokasi peranti anda digunakan untuk mengira jarak anda dengan pengguna lain. Lokasi tepat anda tidak pernah ditunjukkan kepada sesiapa. Orang lain hanya melihat jarak yang dibundarkan, contohnya "5 km dari sini".',
           'Swafoto pengesahan: foto anda membuat isyarat tangan, hanya untuk memastikan anda sepadan dengan foto profil (lihat seksyen 3).',
