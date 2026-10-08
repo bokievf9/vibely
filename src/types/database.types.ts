@@ -1,6 +1,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: '14.18'
   }
@@ -194,6 +196,13 @@ export type Database = {
             columns: ['author_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'comments_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'feed_posts'
             referencedColumns: ['id']
           },
           {
@@ -476,7 +485,7 @@ export type Database = {
           {
             foreignKeyName: 'new_people_alerts_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -520,7 +529,7 @@ export type Database = {
           {
             foreignKeyName: 'notification_prefs_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -543,6 +552,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'post_aliases_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'feed_posts'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'post_aliases_post_id_fkey'
             columns: ['post_id']
@@ -576,6 +592,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'post_likes_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'feed_posts'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'post_likes_post_id_fkey'
             columns: ['post_id']
@@ -761,7 +784,7 @@ export type Database = {
           job_title: string | null
           languages: Database['public']['Enums']['spoken_language'][] | null
           last_active_at: string
-          location: unknown | null
+          location: unknown
           pets: Database['public']['Enums']['pets_status'] | null
           referred_by: string | null
           relationship_goal: Database['public']['Enums']['relationship_goal'] | null
@@ -793,7 +816,7 @@ export type Database = {
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
-          location?: unknown | null
+          location?: unknown
           pets?: Database['public']['Enums']['pets_status'] | null
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
@@ -825,7 +848,7 @@ export type Database = {
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
-          location?: unknown | null
+          location?: unknown
           pets?: Database['public']['Enums']['pets_status'] | null
           referred_by?: string | null
           relationship_goal?: Database['public']['Enums']['relationship_goal'] | null
@@ -955,7 +978,7 @@ export type Database = {
           {
             foreignKeyName: 'random_chat_queue_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1042,7 +1065,7 @@ export type Database = {
           {
             foreignKeyName: 'referral_codes_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1240,136 +1263,111 @@ export type Database = {
           is_op: boolean | null
           post_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'comments_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'feed_posts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'comments_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'posts'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Functions: {
-      accept_calls_notice: {
-        Args: never
-        Returns: string
-      }
+      accept_calls_notice: { Args: never; Returns: string }
       admin_delete_photo: {
-        Args: {
-          p_admin: string
-          p_photo: string
-          p_reason: string
-        }
+        Args: { p_admin: string; p_photo: string; p_reason: string }
         Returns: string
       }
       admin_find_users: {
-        Args: {
-          p_admin: string
-          p_query?: string
-          p_limit?: number
-        }
+        Args: { p_admin: string; p_limit?: number; p_query?: string }
         Returns: {
-          id: string
-          display_name: string
-          phone: string
-          verification_status: Database['public']['Enums']['verification_status']
           banned_at: string
           created_at: string
+          display_name: string
+          id: string
           open_reports: number
+          phone: string
+          verification_status: Database['public']['Enums']['verification_status']
         }[]
       }
       admin_open_call_recording: {
-        Args: {
-          p_admin: string
-          p_call: string
-          p_reason?: string
-        }
+        Args: { p_admin: string; p_call: string; p_reason?: string }
         Returns: string
       }
       admin_resolve_reports: {
         Args: {
           p_admin: string
-          p_type: Database['public']['Enums']['report_target']
-          p_target: string
           p_resolution: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
         }
         Returns: number
       }
       admin_review_verification: {
         Args: {
           p_admin: string
-          p_request: string
           p_approve: boolean
           p_reason?: string
+          p_request: string
         }
         Returns: undefined
       }
       admin_revoke_verification: {
-        Args: {
-          p_admin: string
-          p_user: string
-          p_reason: string
-        }
+        Args: { p_admin: string; p_reason: string; p_user: string }
         Returns: undefined
       }
       admin_set_ban: {
         Args: {
           p_admin: string
-          p_user: string
           p_banned: boolean
           p_reason?: string
+          p_user: string
         }
         Returns: undefined
       }
       admin_set_content_hidden: {
         Args: {
           p_admin: string
-          p_type: Database['public']['Enums']['report_target']
-          p_id: string
           p_hidden: boolean
+          p_id: string
           p_reason?: string
+          p_type: Database['public']['Enums']['report_target']
         }
         Returns: undefined
       }
-      age_in_years: {
-        Args: {
-          birth_date: string
-        }
-        Returns: number
-      }
+      age_in_years: { Args: { birth_date: string }; Returns: number }
       answer_call: {
-        Args: {
-          p_call: string
-        }
+        Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
-      array_is_distinct: {
-        Args: {
-          arr: unknown
-        }
-        Returns: boolean
-      }
-      assert_admin: {
-        Args: {
-          p_admin: string
-        }
-        Returns: undefined
-      }
+      array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
+      assert_admin: { Args: { p_admin: string }; Returns: undefined }
       call_notify: {
         Args: {
-          p_user: string
+          p_call: Database['public']['Tables']['calls']['Row']
           p_event: string
-          p_call: unknown
+          p_user: string
         }
         Returns: undefined
       }
       call_recordings_to_purge: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: {
           call_id: string
           recording_path: string
         }[]
       }
       call_settings: {
-        Args: {
-          p_match: string
-        }
+        Args: { p_match: string }
         Returns: {
           consented: boolean
           me_allowed: boolean
@@ -1377,93 +1375,37 @@ export type Database = {
         }[]
       }
       call_under_open_report: {
-        Args: {
-          a: string
-          b: string
-        }
+        Args: { a: string; b: string }
         Returns: boolean
       }
-      can_view_profile: {
-        Args: {
-          target: string
-        }
-        Returns: boolean
-      }
-      chat_media_match: {
-        Args: {
-          object_name: string
-        }
-        Returns: string
-      }
-      claim_comment_push: {
-        Args: {
-          p_comment_id: string
-        }
-        Returns: string
-      }
-      claim_referral: {
-        Args: {
-          p_code: string
-        }
-        Returns: boolean
-      }
-      count_incoming_likes: {
-        Args: never
-        Returns: number
-      }
+      can_view_profile: { Args: { target: string }; Returns: boolean }
+      chat_media_match: { Args: { object_name: string }; Returns: string }
+      claim_comment_push: { Args: { p_comment_id: string }; Returns: string }
+      claim_referral: { Args: { p_code: string }; Returns: boolean }
+      count_incoming_likes: { Args: never; Returns: number }
       count_swipe_candidates: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
-          p_min_age?: number
           p_max_age?: number
           p_max_km?: number
+          p_min_age?: number
         }
         Returns: number
       }
       create_comment: {
-        Args: {
-          p_post_id: string
-          p_body: string
-          p_named?: boolean
-        }
+        Args: { p_body: string; p_named?: boolean; p_post_id: string }
         Returns: string
       }
       create_post: {
-        Args: {
-          p_body: string
-          p_named?: boolean
-        }
+        Args: { p_body: string; p_named?: boolean }
         Returns: string
       }
-      delete_comment: {
-        Args: {
-          p_comment_id: string
-        }
-        Returns: undefined
-      }
-      delete_message: {
-        Args: {
-          p_id: string
-        }
-        Returns: string
-      }
-      delete_post: {
-        Args: {
-          p_post_id: string
-        }
-        Returns: undefined
-      }
-      edit_message: {
-        Args: {
-          p_id: string
-          p_body: string
-        }
-        Returns: string
-      }
+      delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
+      delete_message: { Args: { p_id: string }; Returns: string }
+      delete_post: { Args: { p_post_id: string }; Returns: undefined }
+      edit_message: { Args: { p_body: string; p_id: string }; Returns: string }
       end_call: {
-        Args: {
-          p_call: string
-        }
+        Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
       ensure_match: {
@@ -1474,61 +1416,48 @@ export type Database = {
         }
         Returns: string
       }
-      expire_stale_calls: {
-        Args: never
-        Returns: undefined
-      }
+      expire_stale_calls: { Args: never; Returns: undefined }
       feed_pseudonym: {
-        Args: {
-          p_post: string
-          p_alias: number
-        }
+        Args: { p_alias: number; p_post: string }
         Returns: number[]
       }
-      feed_viewer_city: {
-        Args: never
-        Returns: string
-      }
+      feed_viewer_city: { Args: never; Returns: string }
       finish_call: {
-        Args: {
-          p_call: string
-        }
+        Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
       get_blocked_users: {
         Args: never
         Returns: {
-          id: string
-          display_name: string
-          photo: Json
           blocked_at: string
+          display_name: string
+          id: string
+          photo: Json
         }[]
       }
       get_incoming_likes: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: {
-          id: string
-          display_name: string
           age: number
           bio: string
+          children: Database['public']['Enums']['children_plan']
           city: string
+          display_name: string
           distance_km: number
-          tags: string[]
-          photos: Json
-          relationship_goal: Database['public']['Enums']['relationship_goal']
-          height_cm: number
-          job_title: string
+          drinking: Database['public']['Enums']['habit_frequency']
           education: Database['public']['Enums']['education_level']
+          height_cm: number
+          id: string
+          job_title: string
           languages: Database['public']['Enums']['spoken_language'][]
+          liked_at: string
+          pets: Database['public']['Enums']['pets_status']
+          photos: Json
+          prompts: Json
+          relationship_goal: Database['public']['Enums']['relationship_goal']
           religion: Database['public']['Enums']['religion']
           smoking: Database['public']['Enums']['habit_frequency']
-          drinking: Database['public']['Enums']['habit_frequency']
-          pets: Database['public']['Enums']['pets_status']
-          children: Database['public']['Enums']['children_plan']
-          prompts: Json
-          liked_at: string
+          tags: string[]
         }[]
       }
       get_my_referral: {
@@ -1539,62 +1468,59 @@ export type Database = {
         }[]
       }
       get_random_messages: {
-        Args: {
-          p_session_id: string
-          p_before?: string
-          p_limit?: number
-        }
+        Args: { p_before?: string; p_limit?: number; p_session_id: string }
         Returns: {
-          id: string
           body: string
-          is_mine: boolean
           created_at: string
+          id: string
+          is_mine: boolean
         }[]
       }
       get_random_session: {
         Args: never
         Returns: {
-          id: string
-          my_side: string
-          my_revealed: boolean
-          partner_revealed: boolean
           common_tags: string[]
-          partner: Json
+          id: string
           match_id: string
+          my_revealed: boolean
+          my_side: string
+          partner: Json
+          partner_revealed: boolean
           started_at: string
         }[]
       }
       get_swipe_candidates: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
-          p_min_age?: number
+          p_limit?: number
           p_max_age?: number
           p_max_km?: number
-          p_limit?: number
+          p_min_age?: number
         }
         Returns: {
-          id: string
-          display_name: string
           age: number
           bio: string
-          city: string
-          distance_km: number
-          tags: string[]
-          photos: Json
-          relationship_goal: Database['public']['Enums']['relationship_goal']
-          height_cm: number
-          job_title: string
-          education: Database['public']['Enums']['education_level']
-          languages: Database['public']['Enums']['spoken_language'][]
-          religion: Database['public']['Enums']['religion']
-          smoking: Database['public']['Enums']['habit_frequency']
-          drinking: Database['public']['Enums']['habit_frequency']
-          pets: Database['public']['Enums']['pets_status']
           children: Database['public']['Enums']['children_plan']
+          city: string
+          display_name: string
+          distance_km: number
+          drinking: Database['public']['Enums']['habit_frequency']
+          education: Database['public']['Enums']['education_level']
+          height_cm: number
+          id: string
+          job_title: string
+          languages: Database['public']['Enums']['spoken_language'][]
+          pets: Database['public']['Enums']['pets_status']
+          photos: Json
           prompts: Json
+          relationship_goal: Database['public']['Enums']['relationship_goal']
+          religion: Database['public']['Enums']['religion']
           second_chance: boolean
+          smoking: Database['public']['Enums']['habit_frequency']
+          tags: string[]
         }[]
       }
+      hook_before_user_created: { Args: { event: Json }; Returns: Json }
       incoming_like_ids: {
         Args: never
         Returns: {
@@ -1602,227 +1528,121 @@ export type Database = {
           liked_at: string
         }[]
       }
-      is_blocked_between: {
-        Args: {
-          a: string
-          b: string
-        }
-        Returns: boolean
-      }
-      is_malaysian_mobile: {
-        Args: {
-          phone: string
-        }
-        Returns: boolean
-      }
-      is_match_participant: {
-        Args: {
-          m: string
-        }
-        Returns: boolean
-      }
-      is_verified: {
-        Args: never
-        Returns: boolean
-      }
+      is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
+      is_malaysian_mobile: { Args: { phone: string }; Returns: boolean }
+      is_match_participant: { Args: { m: string }; Returns: boolean }
+      is_verified: { Args: never; Returns: boolean }
       log_moderation: {
         Args: {
-          p_admin: string
           p_action: string
-          p_type: string
-          p_target: string
+          p_admin: string
           p_reason: string
+          p_target: string
+          p_type: string
         }
         Returns: undefined
       }
       mark_call_recordings_purged: {
-        Args: {
-          p_ids: string[]
-        }
+        Args: { p_ids: string[] }
         Returns: number
       }
-      match_partner_last_seen: {
-        Args: {
-          p_match: string
-        }
-        Returns: string
-      }
-      match_under_open_report: {
-        Args: {
-          p_match: string
-        }
-        Returns: boolean
-      }
+      match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      match_under_open_report: { Args: { p_match: string }; Returns: boolean }
       new_people_alert_recipients: {
-        Args: {
-          p_profile: string
-        }
+        Args: { p_profile: string }
         Returns: string[]
       }
-      purge_old_calls: {
-        Args: never
-        Returns: number
-      }
-      purge_old_feed_content: {
-        Args: never
-        Returns: number
-      }
-      purge_old_random_messages: {
-        Args: never
-        Returns: number
-      }
-      random_session_side: {
-        Args: {
-          s: string
-        }
-        Returns: string
-      }
-      randomizer_end: {
-        Args: {
-          p_session_id: string
-        }
-        Returns: undefined
-      }
+      purge_old_calls: { Args: never; Returns: number }
+      purge_old_feed_content: { Args: never; Returns: number }
+      purge_old_random_messages: { Args: never; Returns: number }
+      random_session_side: { Args: { s: string }; Returns: string }
+      randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
       randomizer_join: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
-          p_min_age: number
           p_max_age: number
+          p_min_age: number
           p_tags?: number[]
         }
         Returns: string
       }
-      randomizer_leave: {
-        Args: never
-        Returns: undefined
-      }
-      randomizer_ping: {
-        Args: never
-        Returns: undefined
-      }
-      randomizer_reveal: {
-        Args: {
-          p_session_id: string
-        }
-        Returns: boolean
-      }
+      randomizer_leave: { Args: never; Returns: undefined }
+      randomizer_ping: { Args: never; Returns: undefined }
+      randomizer_reveal: { Args: { p_session_id: string }; Returns: boolean }
       randomizer_send: {
-        Args: {
-          p_session_id: string
-          p_body: string
-        }
+        Args: { p_body: string; p_session_id: string }
         Returns: string
       }
-      randomizer_stats: {
-        Args: never
-        Returns: number
-      }
-      reorder_profile_photos: {
-        Args: {
-          p_ids: string[]
-        }
-        Returns: undefined
-      }
+      randomizer_stats: { Args: never; Returns: number }
+      reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
       retention_chat_media: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: {
           message_id: string
           path: string
         }[]
       }
       retention_drop_message_deletions: {
-        Args: {
-          p_ids: string[]
-        }
+        Args: { p_ids: string[] }
         Returns: number
       }
       retention_mark_chat_media_expired: {
-        Args: {
-          p_ids: string[]
-        }
+        Args: { p_ids: string[] }
         Returns: number
       }
       retention_message_deletions: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: {
-          message_id: string
           media_path: string
+          message_id: string
         }[]
       }
       retention_orphan_chat_media: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: string[]
       }
-      retention_selfies: {
-        Args: {
-          p_limit?: number
-        }
-        Returns: string[]
-      }
+      retention_selfies: { Args: { p_limit?: number }; Returns: string[] }
       set_call_permission: {
-        Args: {
-          p_match: string
-          p_allowed: boolean
-        }
+        Args: { p_allowed: boolean; p_match: string }
         Returns: undefined
       }
       set_message_reaction: {
-        Args: {
-          p_message: string
-          p_emoji: string
-        }
+        Args: { p_emoji: string; p_message: string }
         Returns: undefined
       }
       set_new_people_alert: {
         Args: {
           p_enabled: boolean
           p_genders?: Database['public']['Enums']['gender'][]
-          p_min_age?: number
           p_max_age?: number
           p_max_km?: number
+          p_min_age?: number
         }
         Returns: boolean
       }
       start_call: {
         Args: {
-          p_match: string
           p_kind: Database['public']['Enums']['call_kind']
+          p_match: string
         }
         Returns: string
       }
       swipe_candidate_pool: {
         Args: {
-          p_me: string
           p_genders: Database['public']['Enums']['gender'][]
-          p_min_age: number
           p_max_age: number
           p_max_km: number
+          p_me: string
+          p_min_age: number
         }
         Returns: {
           id: string
           second_chance: boolean
         }[]
       }
-      toggle_post_like: {
-        Args: {
-          p_post_id: string
-        }
-        Returns: boolean
-      }
-      touch_last_active: {
-        Args: never
-        Returns: undefined
-      }
-      unread_message_count: {
-        Args: never
-        Returns: number
-      }
+      toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
+      touch_last_active: { Args: never; Returns: undefined }
+      unread_message_count: { Args: never; Returns: number }
     }
     Enums: {
       call_kind: 'audio' | 'video'
