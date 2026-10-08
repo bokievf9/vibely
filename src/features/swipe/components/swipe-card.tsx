@@ -20,9 +20,11 @@ type Props = {
   candidate: Candidate
   active: boolean
   onSwipe: (direction: 'like' | 'pass') => void
+  // false: a static preview ("How others see me").
+  draggable?: boolean
 }
 
-export function SwipeCard({ candidate, active, onSwipe }: Props) {
+export function SwipeCard({ candidate, active, onSwipe, draggable = true }: Props) {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-300, 300], [-18, 18])
   const likeOpacity = useTransform(x, [20, SWIPE_THRESHOLD_PX], [0, 1])
@@ -37,7 +39,7 @@ export function SwipeCard({ candidate, active, onSwipe }: Props) {
     <motion.article
       className="bg-surface absolute inset-0 overflow-hidden rounded-3xl shadow-xl"
       style={{ x, rotate }}
-      drag={active ? 'x' : false}
+      drag={active && draggable ? 'x' : false}
       dragSnapToOrigin
       onDragEnd={onDragEnd}
       initial={{ scale: active ? 1 : 0.95, opacity: 0 }}

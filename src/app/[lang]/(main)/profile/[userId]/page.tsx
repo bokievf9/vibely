@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft, MapPin, MessageCircle } from 'lucide-react'
 import { PageSpinner } from '@/components/ui/spinner'
+import { VerifiedBadge } from '@/components/ui/verified-badge'
 import { getViewer } from '@/features/auth/session'
 import { unmatch } from '@/features/chat/actions'
 import { AboutDetails, PromptCards } from '@/features/profile/components/about-details'
@@ -60,6 +61,7 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
       <div className="flex flex-col gap-3 p-5">
         <h1 className="text-3xl font-bold">
           {profile.name}, <span className="font-normal">{profile.age}</span>
+          <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
         </h1>
         {profile.city && (
           <p className="text-muted flex items-center gap-1">

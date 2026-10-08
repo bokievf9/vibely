@@ -1,3 +1,4 @@
+import { avatarMs } from './avatar/ms'
 import { aboutMs } from './about/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
@@ -353,4 +354,5 @@ export const ms: Dictionary = {
   },
   tags: tagsMs,
   tagCategories: tagCategoriesMs,
+  avatar: avatarMs,
 }

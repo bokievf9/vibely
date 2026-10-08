@@ -1,3 +1,4 @@
+import { avatarRu } from './avatar/ru'
 import { aboutRu } from './about/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
@@ -351,4 +352,5 @@ export const ru: Dictionary = {
   },
   tags: tagsRu,
   tagCategories: tagCategoriesRu,
+  avatar: avatarRu,
 }

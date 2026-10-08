@@ -1156,6 +1156,7 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
       set_message_reaction: {
         Args: { p_emoji: string; p_message: string }
         Returns: undefined

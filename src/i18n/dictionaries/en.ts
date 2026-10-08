@@ -1,3 +1,4 @@
+import { avatarEn } from './avatar/en'
 import { aboutEn } from './about/en'
 import { landingEn } from './landing/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
@@ -348,6 +349,7 @@ export const en = {
   },
   tags: tagsEn,
   tagCategories: tagCategoriesEn,
+  avatar: avatarEn,
 }
 
 export type Dictionary = typeof en
