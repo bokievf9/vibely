@@ -1,7 +1,10 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
-import type { ChatMessage, ChatPreview, Partner } from './types'
+import { MESSAGE_COLUMNS, toChatMessage } from './message-row'
+import type { ChatPreview, Partner } from './types'
+
+const ROOM_HISTORY = 100
 
 type PartnerRow = {
   id: string
@@ -96,15 +99,17 @@ export async function getChatRoom(matchId: string, viewerId: string) {
     toPartners([row]),
     supabase
       .from('messages')
-      .select('id, body, sender_id, created_at')
+      .select(MESSAGE_COLUMNS)
       .eq('match_id', matchId)
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(ROOM_HISTORY + 1),
   ])
   const partner = partners.get(row.id)
   if (!partner) return null
-  const history: ChatMessage[] = (messages ?? [])
-    .reverse()
-    .map((m) => ({ id: m.id, body: m.body, senderId: m.sender_id, createdAt: m.created_at }))
-  return { partner, messages: history }
+  const rows = messages ?? []
+  return {
+    partner,
+    messages: rows.slice(0, ROOM_HISTORY).reverse().map(toChatMessage),
+    hasMore: rows.length > ROOM_HISTORY,
+  }
 }

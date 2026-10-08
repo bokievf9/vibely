@@ -945,7 +945,9 @@ export type Database = {
         Args: { p_body: string; p_session_id: string }
         Returns: string
       }
+      randomizer_stats: { Args: never; Returns: number }
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
+      unread_message_count: { Args: never; Returns: number }
     }
     Enums: {
       gender: 'male' | 'female' | 'other'

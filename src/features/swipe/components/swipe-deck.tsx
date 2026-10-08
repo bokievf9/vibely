@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Heart, SearchX, SlidersHorizontal, X } from 'lucide-react'
+import { Heart, RotateCw, SearchX, SlidersHorizontal, X } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -67,6 +67,12 @@ export function SwipeDeck({ defaultFilters }: { defaultFilters: SwipeFilters }) 
     apply(await loadCandidates(filters), false)
   }
 
+  // Empty deck: ask again (new people may have joined or come into range).
+  const refresh = async () => {
+    setLoading(true)
+    apply(await loadCandidates(filters), true)
+  }
+
   const decide = async (dir: 'like' | 'pass') => {
     const [top, ...rest] = cards
     if (!top) return
@@ -97,9 +103,14 @@ export function SwipeDeck({ defaultFilters }: { defaultFilters: SwipeFilters }) 
         {!top && loading && <PageSpinner />}
         {!top && !loading && (
           <EmptyState icon={SearchX} title={dict.swipe.empty} text={dict.swipe.emptyHint}>
-            <Button variant="secondary" onClick={() => setFiltersOpen(true)}>
-              {dict.swipe.filters}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={() => void refresh()}>
+                <RotateCw className="size-5" /> {dict.swipe.refresh}
+              </Button>
+              <Button variant="secondary" onClick={() => setFiltersOpen(true)}>
+                <SlidersHorizontal className="size-5" /> {dict.swipe.filters}
+              </Button>
+            </div>
           </EmptyState>
         )}
         {top && (

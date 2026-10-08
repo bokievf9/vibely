@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Flag, LogOut } from 'lucide-react'
+import { Flag, LogOut, SkipForward } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { fmt } from '@/i18n/config'
@@ -16,12 +16,13 @@ type Props = {
   pending: boolean
   onReveal: () => void
   onEnd: () => Promise<void>
+  onNext: () => void
 }
 
 // Who you're talking to, shared interests, reveal consent, report and end.
-export function SessionBar({ session, active, pending, onReveal, onEnd }: Props) {
+export function SessionBar({ session, active, pending, onReveal, onEnd, onNext }: Props) {
   const { dict } = useI18n()
-  const [dialog, setDialog] = useState<'end' | 'report' | null>(null)
+  const [dialog, setDialog] = useState<'end' | 'next' | 'report' | null>(null)
 
   return (
     <>
@@ -36,6 +37,16 @@ export function SessionBar({ session, active, pending, onReveal, onEnd }: Props)
           >
             <Flag className="size-5" />
           </Button>
+          {active && (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={dict.random.skip}
+              onClick={() => setDialog('next')}
+            >
+              <SkipForward className="size-5" />
+            </Button>
+          )}
           {active && (
             <Button
               size="icon"
@@ -69,6 +80,20 @@ export function SessionBar({ session, active, pending, onReveal, onEnd }: Props)
             }}
           >
             {dict.random.end}
+          </Button>
+        </div>
+      </Modal>
+      <Modal open={dialog === 'next'} onClose={() => setDialog(null)} title={dict.random.skip}>
+        <div className="flex flex-col gap-4">
+          <p>{dict.random.skipConfirm}</p>
+          <Button
+            fullWidth
+            onClick={() => {
+              setDialog(null)
+              onNext()
+            }}
+          >
+            <SkipForward className="size-5" /> {dict.random.next}
           </Button>
         </div>
       </Modal>

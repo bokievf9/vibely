@@ -6,7 +6,8 @@ import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { getViewer } from '@/features/auth/session'
-import type { ChatMessage } from './types'
+import { MESSAGE_COLUMNS, toChatMessage } from './message-row'
+import type { ChatMessage, MessagePage } from './types'
 
 const messageSchema = z.object({
   matchId: z.uuid(),
@@ -33,10 +34,10 @@ export async function sendMessage(input: {
   const { data, error } = await supabase
     .from('messages')
     .insert({ match_id: parsed.data.matchId, body })
-    .select('id, body, sender_id, created_at')
+    .select(MESSAGE_COLUMNS)
     .single()
   if (error) return fail('generic')
-  return ok({ id: data.id, body: data.body, senderId: data.sender_id, createdAt: data.created_at })
+  return ok(toChatMessage(data))
 }
 
 export async function markRead(matchId: string): Promise<void> {
@@ -71,17 +72,39 @@ export async function loadMessagesAfter(
   const supabase = await createClient()
   let query = supabase
     .from('messages')
-    .select('id, body, sender_id, created_at')
+    .select(MESSAGE_COLUMNS)
     .eq('match_id', id.data)
     .order('created_at')
     .limit(200)
   if (after && z.iso.datetime({ offset: true }).safeParse(after).success)
     query = query.gt('created_at', after)
   const { data } = await query
-  return (data ?? []).map((m) => ({
-    id: m.id,
-    body: m.body,
-    senderId: m.sender_id,
-    createdAt: m.created_at,
-  }))
+  return (data ?? []).map(toChatMessage)
+}
+
+const PAGE_SIZE = 50
+
+const beforeSchema = z.object({ matchId: z.uuid(), before: z.iso.datetime({ offset: true }) })
+
+// Older history for "load earlier messages": the page right before the oldest loaded message.
+// RLS limits rows to the caller's own matches.
+export async function loadMessagesBefore(input: {
+  matchId: string
+  before: string
+}): Promise<UserResult<MessagePage>> {
+  const parsed = beforeSchema.safeParse(input)
+  if (!parsed.success) return fail('invalidInput')
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('messages')
+    .select(MESSAGE_COLUMNS)
+    .eq('match_id', parsed.data.matchId)
+    .lt('created_at', parsed.data.before)
+    .order('created_at', { ascending: false })
+    .limit(PAGE_SIZE + 1)
+  if (error) return fail('generic')
+  return ok({
+    messages: data.slice(0, PAGE_SIZE).reverse().map(toChatMessage),
+    hasMore: data.length > PAGE_SIZE,
+  })
 }

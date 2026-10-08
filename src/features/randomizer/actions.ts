@@ -115,3 +115,11 @@ export async function endRandom(sessionId: string): Promise<void> {
   const supabase = await createClient()
   await supabase.rpc('randomizer_end', { p_session_id: sessionId })
 }
+
+// How many other people are waiting in the queue right now (counts only, no identities).
+export async function getRandomStats(): Promise<number> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('randomizer_stats')
+  const count = z.number().int().nonnegative().safeParse(data)
+  return count.success ? count.data : 0
+}

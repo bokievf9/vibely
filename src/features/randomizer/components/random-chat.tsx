@@ -35,6 +35,7 @@ export function RandomChat({ userId, tags, defaults, initialSession, initialMess
   const { dict } = useI18n()
   const errorText = useErrorText()
   const [stage, setStage] = useState<Stage>(initialSession ? 'chat' : 'filters')
+  const [filters, setFilters] = useState(defaults)
   const [session, setSession] = useState(initialSession)
   const [messages, setMessages] = useState(initialMessages)
   const [partnerTyping, setPartnerTyping] = useState(false)
@@ -68,19 +69,25 @@ export function RandomChat({ userId, tags, defaults, initialSession, initialMess
       if (from !== session?.mySide) setSession((s) => s && { ...s, partnerRevealed: true })
     },
     onRevealed: () => void refresh(),
-    onEnded: () => setStage('ended'),
+    // Only an open chat can end; a late signal must not interrupt the next search.
+    onEnded: () => setStage((s) => (s === 'chat' ? 'ended' : s)),
   })
 
   useEffect(() => () => clearTimeout(typingTimer.current), [])
 
-  const start = (filters: JoinFilters) =>
-    startTransition(async () => {
-      const result = await joinRandom(filters)
-      if (!result.ok) return setError(result.error)
-      setError(undefined)
-      if (result.data) await enterChat(result.data)
-      else setStage('waiting')
-    })
+  const join = async (f: JoinFilters) => {
+    setFilters(f)
+    const result = await joinRandom(f)
+    if (!result.ok) {
+      setStage('filters')
+      return setError(result.error)
+    }
+    setError(undefined)
+    if (result.data) await enterChat(result.data)
+    else setStage('waiting')
+  }
+
+  const start = (f: JoinFilters) => startTransition(() => join(f))
 
   const reveal = () =>
     startTransition(async () => {
@@ -94,17 +101,31 @@ export function RandomChat({ userId, tags, defaults, initialSession, initialMess
     setStage('ended')
   }
 
-  const restart = () => {
+  const reset = () => {
     setSession(null)
     setMessages([])
+    setPartnerTyping(false)
+  }
+
+  const restart = () => {
+    reset()
     setStage('filters')
   }
+
+  // Ends the current chat (if still active) and re-joins right away with the same filters.
+  const next = () =>
+    startTransition(async () => {
+      if (stage === 'chat' && session) await endRandom(session.id)
+      reset()
+      setStage('waiting')
+      await join(filters)
+    })
 
   if (stage === 'filters') {
     return (
       <RandomFilters
         tags={tags}
-        initial={defaults}
+        initial={filters}
         pending={pending}
         error={errorText(error)}
         onStart={start}
@@ -130,12 +151,20 @@ export function RandomChat({ userId, tags, defaults, initialSession, initialMess
           pending={pending}
           onReveal={reveal}
           onEnd={end}
+          onNext={next}
         />
       )}
       {stage === 'ended' && (
         <div className="bg-surface flex flex-col items-center gap-3 rounded-2xl p-4 text-center">
           <p>{dict.random.ended}</p>
-          <Button onClick={restart}>{dict.random.next}</Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button loading={pending} onClick={next}>
+              {dict.random.next}
+            </Button>
+            <Button variant="secondary" onClick={restart}>
+              {dict.random.changeFilters}
+            </Button>
+          </div>
         </div>
       )}
       {session && (
