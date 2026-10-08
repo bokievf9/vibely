@@ -1,3 +1,4 @@
+import { callsLegal } from './calls'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -49,6 +50,9 @@ export const ms: LegalContent = {
           'Sembang rawak adalah tanpa nama sehingga kedua-dua pihak bersetuju untuk mendedahkan profil. Mesej sembang rawak disimpan selama 30 hari dan kemudian dipadam secara automatik. Jika sesuatu sembang dilaporkan, ia disimpan selama yang diperlukan oleh moderator untuk mengendalikan laporan itu.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ms.privacy,
+      // --- end calls ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -156,6 +160,9 @@ export const ms: LegalContent = {
           'Semakan swafoto mengurangkan profil palsu, tetapi kami tidak dapat menjamin identiti atau tingkah laku seseorang. Berjumpa orang baharu di tempat awam, beritahu rakan ke mana anda pergi dan jangan sekali-kali menghantar wang kepada orang yang anda kenali dalam talian. Gunakan Lapor dan Sekat apabila sesuatu terasa tidak kena.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.ms.terms,
+      // --- end calls ---
       {
         heading: '6. Moderasi',
         paragraphs: [

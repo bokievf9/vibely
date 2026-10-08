@@ -16,4 +16,7 @@ export default serwist({
     revision,
   })),
   globIgnores: ['public/sw.js.map'],
+  // Keeps the on-demand calls chunk (livekit-client, ~570 KB) out of every user's precache: it is
+  // fetched only when a call starts. App chunks stay well below this size.
+  maximumFileSizeToCacheInBytes: 400 * 1024,
 })

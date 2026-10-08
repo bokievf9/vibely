@@ -56,6 +56,109 @@ export type Database = {
           },
         ]
       }
+      call_permissions: {
+        Row: {
+          allowed_at: string
+          match_id: string
+          user_id: string
+        }
+        Insert: {
+          allowed_at?: string
+          match_id: string
+          user_id: string
+        }
+        Update: {
+          allowed_at?: string
+          match_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'call_permissions_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'call_permissions_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      calls: {
+        Row: {
+          answered_at: string | null
+          callee_id: string | null
+          caller_id: string | null
+          egress_id: string | null
+          ended_at: string | null
+          id: string
+          kind: Database['public']['Enums']['call_kind']
+          match_id: string | null
+          recording_bytes: number | null
+          recording_path: string | null
+          recording_status: Database['public']['Enums']['call_recording_status']
+          started_at: string
+          status: Database['public']['Enums']['call_status']
+        }
+        Insert: {
+          answered_at?: string | null
+          callee_id?: string | null
+          caller_id?: string | null
+          egress_id?: string | null
+          ended_at?: string | null
+          id?: string
+          kind: Database['public']['Enums']['call_kind']
+          match_id?: string | null
+          recording_bytes?: number | null
+          recording_path?: string | null
+          recording_status?: Database['public']['Enums']['call_recording_status']
+          started_at?: string
+          status?: Database['public']['Enums']['call_status']
+        }
+        Update: {
+          answered_at?: string | null
+          callee_id?: string | null
+          caller_id?: string | null
+          egress_id?: string | null
+          ended_at?: string | null
+          id?: string
+          kind?: Database['public']['Enums']['call_kind']
+          match_id?: string | null
+          recording_bytes?: number | null
+          recording_path?: string | null
+          recording_status?: Database['public']['Enums']['call_recording_status']
+          started_at?: string
+          status?: Database['public']['Enums']['call_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'calls_callee_id_fkey'
+            columns: ['callee_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'calls_caller_id_fkey'
+            columns: ['caller_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'calls_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       comments: {
         Row: {
           alias_no: number
@@ -520,6 +623,7 @@ export type Database = {
           banned_at: string | null
           bio: string | null
           birth_date: string
+          calls_consent_at: string | null
           children: Database['public']['Enums']['children_plan'] | null
           city: string | null
           created_at: string
@@ -549,6 +653,7 @@ export type Database = {
           banned_at?: string | null
           bio?: string | null
           birth_date: string
+          calls_consent_at?: string | null
           children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
@@ -578,6 +683,7 @@ export type Database = {
           banned_at?: string | null
           bio?: string | null
           birth_date?: string
+          calls_consent_at?: string | null
           children?: Database['public']['Enums']['children_plan'] | null
           city?: string | null
           created_at?: string
@@ -989,6 +1095,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_calls_notice: { Args: never; Returns: string }
       admin_delete_photo: {
         Args: { p_admin: string; p_photo: string; p_reason: string }
         Returns: string
@@ -1004,6 +1111,10 @@ export type Database = {
           phone: string
           verification_status: Database['public']['Enums']['verification_status']
         }[]
+      }
+      admin_open_call_recording: {
+        Args: { p_admin: string; p_call: string; p_reason?: string }
+        Returns: string
       }
       admin_resolve_reports: {
         Args: {
@@ -1047,8 +1158,21 @@ export type Database = {
         Returns: undefined
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      answer_call: {
+        Args: { p_call: string }
+        Returns: Database['public']['Enums']['call_status']
+      }
       array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
+      call_recordings_to_purge: {
+        Args: { p_limit?: number }
+        Returns: { call_id: string; recording_path: string }[]
+      }
+      call_settings: {
+        Args: { p_match: string }
+        Returns: { consented: boolean; me_allowed: boolean; partner_allowed: boolean }[]
+      }
+      call_under_open_report: { Args: { a: string; b: string }; Returns: boolean }
       can_view_profile: { Args: { target: string }; Returns: boolean }
       chat_media_match: { Args: { object_name: string }; Returns: string }
       create_comment: {
@@ -1058,6 +1182,10 @@ export type Database = {
       create_post: { Args: { p_body: string }; Returns: string }
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
       delete_message: { Args: { p_id: string }; Returns: string }
+      end_call: {
+        Args: { p_call: string }
+        Returns: Database['public']['Enums']['call_status']
+      }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
       edit_message: { Args: { p_body: string; p_id: string }; Returns: string }
       ensure_match: {
@@ -1125,6 +1253,11 @@ export type Database = {
       is_malaysian_mobile: { Args: { phone: string }; Returns: boolean }
       is_match_participant: { Args: { m: string }; Returns: boolean }
       is_verified: { Args: never; Returns: boolean }
+      expire_stale_calls: { Args: never; Returns: undefined }
+      finish_call: {
+        Args: { p_call: string }
+        Returns: Database['public']['Enums']['call_status']
+      }
       log_moderation: {
         Args: {
           p_action: string
@@ -1135,7 +1268,9 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_call_recordings_purged: { Args: { p_ids: string[] }; Returns: number }
       match_partner_last_seen: { Args: { p_match: string }; Returns: string }
+      purge_old_calls: { Args: never; Returns: number }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
@@ -1156,15 +1291,26 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      set_call_permission: {
+        Args: { p_allowed: boolean; p_match: string }
+        Returns: undefined
+      }
       set_message_reaction: {
         Args: { p_emoji: string; p_message: string }
         Returns: undefined
+      }
+      start_call: {
+        Args: { p_kind: Database['public']['Enums']['call_kind']; p_match: string }
+        Returns: string
       }
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
       touch_last_active: { Args: never; Returns: undefined }
       unread_message_count: { Args: never; Returns: number }
     }
     Enums: {
+      call_kind: 'audio' | 'video'
+      call_recording_status: 'none' | 'pending' | 'recording' | 'ready' | 'failed' | 'purged'
+      call_status: 'ringing' | 'active' | 'ended' | 'missed' | 'declined'
       children_plan: 'have' | 'want' | 'dont_want' | 'not_sure'
       education_level: 'secondary' | 'diploma' | 'bachelor' | 'master' | 'phd' | 'other'
       gender: 'male' | 'female' | 'other'
@@ -1320,6 +1466,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      call_kind: ['audio', 'video'],
+      call_recording_status: ['none', 'pending', 'recording', 'ready', 'failed', 'purged'],
+      call_status: ['ringing', 'active', 'ended', 'missed', 'declined'],
       children_plan: ['have', 'want', 'dont_want', 'not_sure'],
       education_level: ['secondary', 'diploma', 'bachelor', 'master', 'phd', 'other'],
       gender: ['male', 'female', 'other'],

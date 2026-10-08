@@ -1,3 +1,4 @@
+import { callsLegal } from './calls'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -46,6 +47,9 @@ export const en: LegalContent = {
           'Random chats are anonymous until both people agree to reveal their profiles. Random chat messages are kept for 30 days and then deleted automatically. If a chat is reported, it is kept for as long as moderators need it to handle the report.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.en.privacy,
+      // --- end calls ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -153,6 +157,9 @@ export const en: LegalContent = {
           'Selfie checks reduce fake profiles, but we cannot guarantee who someone is or how they will behave. Meet new people in public places, tell a friend where you are going and never send money to someone you met online. Use Report and Block whenever something feels wrong.',
         ],
       },
+      // --- calls & recording (src/features/legal/content/calls.ts) ---
+      callsLegal.en.terms,
+      // --- end calls ---
       {
         heading: '6. Moderation',
         paragraphs: [

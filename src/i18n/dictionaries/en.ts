@@ -1,4 +1,5 @@
 import { aboutEn } from './about/en'
+import { callErrorsEn, callsEn } from './calls/en'
 import { landingEn } from './landing/en'
 import { tagCategoriesEn, tagsEn } from './tags/en'
 
@@ -16,6 +17,7 @@ export const en = {
     back: 'Back',
   },
   errors: {
+    ...callErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -310,6 +312,7 @@ export const en = {
     deleteConfirm: 'Delete forever',
   },
   about: aboutEn,
+  calls: callsEn,
   pwa: {
     installTitle: 'Install Vibely',
     installText: 'Add Vibely to your home screen: full-screen app and notifications.',

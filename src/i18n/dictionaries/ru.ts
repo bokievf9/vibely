@@ -1,4 +1,5 @@
 import { aboutRu } from './about/ru'
+import { callErrorsRu, callsRu } from './calls/ru'
 import type { Dictionary } from './en'
 import { landingRu } from './landing/ru'
 import { tagCategoriesRu, tagsRu } from './tags/ru'
@@ -17,6 +18,7 @@ export const ru: Dictionary = {
     back: 'Назад',
   },
   errors: {
+    ...callErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -312,6 +314,7 @@ export const ru: Dictionary = {
     deleteConfirm: 'Удалить навсегда',
   },
   about: aboutRu,
+  calls: callsRu,
   pwa: {
     installTitle: 'Установите Vibely',
     installText: 'Добавьте Vibely на главный экран: полноэкранное приложение и уведомления.',

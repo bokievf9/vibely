@@ -14,7 +14,11 @@ const DAY = 24 * 60 * 60
 
 // Sends to every device of a user, each in the language it subscribed with.
 // Expired subscriptions (404/410 from the push service) are removed.
-export async function sendToUser(userId: string, build: Build): Promise<void> {
+export async function sendToUser(
+  userId: string,
+  build: Build,
+  options: { ttl?: number } = {},
+): Promise<void> {
   const env = getPushEnv()
   if (!env) return
   const admin = createAdminClient()
@@ -38,7 +42,7 @@ export async function sendToUser(userId: string, build: Build): Promise<void> {
         await sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify(payload),
-          { vapidDetails, TTL: DAY, urgency: 'high', timeout: 10_000 },
+          { vapidDetails, TTL: options.ttl ?? DAY, urgency: 'high', timeout: 10_000 },
         )
       } catch (e) {
         if (e instanceof WebPushError && (e.statusCode === 404 || e.statusCode === 410)) {

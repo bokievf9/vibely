@@ -17,6 +17,8 @@ Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и un
 `shared/.env.production`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`.
+Звонки (опционально, см. `docs/calls.md`): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+`CALLS_PURGE_SECRET`, `RECORDINGS_S3_*`.
 
 Ручной откат: `ln -sfn /var/www/vibely/releases/<id> /var/www/vibely/current && pm2 restart vibely`.
 

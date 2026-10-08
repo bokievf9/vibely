@@ -1,4 +1,5 @@
 import { aboutMs } from './about/ms'
+import { callErrorsMs, callsMs } from './calls/ms'
 import type { Dictionary } from './en'
 import { landingMs } from './landing/ms'
 import { tagCategoriesMs, tagsMs } from './tags/ms'
@@ -17,6 +18,7 @@ export const ms: Dictionary = {
     back: 'Kembali',
   },
   errors: {
+    ...callErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -315,6 +317,7 @@ export const ms: Dictionary = {
     deleteConfirm: 'Padam selama-lamanya',
   },
   about: aboutMs,
+  calls: callsMs,
   pwa: {
     installTitle: 'Pasang Vibely',
     installText: 'Tambah Vibely ke skrin utama: aplikasi skrin penuh dan pemberitahuan.',
