@@ -1,0 +1,43 @@
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      HEALTH_URL: https://vibelydate.com/api/health
+      # Optional repo secrets; the alert step is skipped when they are not set.
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+    steps:
+      - name: Check /api/health (3 attempts)
+        id: check
+        run: |
+          for attempt in 1 2 3; do
+            status=$(curl -sS -o body.txt -w '%{http_code}' --max-time 15 "$HEALTH_URL") || status=000
+            echo "Attempt $attempt: HTTP $status $(head -c 200 body.txt 2>/dev/null)"
+            if [ "$status" = "200" ]; then exit 0; fi
+            [ "$attempt" -lt 3 ] && sleep 20
+          done
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Telegram alert
+        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_ALERT_CHAT_ID != ''
+        run: |
+          text="Vibely is DOWN: $HEALTH_URL returned HTTP ${{ steps.check.outputs.status || 'error' }} 3 times. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -sS --max-time 15 -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
+            --data-urlencode "text=${text}" > /dev/null

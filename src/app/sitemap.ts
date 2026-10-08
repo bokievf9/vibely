@@ -1,13 +1,29 @@
 import type { MetadataRoute } from 'next'
-import { LOCALES } from '@/i18n/config'
+import { LOCALES, localePath } from '@/i18n/config'
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibelydate.com'
 
+// Public pages only: landing, sign-in, privacy policy and terms, in every locale.
+const PAGES: {
+  path: string
+  priority: number
+  changeFrequency: 'weekly' | 'monthly' | 'yearly'
+}[] = [
+  { path: '/', priority: 1, changeFrequency: 'weekly' },
+  { path: '/login', priority: 0.6, changeFrequency: 'monthly' },
+  { path: '/privacy', priority: 0.3, changeFrequency: 'yearly' },
+  { path: '/terms', priority: 0.3, changeFrequency: 'yearly' },
+]
+
+const url = (locale: (typeof LOCALES)[number], path: string) => `${SITE}${localePath(locale, path)}`
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  return LOCALES.map((locale) => ({
-    url: `${SITE}/${locale}/login`,
-    changeFrequency: 'monthly',
-    priority: locale === 'en' ? 1 : 0.8,
-    alternates: { languages: Object.fromEntries(LOCALES.map((l) => [l, `${SITE}/${l}/login`])) },
-  }))
+  return PAGES.flatMap(({ path, priority, changeFrequency }) =>
+    LOCALES.map((locale) => ({
+      url: url(locale, path),
+      changeFrequency,
+      priority: locale === 'en' ? priority : Math.round(priority * 8) / 10,
+      alternates: { languages: Object.fromEntries(LOCALES.map((l) => [l, url(l, path)])) },
+    })),
+  )
 }

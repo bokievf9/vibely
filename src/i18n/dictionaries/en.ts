@@ -1,5 +1,8 @@
+import { landingEn } from './landing/en'
+
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and random chats.' },
+  landing: landingEn,
   common: {
     continue: 'Continue',
     save: 'Save',
@@ -47,6 +50,7 @@ export const en = {
     messageTooLong: 'The message is too long',
     reasonTooShort: 'Describe the problem (at least 3 characters)',
     alreadyReported: 'You have already reported this',
+    captchaFailed: 'Security check failed. Please try again.',
   },
   gender: { male: 'Man', female: 'Woman', other: 'Other' },
   auth: {

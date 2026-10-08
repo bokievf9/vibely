@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
 import { useErrorText, useI18n, useLocaleRouter } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { track } from '@/lib/analytics'
 import { getBrowserClient } from '@/lib/supabase/client'
 import type { ChallengeId } from '../challenges'
 import { startVerification, submitVerification } from '../actions'
@@ -59,6 +60,7 @@ export function SelfieCapture({ userId }: { userId: string }) {
       if (uploadError) return setError('selfieFailed')
       const result = await submitVerification({ path })
       if (!result.ok) return setError(result.error)
+      track('selfie_submitted')
       router.refresh()
     })
 

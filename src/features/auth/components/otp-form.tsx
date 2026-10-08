@@ -1,13 +1,16 @@
 'use client'
 
-import { useActionState, useEffect, useState, useTransition } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, FormError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { track } from '@/lib/analytics'
+import { turnstileSiteKey } from '@/lib/env.optional'
 import { resendOtp, verifyOtp, type AuthFormState } from '../actions'
+import { Turnstile, type TurnstileHandle } from './turnstile'
 
 const RESEND_COOLDOWN_S = 60
 
@@ -18,6 +21,11 @@ export function OtpForm({ phone }: { phone: string }) {
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_S)
   const [resendError, setResendError] = useState<ErrorKey>()
   const [resending, startResend] = useTransition()
+  const [captchaToken, setCaptchaToken] = useState('')
+  const captcha = useRef<TurnstileHandle>(null)
+
+  // Reaching this screen means the SMS went out.
+  useEffect(() => track('signup_otp_sent'), [])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -27,7 +35,8 @@ export function OtpForm({ phone }: { phone: string }) {
 
   const resend = () =>
     startResend(async () => {
-      const result = await resendOtp()
+      const result = await resendOtp(captchaToken || undefined)
+      captcha.current?.reset()
       setResendError(result.ok ? undefined : result.error)
       if (result.ok) setCooldown(RESEND_COOLDOWN_S)
     })
@@ -53,6 +62,14 @@ export function OtpForm({ phone }: { phone: string }) {
         />
       </Field>
       <FormError message={error} />
+      {turnstileSiteKey && (
+        <Turnstile
+          ref={captcha}
+          siteKey={turnstileSiteKey}
+          action="resend_otp"
+          onToken={setCaptchaToken}
+        />
+      )}
       <Button type="submit" loading={pending} fullWidth>
         {dict.auth.confirm}
       </Button>

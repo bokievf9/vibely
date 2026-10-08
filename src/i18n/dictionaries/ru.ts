@@ -1,7 +1,9 @@
 import type { Dictionary } from './en'
+import { landingRu } from './landing/ru'
 
 export const ru: Dictionary = {
   meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
+  landing: landingRu,
   common: {
     continue: 'Продолжить',
     save: 'Сохранить',
@@ -49,6 +51,7 @@ export const ru: Dictionary = {
     messageTooLong: 'Сообщение слишком длинное',
     reasonTooShort: 'Опишите проблему (минимум 3 символа)',
     alreadyReported: 'Вы уже пожаловались на это',
+    captchaFailed: 'Проверка безопасности не пройдена. Попробуйте ещё раз.',
   },
   gender: { male: 'Мужчина', female: 'Женщина', other: 'Другое' },
   auth: {

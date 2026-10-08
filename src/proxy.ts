@@ -7,7 +7,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets, images, PWA files and metadata routes.
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|apple-icon.png|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    // Skip static assets, images, PWA files, metadata routes and the uptime health check.
+    '/((?!api/health$|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|apple-icon.png|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

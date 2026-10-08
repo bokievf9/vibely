@@ -1,5 +1,8 @@
 import type { NextConfig } from 'next'
+import { buildCsp } from './src/lib/csp'
+import { analyticsConfig } from './src/lib/env.optional'
 
+const isProd = process.env.NODE_ENV === 'production'
 const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321')
 
 const securityHeaders = [
@@ -8,9 +11,15 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   // Camera is needed for selfie verification, geolocation for distance filters.
   { key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=()' },
-  // Served over HTTPS only (Certbot on Nginx).
-  ...(process.env.NODE_ENV === 'production'
-    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]
+  // Production only: served over HTTPS (Certbot on Nginx); dev needs HMR/eval. See src/lib/csp.ts.
+  ...(isProd
+    ? [
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+        {
+          key: 'Content-Security-Policy',
+          value: buildCsp({ supabaseUrl: supabaseUrl.href, analyticsSrc: analyticsConfig?.src }),
+        },
+      ]
     : []),
 ]
 
