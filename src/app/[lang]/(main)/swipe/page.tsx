@@ -2,6 +2,9 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { DiscoverSkeleton } from '@/features/swipe/components/deck-skeleton'
 import { getViewer } from '@/features/auth/session'
+import { CrossedPathsStrip } from '@/features/crossed-paths/components/crossed-paths-strip'
+import { PlanButton } from '@/features/plans/components/plan-picker'
+import { getOwnPlan } from '@/features/plans/queries'
 import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
@@ -22,7 +25,9 @@ export default function SwipePage() {
 
 async function Deck() {
   const viewer = await getViewer()
-  const profile = viewer && (await getOwnProfile(viewer.id))
+  const [profile, plan] = viewer
+    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id)])
+    : [null, undefined]
   // Until the user changes filters, show who they said they're interested in.
   return (
     <SwipeDeck
@@ -32,8 +37,11 @@ async function Deck() {
         maxAge: 45,
         maxKm: 50,
       }}
+      aboveDeck={<CrossedPathsStrip />}
+      plansAvailable={plan !== undefined}
       headerActions={
         <>
+          {plan !== undefined && <PlanButton initial={plan} variant="icon" />}
           <SearchButton />
           <Suspense fallback={null}>
             <LikesButton />

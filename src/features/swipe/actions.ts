@@ -7,6 +7,7 @@ import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import { notifyNewLike, notifyNewMatch } from '@/features/push/send'
+import { asPlanTag } from '@/features/plans/tags'
 import { getVipIds } from '@/features/promo/queries'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
 
@@ -16,14 +17,22 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
   const parsed = filtersSchema.safeParse(filters)
   if (!parsed.success) return fail('invalidInput')
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('get_swipe_candidates', {
+  const args = {
     p_genders: parsed.data.genders,
     p_min_age: parsed.data.minAge,
     p_max_age: parsed.data.maxAge,
     p_max_km: parsed.data.maxKm,
     p_limit: 20,
-  })
-  if (error) return fail(error.code === '42501' ? 'unauthorized' : 'generic')
+  }
+  let { data, error } = await supabase.rpc(
+    'get_swipe_candidates',
+    parsed.data.similarPlans ? { ...args, p_similar_plans: true } : args,
+  )
+  // PGRST202: the database predates p_similar_plans (migration 20261009000200): plain order.
+  if (error?.code === 'PGRST202' && parsed.data.similarPlans) {
+    ;({ data, error } = await supabase.rpc('get_swipe_candidates', args))
+  }
+  if (error || !data) return fail(error?.code === '42501' ? 'unauthorized' : 'generic')
 
   const photosById = new Map(data.map((c) => [c.id, storedPhotos.catch([]).parse(c.photos)]))
   const [urls, vips] = await Promise.all([
@@ -47,6 +56,8 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
       about: aboutFromRow(c),
       prompts: parsePrompts(c.prompts),
       secondChance: c.second_chance,
+      // Absent before the migration: no badge.
+      plan: asPlanTag(c.plan),
       vip: vips.has(c.id),
     })),
   )

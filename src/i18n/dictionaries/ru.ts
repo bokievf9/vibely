@@ -15,6 +15,7 @@ import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
 import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
+import { crossedRu, plansRu } from './nearby/ru'
 import { promoRu, promoErrorsRu } from './promo/ru'
 
 export const ru: Dictionary = {
@@ -395,5 +396,7 @@ export const ru: Dictionary = {
   flows: flowsRu,
   reports: reportsRu,
   sanctions: sanctionsRu,
+  crossed: crossedRu,
+  plans: plansRu,
   promo: promoRu,
 }

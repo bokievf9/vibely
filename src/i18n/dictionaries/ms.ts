@@ -15,6 +15,7 @@ import { flowsMs } from './flowsui/ms'
 import { reportsMs } from './reports/ms'
 import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
+import { crossedMs, plansMs } from './nearby/ms'
 import { promoMs, promoErrorsMs } from './promo/ms'
 
 export const ms: Dictionary = {
@@ -397,5 +398,7 @@ export const ms: Dictionary = {
   flows: flowsMs,
   reports: reportsMs,
   sanctions: sanctionsMs,
+  crossed: crossedMs,
+  plans: plansMs,
   promo: promoMs,
 }

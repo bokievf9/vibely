@@ -14,6 +14,7 @@ import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
 import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
+import { crossedEn, plansEn } from './nearby/en'
 import { promoEn, promoErrorsEn } from './promo/en'
 
 export const en = {
@@ -390,6 +391,8 @@ export const en = {
   flows: flowsEn,
   reports: reportsEn,
   sanctions: sanctionsEn,
+  crossed: crossedEn,
+  plans: plansEn,
   promo: promoEn,
 }
 

@@ -8,6 +8,8 @@ import { PasswordSettingsRows } from '@/features/auth/components/password-settin
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { getHasPassword } from '@/features/auth/password-queries'
 import { getViewer } from '@/features/auth/session'
+import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
+import { CrossedPathsToggle } from '@/features/crossed-paths/components/crossed-paths-toggle'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { PushToggle } from '@/features/push/components/push-toggle'
@@ -50,12 +52,13 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword, vip] = await Promise.all([
+  const [privacy, prefs, blocked, username, hasPassword, crossed, vip] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
     getUsernameSettings(),
     getHasPassword(),
+    crossedPathsEnabled(),
     // Null until the promo migration (20261009000230) is applied: the row is hidden then.
     getVipStatus(),
   ])
@@ -80,6 +83,7 @@ async function Settings() {
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
+        {crossed !== null && <CrossedPathsToggle initial={crossed} />}
       </SettingsSection>
       {vip && (
         <SettingsSection title={dict.promo.section}>

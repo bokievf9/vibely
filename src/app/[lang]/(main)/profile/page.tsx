@@ -5,6 +5,8 @@ import { ChevronRight, Pencil, Settings } from 'lucide-react'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { getViewer } from '@/features/auth/session'
+import { PlanButton } from '@/features/plans/components/plan-picker'
+import { getOwnPlan } from '@/features/plans/queries'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { CompletenessNudge } from '@/features/profile/components/completeness-nudge'
 import { OwnProfileHeader } from '@/features/profile/components/own-profile-header'
@@ -44,13 +46,18 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags, vip] = await Promise.all([
+  const [photos, profile, tags, plan, vip] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
+    getOwnPlan(viewer.id),
     getVipStatus(),
   ])
-  const card = profile && { ...ownCandidate(viewer.id, profile, photos, tags), vip: vip?.isVip }
+  const card = profile && {
+    ...ownCandidate(viewer.id, profile, photos, tags),
+    plan: plan?.tag,
+    vip: vip?.isVip,
+  }
 
   return (
     <div className="flex flex-col gap-7 px-4 pb-8">
@@ -74,6 +81,7 @@ async function OwnProfile() {
             <span className="min-w-0 flex-1 truncate">{dict.profile.edit}</span>
             <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
           </Link>
+          {plan !== undefined && <PlanButton initial={plan} variant="row" />}
           {card && <ProfilePreview candidate={card} />}
         </div>
       </section>
