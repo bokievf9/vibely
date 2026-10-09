@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useSyncExternalStore, useTransition } from 'react'
-import { ArrowRight, CalendarHeart, X } from 'lucide-react'
+import { ArrowRight, Bell, BellRing, CalendarHeart, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { fmt } from '@/i18n/config'
@@ -24,8 +24,42 @@ type CardProps = {
   className?: string
 }
 
+// "Remind me" on/off with an optimistic flip; the server's answer wins.
+function useRemind(event: CurrentEvent, setReminded: (on: boolean) => void) {
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<ErrorKey>()
+  const toggle = () => {
+    const next = !event.reminded
+    setReminded(next)
+    startTransition(async () => {
+      const result = await remindEvent(event.id, next)
+      if (!result.ok) {
+        setReminded(!next)
+        setError(result.error)
+      } else setError(undefined)
+    })
+  }
+  return { toggle, pending, error }
+}
+
+type CountdownDict = {
+  in: string
+  days: string
+  hours: string
+  minutes: string
+  startingNow: string
+}
+const countdownText = (msLeft: number, t: CountdownDict) =>
+  formatCountdown(msLeft, {
+    in: t.in,
+    days: t.days,
+    hours: t.hours,
+    minutes: t.minutes,
+    startingNow: t.startingNow,
+  })
+
 // Presentational countdown / live card for a Blind Dating Night (state comes from
-// useCurrentEvent, owned by the screen that renders it).
+// useCurrentEvent, owned by the screen that renders it). Blind date start screen.
 export function EventCard({
   event,
   live,
@@ -38,28 +72,8 @@ export function EventCard({
   const { dict, locale } = useI18n()
   const t = dict.events
   const errorText = useErrorText()
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<ErrorKey>()
-
-  const toggleRemind = () => {
-    const next = !event.reminded
-    setReminded(next)
-    startTransition(async () => {
-      const result = await remindEvent(event.id, next)
-      if (!result.ok) {
-        setReminded(!next)
-        setError(result.error)
-      } else setError(undefined)
-    })
-  }
-
-  const countdown = formatCountdown(msLeft, {
-    in: t.in,
-    days: t.days,
-    hours: t.hours,
-    minutes: t.minutes,
-    startingNow: t.startingNow,
-  })
+  const { toggle: toggleRemind, pending, error } = useRemind(event, setReminded)
+  const countdown = countdownText(msLeft, t)
 
   return (
     <section
@@ -132,6 +146,85 @@ export function EventCard({
   )
 }
 
+const stripAction =
+  'text-accent active:bg-accent/10 text-callout relative flex h-9 shrink-0 items-center gap-1 rounded-full px-2.5 font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-1 active:scale-[0.96] disabled:opacity-60'
+
+// Discover: the same night as one compact row (title, countdown or people in the room, one
+// action, hide), so the deck below keeps its room and never scrolls.
+function EventStrip({ event, live, msLeft, setReminded, onEnter, onHide, className }: CardProps) {
+  const { dict, locale } = useI18n()
+  const t = dict.events
+  const errorText = useErrorText()
+  const { toggle: toggleRemind, pending, error } = useRemind(event, setReminded)
+  // The least important part comes last: when the row is tight it is what gets cut.
+  const line = live
+    ? `${peopleInRoom(event.inRoom, t)} · ${t.liveNow}`
+    : `${fmt(t.startsIn, { time: countdownText(msLeft, t) })} · ${t.kicker}`
+  return (
+    <section
+      aria-label={t.kicker}
+      className={cn(
+        'card animate-rise flex items-center gap-2.5 rounded-2xl py-2 pr-1 pl-2.5',
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn('icon-tile', live ? 'btn-accent' : 'bg-accent/15 text-accent')}
+      >
+        <CalendarHeart className="size-4" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-callout truncate leading-tight font-semibold">
+          {event.title[locale]}
+        </span>
+        <span
+          className={cn(
+            'text-footnote flex min-w-0 items-center gap-1.5',
+            error ? 'text-danger' : 'text-muted',
+          )}
+        >
+          {live && !error && <LiveDot />}
+          <span className="truncate">{error ? errorText(error) : line}</span>
+        </span>
+      </span>
+      {live ? (
+        <button type="button" onClick={onEnter} className={stripAction}>
+          {t.enter} <ArrowRight className="size-4" aria-hidden />
+        </button>
+      ) : (
+        // Icon only (the row has no room for a label in Russian or Malay); the full card on the
+        // Blind date screen has the labelled switch.
+        <button
+          type="button"
+          onClick={toggleRemind}
+          disabled={pending}
+          aria-pressed={event.reminded}
+          aria-label={event.reminded ? t.reminded : t.remind}
+          title={event.reminded ? t.reminded : t.remind}
+          className={cn(stripAction, 'w-9 justify-center px-0', event.reminded && 'bg-accent/12')}
+        >
+          {event.reminded ? (
+            <BellRing className="size-[1.125rem]" aria-hidden />
+          ) : (
+            <Bell className="size-[1.125rem]" aria-hidden />
+          )}
+        </button>
+      )}
+      {onHide && (
+        <button
+          type="button"
+          aria-label={t.hide}
+          onClick={onHide}
+          className="text-muted active:bg-fill flex size-8 shrink-0 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
+        >
+          <X className="size-4" aria-hidden />
+        </button>
+      )}
+    </section>
+  )
+}
+
 export function LiveDot() {
   return (
     <span className="relative flex size-2" aria-hidden>
@@ -141,7 +234,10 @@ export function LiveDot() {
   )
 }
 
-export function peopleInRoom(count: number, t: { inRoom: string; inRoomOne: string; inRoomNone: string }) {
+export function peopleInRoom(
+  count: number,
+  t: { inRoom: string; inRoomOne: string; inRoomNone: string },
+) {
   return count === 0 ? t.inRoomNone : count === 1 ? t.inRoomOne : fmt(t.inRoom, { count })
 }
 
@@ -176,7 +272,7 @@ const writeHidden = (key: string) => {
   listeners.forEach((l) => l())
 }
 
-// Self-contained widget for Discover: keeps the night fresh, hides per night, Enter navigates to
+// Self-contained strip for Discover: keeps the night fresh, hides per night, Enter navigates to
 // Blind Dating and joins the room there. Renders nothing once the night is over.
 export function EventWidget({ initial, className }: { initial: CurrentEvent; className?: string }) {
   const router = useLocaleRouter()
@@ -198,7 +294,7 @@ export function EventWidget({ initial, className }: { initial: CurrentEvent; cla
   }
 
   return (
-    <EventCard
+    <EventStrip
       event={event}
       live={live}
       msLeft={msLeft}

@@ -20,7 +20,7 @@ type Props = {
   pending: boolean
   error?: string
   onStart: (f: JoinFilters) => void
-  /** The Blind Dating Night card (countdown or live), above the preferences. */
+  /** The Blind Dating Night card (countdown or live), first thing on the screen. */
   banner?: ReactNode
 }
 
@@ -32,6 +32,7 @@ export function StartScreen({ tags, initial, pending, error, onStart, banner }: 
 
   return (
     <div className="flex flex-col gap-6 pb-6">
+      {banner}
       <section className="bg-surface border-border relative overflow-hidden rounded-3xl border p-5">
         <div
           aria-hidden
@@ -60,7 +61,6 @@ export function StartScreen({ tags, initial, pending, error, onStart, banner }: 
         </ul>
       </section>
 
-      {banner}
       <SearchingNow />
       <fieldset className="flex flex-col gap-2">
         <legend className="text-muted mb-2 text-sm font-medium">{t.lookingFor}</legend>
