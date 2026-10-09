@@ -3664,6 +3664,9 @@ export async function run(db) {
     const lg = (await su(`select plan, source, ends_at from plan_grants where user_id=$1`, [L])).rows
     ok('plans: active vip_until becomes a legacy vip grant', lg.length === 1 && lg[0].plan === 'vip' && lg[0].source === 'legacy' && Math.abs(days(lg[0].ends_at) - 12) < 0.01 &&
        (await planOf(L)) === 'vip' && (await su(`select count(*)::int c from plan_grants where user_id=$1`, [M3])).rows[0].c === 0)
+    ok('plans: a profile with vip_until null (or expired) stays free after the backfill', (await su(`select vip_until from profiles where id=$1`, [F])).rows[0].vip_until === null &&
+       (await su(`select count(*)::int c from plan_grants where user_id = any($1)`, [[F, M3]])).rows[0].c === 0 && (await planOf(F)) === 'free' && (await planOf(M3)) === 'free')
+    ok('plans: only admins rows are staff', (await su(`select is_staff($1) a, is_staff($2) b, is_staff(null) c`, [F, S])).rows[0].a === false && (await su(`select is_staff($1) b`, [S])).rows[0].b === true)
     await su(`delete from plan_grants where user_id=$1`, [L])
 
     // ----- staff get everything, no limits -----
