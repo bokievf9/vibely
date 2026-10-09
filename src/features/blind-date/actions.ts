@@ -21,6 +21,7 @@ import type {
   SessionKind,
   Side,
 } from './types'
+import { planFail } from '@/features/plans/errors'
 
 const uuid = z.uuid()
 
@@ -277,6 +278,9 @@ export async function joinBlind(
   if (error) {
     if (error.code === '42501') return fail('unauthorized')
     if (error.code === 'P0002') return fail('eventNotLive')
+    // VP402: regular Blind Dates per day of the viewer's plan (20261009000280).
+    const gated = planFail(error)
+    if (gated) return gated
     return fail('generic')
   }
   return ok(data ? await getBlindSession() : null)

@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 import { setIncognito } from '../actions'
 import { IncognitoSheet } from './incognito-sheet'
 import { pressableRow } from './switch-row'
+import { fmt } from '@/i18n/config'
+import { useAccess } from '@/features/plans/components/access-provider'
 
 // Settings → Privacy. Turning on goes through the explanation sheet; turning off is immediate.
 export function IncognitoToggle({ initial }: { initial: boolean }) {
@@ -19,8 +21,13 @@ export function IncognitoToggle({ initial }: { initial: boolean }) {
   const [sheet, setSheet] = useState(false)
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
+  // Plus (20261009000280). After a downgrade the switch stays on but counts as off until the plan
+  // includes it again; it can always be switched off.
+  const { has, upgradePlan, showUpgrade } = useAccess()
+  const allowed = has('incognito')
 
   const toggle = () => {
+    if (!on && !allowed) return showUpgrade({ feature: 'incognito', reason: 'feature' })
     if (!on) return setSheet(true)
     startTransition(async () => {
       setOn(false)
@@ -46,7 +53,11 @@ export function IncognitoToggle({ initial }: { initial: boolean }) {
           <Switch checked={on} onToggle={toggle} label={t.setting} disabled={pending} />
         </div>
         <p className={cn('text-sm', error ? 'text-danger' : 'text-muted')}>
-          {error ? errorText(error) : t.settingHint}
+          {error
+            ? errorText(error)
+            : allowed
+              ? t.settingHint
+              : fmt(dict.plans.availableIn, { plan: dict.plans.names[upgradePlan('incognito')] })}
         </p>
       </div>
       <IncognitoSheet open={sheet} onClose={() => setSheet(false)} onEnabled={() => setOn(true)} />

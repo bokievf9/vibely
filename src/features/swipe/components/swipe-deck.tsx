@@ -20,6 +20,7 @@ import { MatchModal, type MatchInfo } from './match-modal'
 import { SwipeCard, type SwipeCardHandle } from './swipe-card'
 import type { Direction } from './swipe-physics'
 import { useSwipeFilters } from './use-swipe-filters'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 const REFILL_AT = 3
 
@@ -32,7 +33,7 @@ type Props = {
   // Optional strip above the deck (e.g. "You crossed paths"), rendered by the server.
   aboveDeck?: ReactNode
   // Plans exist on this database: the filter sheet offers "Similar plans first".
-  plansAvailable?: boolean
+  similarAvailable?: boolean
   // Above the deck: the Blind Dating Night countdown (server-rendered, null when there is none).
   banner?: ReactNode
 }
@@ -48,11 +49,12 @@ export function SwipeDeck({
   headerLeading,
   headerActions,
   aboveDeck,
-  plansAvailable,
+  similarAvailable,
   banner,
 }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
+  const upgradeOr = useUpgradeHandler()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
   const [cards, setCards] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,7 +129,15 @@ export function SwipeDeck({
     if (rest.length === 0) setSettling(true)
     if (rest.length < REFILL_AT && !exhausted && !loading) void topUp()
     const result = await swipe({ targetId: top.id, direction: dir })
-    if (!result.ok) return setError(result.error)
+    if (!result.ok) {
+      // Daily like limit (VP402): the card comes back on top, the sheet says what Plus gives.
+      if (upgradeOr(result)) {
+        decided.current.delete(top.id)
+        setCards((c) => [top, ...c.filter((x) => x.id !== top.id)])
+        return
+      }
+      return setError(result.error)
+    }
     if (!result.data.matchId) return
     trackOnce('first_match')
     setMatch({ id: result.data.matchId, name: top.name, photo: top.photos[0]?.url ?? null })
@@ -223,7 +233,7 @@ export function SwipeDeck({
           value={filters}
           onClose={() => setFiltersOpen(false)}
           onApply={changeFilters}
-          plansAvailable={plansAvailable}
+          similarAvailable={similarAvailable}
         />
       )}
       <MatchModal match={match} onClose={() => setMatch(null)} />

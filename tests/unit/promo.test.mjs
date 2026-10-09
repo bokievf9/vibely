@@ -41,7 +41,46 @@ test('redeem_promo error codes map to translation keys', () => {
   assert.equal(promoErrorKey('something_new'), 'generic')
 })
 
-test('redeem_promo results become outcomes', () => {
+test('redeem_promo results become outcomes (plans, 20261009000280)', () => {
+  const granted = redeemResultSchema.parse({
+    status: 'granted',
+    code: 'PLUS30',
+    benefits: { plan: 'plus', days: 30 },
+    plan: 'plus',
+    days: 30,
+    plan_until: '2026-11-08T00:00:00Z',
+    vip_until: null,
+    boost_hours: 0,
+    boost_until: null,
+  })
+  assert.deepEqual(outcomeFromResult(granted), {
+    status: 'granted',
+    code: 'PLUS30',
+    plan: 'plus',
+    days: 30,
+    boostHours: 0,
+    planUntil: '2026-11-08T00:00:00Z',
+    boostUntil: null,
+  })
+  const pending = redeemResultSchema.parse({
+    status: 'pending',
+    code: 'XMUM_FIRST_100',
+    benefits: { plan: 'vip', days: 90 },
+  })
+  assert.deepEqual(outcomeFromResult(pending), {
+    status: 'pending',
+    code: 'XMUM_FIRST_100',
+    plan: 'vip',
+    days: 90,
+    boostHours: 0,
+    planUntil: null,
+    boostUntil: null,
+  })
+  assert.equal(outcomeFromResult({ status: 'error', error: 'used_up' }), 'promoUsedUp')
+  assert.equal(redeemResultSchema.safeParse({ status: 'weird' }).success, false)
+})
+
+test('old VIP results (before 20261009000280) still read as VIP', () => {
   const granted = redeemResultSchema.parse({
     status: 'granted',
     code: 'TWO-SEATS',
@@ -55,11 +94,10 @@ test('redeem_promo results become outcomes', () => {
   assert.deepEqual(outcomeFromResult(granted), {
     status: 'granted',
     code: 'TWO-SEATS',
-    vipDays: 7,
+    plan: 'vip',
+    days: 7,
     boostHours: 24,
-    seeLikes: true,
-    queuePriority: false,
-    vipUntil: '2026-10-16T00:00:00Z',
+    planUntil: '2026-10-16T00:00:00Z',
     boostUntil: '2026-10-10T00:00:00Z',
   })
   const pending = redeemResultSchema.parse({
@@ -67,16 +105,6 @@ test('redeem_promo results become outcomes', () => {
     code: 'WOMEN10',
     benefits: { vip_days: 30, boost_hours: 48, see_likes: true, queue_priority: true },
   })
-  assert.deepEqual(outcomeFromResult(pending), {
-    status: 'pending',
-    code: 'WOMEN10',
-    vipDays: 30,
-    boostHours: 48,
-    seeLikes: true,
-    queuePriority: true,
-    vipUntil: null,
-    boostUntil: null,
-  })
-  assert.equal(outcomeFromResult({ status: 'error', error: 'used_up' }), 'promoUsedUp')
-  assert.equal(redeemResultSchema.safeParse({ status: 'weird' }).success, false)
+  assert.equal(outcomeFromResult(pending).plan, 'vip')
+  assert.equal(outcomeFromResult(pending).days, 30)
 })

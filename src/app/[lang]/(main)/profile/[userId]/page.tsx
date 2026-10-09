@@ -11,7 +11,6 @@ import { AboutDetails, PromptCards } from '@/features/profile/components/about-d
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { PublicProfileSkeleton } from '@/features/profile/components/profile-skeleton'
 import { getPublicProfile } from '@/features/profile/public-profile'
-import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
 import { ProfileLikeButton } from '@/features/username/components/profile-like-button'
 import { localePath } from '@/i18n/config'
@@ -102,11 +101,6 @@ async function ProfileView({
         </div>
       </div>
       <div className="flex flex-col gap-4 px-4 pt-5 pb-8">
-        {profile.plan && (
-          <div className="flex px-1">
-            <PlanBadge tag={profile.plan} label={dict.plans.tags[profile.plan]} />
-          </div>
-        )}
         {profile.bio && (
           <p className="text-body px-1 [overflow-wrap:anywhere] whitespace-pre-wrap text-white/90">
             {profile.bio}

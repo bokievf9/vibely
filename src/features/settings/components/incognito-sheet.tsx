@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/modal'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { setIncognito } from '../actions'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 type Props = { open: boolean; onClose: () => void; onEnabled: () => void }
 
@@ -18,11 +19,15 @@ export function IncognitoSheet({ open, onClose, onEnabled }: Props) {
   const errorText = useErrorText()
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
+  const upgradeOr = useUpgradeHandler()
 
   const turnOn = () =>
     startTransition(async () => {
       const result = await setIncognito(true)
-      if (!result.ok) return setError(result.error)
+      if (!result.ok) {
+        if (upgradeOr(result)) return onClose()
+        return setError(result.error)
+      }
       setError(undefined)
       onEnabled()
       onClose()

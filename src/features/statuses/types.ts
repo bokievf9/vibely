@@ -1,4 +1,4 @@
-import type { PlanTag } from '@/features/plans/tags'
+import type { PlanTag } from '@/features/statuses/presets'
 
 export type Photo = { url: string; width: number; height: number }
 

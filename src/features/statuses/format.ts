@@ -1,4 +1,4 @@
-import type { PlanTag } from '@/features/plans/tags'
+import type { PlanTag } from '@/features/statuses/presets'
 
 // Live statuses ("What's your vibe?"): pure helpers shared by the client, the server actions and
 // the unit tests (no runtime imports, so Node can load it directly). Limits mirror the CHECKs on public.user_statuses (20261009000271).

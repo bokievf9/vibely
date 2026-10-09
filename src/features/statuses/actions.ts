@@ -7,13 +7,14 @@ import { getViewer } from '@/features/auth/session'
 import { getStatuses, parseOwnStatus } from './queries'
 import { statusInputSchema, type StatusInput } from './schemas'
 import type { OwnStatus, StatusesState } from './types'
+import { planFail } from '@/features/plans/errors'
 
 // The carousel (and own status) for a client refresh after posting or replying.
 export async function loadStatuses(): Promise<StatusesState> {
   return getStatuses()
 }
 
-// Sets (replaces) the status for 3 hours; with a quick pick the 24-hour plan is set too.
+// Sets (replaces) the status for 3 hours; a quick pick stores its preset tag with it.
 // Replies go through startStatusConversation (blind-date actions, the conversation engine).
 export async function setStatus(input: StatusInput): Promise<UserResult<OwnStatus>> {
   const parsed = statusInputSchema.safeParse(input)
@@ -28,7 +29,10 @@ export async function setStatus(input: StatusInput): Promise<UserResult<OwnStatu
     p_plan_tag: parsed.data.planTag ?? undefined,
   })
   if (error)
-    return fail(error.code === '42501' ? 'unauthorized' : rateLimitedOr(error.code, 'generic'))
+    return (
+      planFail(error) ??
+      fail(error.code === '42501' ? 'unauthorized' : rateLimitedOr(error.code, 'generic'))
+    )
   const own = parseOwnStatus(data)
   return own ? ok(own) : fail('generic')
 }

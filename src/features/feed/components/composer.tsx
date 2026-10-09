@@ -19,6 +19,7 @@ import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { IdentityToggle } from './identity-toggle'
 import { useAutoGrow } from './use-auto-grow'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 type Props = {
   // card: the new-post box at the top of the feed, one line until focused.
@@ -50,6 +51,7 @@ export function Composer({
   onDone,
 }: Props) {
   const errorText = useErrorText()
+  const upgradeOr = useUpgradeHandler()
   const [body, setBody] = useState('')
   const [asMe, setAsMe] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -79,7 +81,7 @@ export function Composer({
     if (!body.trim() || pending) return
     startTransition(async () => {
       const result = await onSubmit(body, asMe)
-      if (!result.ok) return setError(result.error)
+      if (!result.ok) return upgradeOr(result) ? setError(undefined) : setError(result.error)
       haptic('success')
       setError(undefined)
       setBody('')

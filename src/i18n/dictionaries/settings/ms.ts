@@ -47,7 +47,6 @@ export const likesMs: LikesDictionary = {
   pass: 'Langkau',
   view: 'Lihat {name}',
   lockedTitle: '{count} orang suka anda',
-  lockedHint: 'Teruskan swipe: apabila anda juga suka mereka, ia satu padanan.',
   pushTitle: 'Seseorang suka anda di Vibely 💘',
   pushBody: 'Buka Vibely untuk melihat siapa.',
   pushBodyLocked: 'Teruskan swipe: mungkin ia satu padanan!',

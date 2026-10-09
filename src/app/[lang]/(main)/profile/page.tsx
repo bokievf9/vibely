@@ -5,8 +5,6 @@ import { ChevronRight, Pencil, Settings } from 'lucide-react'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { getViewer } from '@/features/auth/session'
-import { PlanButton } from '@/features/plans/components/plan-picker'
-import { getOwnPlan } from '@/features/plans/queries'
 import { PhotoUploader } from '@/features/profile/components/photo-uploader'
 import { CompletenessNudge } from '@/features/profile/components/completeness-nudge'
 import { OwnProfileHeader } from '@/features/profile/components/own-profile-header'
@@ -16,6 +14,7 @@ import { OwnProfileSkeleton } from '@/features/profile/components/profile-skelet
 import { ownCandidate } from '@/features/profile/own-card'
 import { getOwnPhotos, getOwnProfile, getTags } from '@/features/profile/queries'
 import { getVipStatus } from '@/features/promo/queries'
+import { BoostRow } from '@/features/plans/components/boost-row'
 import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
 import { CrossedPathsPromoRow } from '@/features/crossed-paths/components/crossed-paths-promo-row'
 import { localePath } from '@/i18n/config'
@@ -48,17 +47,15 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags, plan, vip, crossed] = await Promise.all([
+  const [photos, profile, tags, vip, crossed] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
-    getOwnPlan(viewer.id),
     getVipStatus(),
     crossedPathsEnabled(),
   ])
   const card = profile && {
     ...ownCandidate(viewer.id, profile, photos, tags),
-    plan: plan?.tag,
     vip: vip?.isVip,
   }
 
@@ -84,7 +81,7 @@ async function OwnProfile() {
             <span className="min-w-0 flex-1 truncate">{dict.profile.edit}</span>
             <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
           </Link>
-          {plan !== undefined && <PlanButton initial={plan} variant="row" />}
+          <BoostRow />
           {card && <ProfilePreview candidate={card} />}
           {/* Crossed paths is opt-in: invited here (and in Settings), not on top of Discover. */}
           {crossed === false && <CrossedPathsPromoRow />}

@@ -3694,6 +3694,7 @@ export type Database = {
         }[]
       }
       has_vip_perk: { Args: { p_perk: string; p_user: string }; Returns: boolean }
+      has_feature: { Args: { p_key: string; p_user: string }; Returns: boolean }
       hook_before_user_created: { Args: { event: Json }; Returns: Json }
       incoming_like_ids: {
         Args: never

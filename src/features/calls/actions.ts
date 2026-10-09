@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fail, ok, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { planFail } from '@/features/plans/errors'
 import { callErrorKey } from './errors'
 import { callIdSchema, startCallSchema } from './schemas'
 import { getLiveKitEnv, type LiveKitEnv } from './server/env'
@@ -47,7 +48,8 @@ export async function startCall(
     p_match: matchId,
     p_kind: kind,
   })
-  if (error || !callId) return fail(callErrorKey(error?.code))
+  // VP402: calls need VIP on both sides (20261009000280).
+  if (error || !callId) return planFail(error) ?? fail(callErrorKey(error?.code))
   const { data: call } = await supabase.from('calls').select('callee_id').eq('id', callId).single()
   const peer = await loadPeer(call?.callee_id ?? null)
   try {
@@ -78,7 +80,7 @@ export async function answerCall(callId: string): Promise<UserResult<CallSession
 
   const supabase = await createClient()
   const { data: status, error } = await supabase.rpc('answer_call', { p_call: id.data })
-  if (error) return fail(callErrorKey(error.code))
+  if (error) return planFail(error) ?? fail(callErrorKey(error.code))
   if (status !== 'active') return fail('callUnavailable')
   const { data: call } = await supabase
     .from('calls')

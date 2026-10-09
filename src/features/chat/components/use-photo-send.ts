@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { prepareImage } from '@/lib/image'
 import { getBrowserClient } from '@/lib/supabase/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 import { sendMessage } from '../actions'
 import { CHAT_MEDIA_BUCKET, type ChatMessage } from '../types'
 
@@ -13,6 +14,7 @@ const MAX_SOURCE_BYTES = 25 * 1024 * 1024
 // (storage RLS: match participants only), then insert the message (counts toward the rate limit).
 export function usePhotoSend(matchId: string, onSent: (m: ChatMessage) => void) {
   const [sending, setSending] = useState(false)
+  const upgradeOr = useUpgradeHandler()
 
   const send = async (source: File, replyTo: string | null): Promise<ErrorKey | null> => {
     if (!source.type.startsWith('image/') || source.size > MAX_SOURCE_BYTES) return 'invalidFile'
@@ -25,7 +27,7 @@ export function usePhotoSend(matchId: string, onSent: (m: ChatMessage) => void) 
         .upload(path, file, { contentType: 'image/webp' })
       if (error) return 'photoSendFailed'
       const result = await sendMessage({ matchId, replyTo, image: { path, width, height } })
-      if (!result.ok) return result.error
+      if (!result.ok) return upgradeOr(result) ? null : result.error
       onSent(result.data)
       return null
     } catch {

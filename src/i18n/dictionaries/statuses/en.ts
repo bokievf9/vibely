@@ -12,11 +12,7 @@ export const statusesEn = {
   emojiLabel: 'Pick an emoji',
   quickPicks: 'Quick picks',
   quickPicksHint:
-    'A quick pick also becomes your plan for 24 hours: it shows on your card in Discover.',
-  planLinked: 'Also your plan for 24 hours: {plan}',
-  planUnlink: 'Status only',
-  currentPlan: 'Your plan: {plan}',
-  clearPlan: 'Clear plan',
+    'People with the same quick pick show up first when you turn on Similar statuses in Discover.',
   post: 'Share',
   update: 'Update',
   clear: 'Clear status',

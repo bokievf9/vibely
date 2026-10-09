@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { cn } from '@/lib/utils'
+import { useAccess } from '@/features/plans/components/access-provider'
 import { acceptCallsNotice, loadCallSettings, setCallsAllowed } from '../settings-actions'
 import type { CallKind, CallSettings } from '../types'
 import { CallsSheet } from './calls-sheet'
@@ -24,6 +25,9 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
   const both = settings.meAllowed && settings.partnerAllowed
+  // Calls (starting and accepting) need VIP (20261009000280).
+  const { has, showUpgrade } = useAccess()
+  const canCall = has('calls')
 
   const refresh = useCallback(async () => {
     const result = await loadCallSettings(matchId)
@@ -72,11 +76,12 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
         size="icon"
         aria-label={dict.calls.settingsTitle}
         onClick={() => {
+          if (!canCall) return showUpgrade({ feature: 'calls', reason: 'feature' })
           setStep('settings')
           setOpen(true)
         }}
       >
-        <Phone className={cn('size-6', !both && 'opacity-40')} />
+        <Phone className={cn('size-6', (!both || !canCall) && 'opacity-40')} />
       </Button>
       <CallsSheet
         open={open}

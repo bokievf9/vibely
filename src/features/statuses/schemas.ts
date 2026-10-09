@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { planTagSchema } from '@/features/plans/tags'
+import { planTagSchema } from '@/features/statuses/presets'
 import { codePoints, isSingleEmoji, STATUS_MAX_LENGTH } from './format'
 
 export const statusInputSchema = z.object({

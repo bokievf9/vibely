@@ -5,6 +5,7 @@ import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
+import { plansLegal } from './plans'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -64,9 +65,9 @@ export const ms: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.privacy,
       // --- end calls ---
-      // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
+      // --- crossed paths (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ms.privacy,
-      // --- end crossed paths & plans ---
+      // --- end crossed paths ---
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.ms.privacy,
       // --- end secret crush ---
@@ -82,6 +83,9 @@ export const ms: LegalContent = {
       // --- live statuses (src/features/legal/content/statuses.ts) ---
       statusesLegal.ms.privacy,
       // --- end live statuses ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.ms.privacy,
+      // --- end Plus and VIP plans ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -207,6 +211,9 @@ export const ms: LegalContent = {
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.ms.terms,
       // --- end duo dating ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.ms.terms,
+      // --- end Plus and VIP plans ---
       {
         heading: '6. Moderasi',
         paragraphs: [
@@ -226,7 +233,7 @@ export const ms: LegalContent = {
         heading: '8. Perkhidmatan',
         paragraphs: [
           'Vibely disediakan "seadanya". Kami berusaha memastikan ia sentiasa tersedia dan selamat, tetapi kami boleh mengubah, menjeda atau menghentikan ciri. Kami tidak menjanjikan anda akan menemui padanan.',
-          'Kod promo dan VIP: kami mungkin mengedarkan kod promo (contohnya di acara atau melalui rakan kongsi) yang membuka ciri VIP untuk tempoh terhad, seperti lencana VIP, dipaparkan dahulu di Discover, melihat siapa yang menyukai anda atau keutamaan dalam temu janji buta. Sesetengah kod terhad bilangannya, sah sehingga tarikh tertentu, dikhaskan untuk kumpulan tertentu (contohnya jantina yang disahkan melalui semakan swafoto) atau memerlukan swafoto yang diluluskan. Ciri adalah peribadi, tidak boleh dipindahkan atau ditukar dengan wang, dan kami boleh membatalkannya serta menyekat kod tersebut jika ia dikongsi, dijual semula atau digunakan untuk melanggar Syarat ini.',
+          'Kod promo dan VIP: kami mungkin mengedarkan kod promo (contohnya di acara atau melalui rakan kongsi) yang membuka pelan Plus atau VIP untuk tempoh terhad (lihat bahagian 5e). Sesetengah kod terhad bilangannya, sah sehingga tarikh tertentu, dikhaskan untuk kumpulan tertentu (contohnya jantina yang disahkan melalui semakan swafoto) atau memerlukan swafoto yang diluluskan. Ciri adalah peribadi, tidak boleh dipindahkan atau ditukar dengan wang, dan kami boleh membatalkannya serta menyekat kod tersebut jika ia dikongsi, dijual semula atau digunakan untuk melanggar Syarat ini.',
         ],
       },
       {

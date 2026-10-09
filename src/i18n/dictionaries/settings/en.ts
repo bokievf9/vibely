@@ -45,7 +45,6 @@ export const likesEn = {
   pass: 'Pass',
   view: 'View {name}',
   lockedTitle: '{count} people like you',
-  lockedHint: 'Keep swiping: when you like them too, it’s a match.',
   pushTitle: 'Someone liked you on Vibely 💘',
   pushBody: 'Open Vibely to see who it is.',
   pushBodyLocked: 'Keep swiping: it might be a match!',

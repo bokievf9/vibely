@@ -6,12 +6,16 @@ import { getViewer, nextStepFor } from '@/features/auth/session'
 import { CallLayerGate } from '@/features/calls/components/call-layer-gate'
 import { CrossedPathsPinger } from '@/features/crossed-paths/components/crossed-paths-pinger'
 import { InstallPrompt } from '@/features/pwa/components/install-prompt'
+import { AccessProvider } from '@/features/plans/components/access-provider'
+import { getAccess } from '@/features/plans/queries'
 import { SanctionNotice } from '@/features/sanctions/components/sanction-notice'
 
 // Every (main) route requires a verified user. RLS enforces the same rule in the database.
+// The viewer's plan (my_access) is fetched once per request and handed down as a promise: gated
+// controls read it under their own Suspense boundaries (useAccess).
 export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
   return (
-    <>
+    <AccessProvider access={getAccess()}>
       <main data-main className="mx-auto flex w-full max-w-md flex-1 flex-col pb-[var(--tabbar-h)]">
         <Suspense fallback={<PageSpinner />}>
           <VerifiedGate>{children}</VerifiedGate>
@@ -28,7 +32,7 @@ export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
       <Suspense fallback={null}>
         <SanctionNotice />
       </Suspense>
-    </>
+    </AccessProvider>
   )
 }
 
