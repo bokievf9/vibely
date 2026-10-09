@@ -10,6 +10,11 @@ export async function run(db) {
     try { return await db.query(sql, p) } finally { await db.exec('reset role') }
   }
   const fails = async (fn) => { try { await fn(); return null } catch (e) { return e.message } }
+  // Plans (20261009000280): the blocks before the plans block test their own features, not the
+  // plan gates, so every profile they create gets an unlimited VIP grant. The plans block drops this.
+  await su(`create function public.test_auto_vip() returns trigger language plpgsql security definer set search_path = '' as $$
+    begin insert into public.plan_grants (user_id, plan, source, note) values (new.id, 'vip', 'admin', 'test'); return null; end $$`)
+  await su(`create trigger test_auto_vip after insert on public.profiles for each row execute function public.test_auto_vip()`)
   for (const [i, u] of U.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6012345678' + i])
   const prof = (i, g, want, bd, lon) => as(U[i], `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
      values ($1,$2,$3,$4,'Tashkent', 'SRID=4326;POINT(${lon} 41.3)')`, ['User'+i, bd, g, want])
@@ -2069,36 +2074,24 @@ export async function run(db) {
     ok('crossed: no anon access', (await su(`select has_function_privilege('anon', 'public.get_crossed_paths()', 'execute') v`)).rows[0].v === false &&
        (await su(`select has_function_privilege('anon', 'public.ping_location(double precision, double precision)', 'execute') v`)).rows[0].v === false)
 
-    // ----- plans -----
-    const until = (await as(J, `select set_plan('gym') u`)).rows[0].u
-    const hrs = (new Date(until) - Date.now()) / 3600000
-    ok('plans: expires after 24 h', hrs > 23.9 && hrs <= 24.01, String(hrs))
-    ok('plans: preset tags only', !!(await fails(() => as(J, `select set_plan('anything')`))))
-    ok('plans: no direct writes', !!(await fails(() => as(J, `insert into user_plans (tag) values ('gym')`))) &&
-       !!(await fails(() => as(J, `update user_plans set expires_at = now() + interval '9 days'`))))
-    await as(J, `select set_plan('coffee')`)
-    ok('plans: one active plan per user', (await su(`select string_agg(tag, ',') t from user_plans where user_id=$1`, [J])).rows[0].t === 'coffee')
-    await as(J, `select set_plan('gym')`)
-    ok('plans: visible to others', (await as(A, `select tag from user_plans where user_id=$1`, [J])).rows[0]?.tag === 'gym')
-    await as(A, `select set_plan('gym')`)
-    ok('plans: hidden from blocked users', (await as(D, `select count(*)::int c from user_plans where user_id=$1`, [A])).rows[0].c === 0)
-    // candidate sorting
-    const plain = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50)`)).rows
-    ok('plans: candidates carry their plan', plain.find((r) => r.id === J)?.plan === 'gym' && plain.find((r) => r.id === K)?.plan === null, JSON.stringify(plain))
+    // ----- similar statuses (the 24 h plans were replaced by statuses in 20261009000280) -----
+    ok('plans: 24 h plans removed', (await su(`select to_regclass('public.user_plans') r`)).rows[0].r === null &&
+       !!(await fails(() => as(J, `select set_plan('gym')`))))
+    await as(J, `select set_status('🏋️', 'Gym later', 'gym')`)
+    await as(A, `select set_status('💪', 'Gym anyone?', 'gym')`)
+    const plain = (await as(A, `select * from get_swipe_candidates('{female}', 18, 99, 5, 50)`)).rows
+    ok('statuses: candidates carry no plan column', plain.length > 0 && !('plan' in plain[0]), JSON.stringify(plain[0]))
     await su(`update profiles set last_active_at = now() - interval '1 day' where id=$1`, [J])
-    const similar = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
+    // A joined over 14 days ago: no Discover priority key (20261009000290) in front of the sort.
+    await su(`update profiles set created_at = now() - interval '30 days' where id=$1`, [A])
+    const similar = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
     const usual = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, false)`)).rows
-    ok('plans: "Similar plans" sorts the same plan first', similar[0]?.id === J && usual[0]?.id !== J && similar.length === usual.length, JSON.stringify(similar.slice(0, 3)))
-    ok('plans: blocked, banned and shadow-banned stay out of the deck', !similar.some((r) => r.id === E || r.id === F || r.id === D))
-    await su(`update user_plans set expires_at = now() - interval '1 second' where user_id=$1`, [J])
-    const afterExpiry = (await as(A, `select id, plan from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
-    const jc = (await as(A, `select count(*)::int c from user_plans where user_id=$1`, [J])).rows[0].c
-    ok('plans: expired plan hidden everywhere', jc === 0 && afterExpiry.find((r) => r.id === J)?.plan === null && afterExpiry[0]?.id !== J,
-       jc + JSON.stringify(afterExpiry.find((r) => r.id === J)))
-    await su(`select purge_crossed_paths()`)
-    ok('plans: expired plans purged', (await su(`select count(*)::int c from user_plans where user_id=$1`, [J])).rows[0].c === 0)
-    await as(A, `select clear_plan()`)
-    ok('plans: clear removes the plan', (await su(`select count(*)::int c from user_plans where user_id=$1`, [A])).rows[0].c === 0)
+    ok('statuses: "Similar statuses" sorts the same preset first', similar[0]?.id === J && usual[0]?.id !== J && similar.length === usual.length, JSON.stringify(similar.slice(0, 3)))
+    ok('statuses: blocked, banned and shadow-banned stay out of the deck', !similar.some((r) => r.id === E || r.id === F || r.id === D))
+    await su(`update user_statuses set expires_at = now() - interval '1 second' where user_id=$1`, [J])
+    const afterExpiry = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
+    ok('statuses: an expired status no longer sorts first', afterExpiry[0]?.id !== J && afterExpiry.some((r) => r.id === J))
+    await as(A, `select clear_status()`)
   })()
   // ===== end crossed paths & plans =====
 
@@ -2315,6 +2308,8 @@ export async function run(db) {
     }
     await su(`update profiles set verification_status='approved' where id = any($1)`, [[INV, OLD, P1, P2]])
     await su(`update profiles set created_at = now() - interval '2 days' where id=$1`, [OLD])
+    // The inviter is on Plus: 3 crush links per 30 days (20261009000280).
+    await su(`update plan_grants set plan = 'plus' where user_id=$1`, [INV])
     const pending = async (u) => (await as(u, `select * from get_pending_crush()`)).rows
     const matched = async (a, b) => (await su(`select id from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0]?.id ?? null
     const likes = async (a, b) => (await su(`select count(*)::int c from swipes where (swiper_id=$1 and swiped_id=$2) or (swiper_id=$2 and swiped_id=$1)`, [a, b])).rows[0].c
@@ -2325,7 +2320,7 @@ export async function run(db) {
     const c1 = await invite(INV, true), c2 = await invite(INV, true), c3 = await invite(INV, true)
     ok('crush: single-use codes', [c1, c2, c3].every((c) => /^[a-z0-9]{8}$/.test(c)) && new Set([c1, c2, c3]).size === 3, [c1, c2, c3].join())
     const limitErr = await fails(() => invite(INV, true))
-    ok('crush: at most 3 crush invites per 30 days', !!limitErr && limitErr.includes('crush_limit'), limitErr)
+    ok('crush: at most 3 crush invites per 30 days on Plus', !!limitErr && limitErr.includes('crush_links_per_30d'), limitErr)
     const c0 = await invite(INV, false)
     ok('crush: plain invites are not limited by the crush limit', /^[a-z0-9]{8}$/.test(c0))
     ok('crush: the flag lives on the invite row only', (await su(`select is_crush from referral_invites where code=$1`, [c0])).rows[0].is_crush === false &&
@@ -2440,7 +2435,11 @@ export async function run(db) {
     await su(`insert into admins (user_id, role) values ($1, 'admin'), ($2, 'moderator')`, [ADM, MOD])
     const redeem = async (u, code) => (await as(u, `select redeem_promo($1) r`, [code])).rows[0].r
     const vip = async (u) => (await as(u, `select my_vip() v`)).rows[0].v
-    const prof = async (u) => (await su(`select vip_until, vip_boost_until, vip_perks from profiles where id=$1`, [u])).rows[0]
+    // Plans (20261009000280): VIP is a plan grant now; these users start on free.
+    await su(`delete from plan_grants where user_id = any($1)`, [P])
+    const prof = async (u) => (await su(`select case when plan_of(id) = 'vip' then plan_until(id) end vip_until, vip_boost_until,
+      jsonb_build_object('see_likes', has_feature(id, 'who_liked_you'), 'queue_priority', has_feature(id, 'event_priority')) vip_perks
+      from profiles where id=$1`, [u])).rows[0]
     const logs = async (action) => (await su(`select count(*)::int c from moderation_actions where action=$1 and admin_id=$2`, [action, ADM])).rows[0].c
     const upsert = (admin, args) => su(`select admin_upsert_promo($1, $2, $3, $4, $5, $6::jsonb, $7, $8) id`,
       [admin, args.id ?? null, args.code, args.maxUses ?? null, args.expiresAt ?? null, JSON.stringify(args.benefits), args.gender ?? null, args.requiresVerified ?? true])
@@ -2453,7 +2452,7 @@ export async function run(db) {
     ok('promo: normalisation', (await su(`select normalize_promo_code('  xmum first_100 ') n`)).rows[0].n === 'XMUMFIRST_100')
     const seed = (await su(`select * from promo_codes where code='XMUM_FIRST_100'`)).rows[0]
     ok('promo: seed code is inactive, female, 100 uses', seed && seed.is_active === false && seed.gender_restriction === 'female' && seed.max_uses === 100 &&
-       seed.benefits.vip_days === 30 && seed.benefits.boost_hours === 48 && seed.benefits.see_likes === true && seed.benefits.queue_priority === true, JSON.stringify(seed))
+       seed.benefits.plan === 'vip' && seed.benefits.days === 90 && Object.keys(seed.benefits).length === 2, JSON.stringify(seed))
     ok('promo: inactive code reads as invalid', (await redeem(M1, 'xmum_first_100')).error === 'invalid')
     ok('promo: unknown code', (await redeem(M1, 'NOPE123')).error === 'invalid')
     ok('promo: empty code', (await redeem(M1, '   ')).error === 'invalid')
@@ -2487,8 +2486,8 @@ export async function run(db) {
     const before = await prof(F1)
     ok('promo: no VIP before', before.vip_until === null && (await vip(F1)).is_vip === false && (await su(`select is_vip($1) v`, [F1])).rows[0].v === false)
     const g1 = await redeem(F1, 'two-seats')
-    ok('promo: granted with perks', g1.status === 'granted' && g1.code === 'TWO-SEATS' && g1.vip_days === 7 && g1.boost_hours === 24 &&
-       g1.perks.see_likes === true && g1.perks.queue_priority === true && !!g1.vip_until && !!g1.boost_until, JSON.stringify(g1))
+    ok('promo: granted as a VIP plan grant', g1.status === 'granted' && g1.code === 'TWO-SEATS' && g1.plan === 'vip' && g1.days === 7 && g1.boost_hours === 24 &&
+       !!g1.vip_until && !!g1.boost_until && (await su(`select source from plan_grants where user_id=$1`, [F1])).rows[0]?.source === 'promo', JSON.stringify(g1))
     const a1 = await prof(F1)
     ok('promo: vip_until about 7 days, boost about 24h', Math.abs((new Date(a1.vip_until) - Date.now()) / 864e5 - 7) < 0.05 &&
        Math.abs((new Date(a1.vip_boost_until) - Date.now()) / 36e5 - 24) < 0.05, JSON.stringify(a1))
@@ -2515,7 +2514,8 @@ export async function run(db) {
     const old = (await upsert(ADM, { code: 'OLDCODE', benefits: { vip_days: 1 }, expiresAt: new Date(Date.now() - 1000).toISOString(), requiresVerified: false })).rows[0].id
     ok('promo: expired code', (await redeem(F3, 'oldcode')).error === 'expired')
     await su(`delete from promo_codes where id=$1`, [old])
-    await su(`update profiles set vip_until = now() - interval '1 second', vip_boost_until = now() - interval '1 second' where id=$1`, [F2])
+    await su(`update plan_grants set starts_at = now() - interval '8 days', ends_at = now() - interval '1 second' where user_id=$1`, [F2])
+    await su(`update profiles set vip_boost_until = now() - interval '1 second' where id=$1`, [F2])
     const v2 = await vip(F2)
     ok('promo: VIP expiry is automatic', v2.is_vip === false && v2.boost_until === null && (await su(`select is_vip($1) v`, [F2])).rows[0].v === false &&
        (await su(`select has_vip_perk($1, 'see_likes') v`, [F2])).rows[0].v === false, JSON.stringify(v2))
@@ -2564,13 +2564,15 @@ export async function run(db) {
        (await su(`select pg_get_function_identity_arguments(oid) a from pg_proc where proname='get_swipe_candidates' and pronamespace='public'::regnamespace`)).rows[0].a.includes('p_similar_plans'))
     // boost first, then "Similar plans", then the usual order; the plan column still comes through
     await su(`update profiles set vip_boost_until = now() + interval '1 hour', last_active_at = now() - interval '5 days' where id=$1`, [F3])
-    await as(M2, `select set_plan('gym')`)
-    await as(F1, `select set_plan('gym')`)
+    await as(M2, `select set_status('🏋️', 'Gym', 'gym')`)
+    await as(F1, `select set_status('🏋️', 'Gym', 'gym')`)
     await su(`update profiles set last_active_at = now() - interval '2 days' where id=$1`, [F1])
-    const planDeck = (await as(M2, `select id, plan from get_swipe_candidates('{female}', 18, 40, 50, 20, true)`)).rows
-    ok('promo: boost outranks similar plans, which outrank activity', planDeck[0]?.id === F3 && planDeck[1]?.id === F1 && planDeck[1]?.plan === 'gym', JSON.stringify(planDeck))
-    await as(M2, `select clear_plan()`)
-    await as(F1, `select clear_plan()`)
+    // M2 joined over 14 days ago: no Discover priority key (20261009000290) in front of the sort.
+    await su(`update profiles set created_at = now() - interval '30 days' where id=$1`, [M2])
+    const planDeck = (await as(M2, `select id from get_swipe_candidates('{female}', 18, 40, 50, 20, true)`)).rows
+    ok('promo: boost outranks similar statuses, which outrank activity', planDeck[0]?.id === F3 && planDeck[1]?.id === F1, JSON.stringify(planDeck))
+    await as(M2, `select clear_status()`)
+    await as(F1, `select clear_status()`)
     await su(`update profiles set vip_boost_until = null where id=$1`, [F3])
   })()
   // ===== end promo codes / VIP =====
@@ -2970,7 +2972,9 @@ export async function run(db) {
     ok('mm: no match yet', !(await matchOf(B, C)))
 
     // ----- C interested -> match, pinned note, reward -----
-    const vipBefore = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    // A is on free while the reward is checked (no unlimited test VIP to stack behind).
+    await su(`delete from plan_grants where user_id=$1 and note='test'`, [A])
+    const vipBefore = (await su(`select max(ends_at) e from plan_grants where user_id=$1 and source='matchmaker' and plan='plus'`, [A])).rows[0].e
     const d2 = await decide(C, r1.id, true)
     const bc = await matchOf(B, C)
     ok('mm: both interested creates the match', d2.state === 'matched' && d2.just_matched === true && !!bc && d2.match_id === bc.id && bc.source === 'matchmaker', JSON.stringify(d2))
@@ -2983,10 +2987,10 @@ export async function run(db) {
     const noteMsg = (await su(`select id from messages where match_id=$1`, [bc.id])).rows[0].id
     ok('mm: nobody can delete the pinned note', !!(await fails(() => as(A, `select delete_message($1)`, [noteMsg]))) && !!(await fails(() => as(B, `select delete_message($1)`, [noteMsg]))))
     const s1b = await status(r1.id)
-    const vipAfter = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    const vipAfter = (await su(`select max(ends_at) e from plan_grants where user_id=$1 and source='matchmaker' and plan='plus'`, [A])).rows[0].e
     const vipDays = (new Date(vipAfter) - Date.now()) / 86400000
     ok('mm: status matched + rewarded', s1b.status === 'matched' && s1b.match_id === bc.id && s1b.rewarded_at !== null && s1b.decision_c === true)
-    ok('mm: A gets 7 VIP days', vipBefore === null && vipDays > 6.99 && vipDays <= 7.01, String(vipDays))
+    ok('mm: A gets Plus for 7 days (plan grant)', vipBefore === null && vipDays > 6.99 && vipDays <= 7.01, String(vipDays))
     ok('mm: cards after the match', (await card(B, r1.id)).state === 'matched' && (await card(B, r1.id)).match_id === bc.id && (await card(C, r1.id)).state === 'matched' && (await card(A, r1.id)).state === 'matched' && (await card(A, r1.id)).match_id === null)
     ok('mm: deciding a finished one just reports it', await decide(C, r1.id, true).then((d) => d.state === 'matched' && d.match_id === bc.id && !d.notify))
     ok('mm: already matched pair cannot be introduced (after the 90-day window)', await (async () => {
@@ -2999,15 +3003,16 @@ export async function run(db) {
     // ----- reward at most once per 7 days -----
     const r2 = await refer(A, D, H)
     await decide(D, r2.id, true); const d3 = await decide(H, r2.id, true)
-    const vipTwice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
-    ok('mm: second success within 7 days: match but no extra VIP', d3.state === 'matched' && String(vipTwice) === String(vipAfter) && (await status(r2.id)).rewarded_at === null, `${vipAfter} -> ${vipTwice}`)
+    const vipTwice = (await su(`select max(ends_at) e from plan_grants where user_id=$1 and source='matchmaker' and plan='plus'`, [A])).rows[0].e
+    ok('mm: second success within 7 days: match but no extra Plus', d3.state === 'matched' && String(vipTwice) === String(vipAfter) && (await status(r2.id)).rewarded_at === null, `${vipAfter} -> ${vipTwice}`)
     ok('mm: match without a note has no pinned message', (await cardsIn(D, d3.match_id)).length === 0)
     await su(`update matchmaker_referrals set rewarded_at = now() - interval '8 days' where id=$1`, [r1.id])
     await su(`update matchmaker_referrals set created_at = now() - interval '8 days' where id=$1`, [r2.id])
     const r2b = await refer(A, B, H, 'again')
     await decide(B, r2b.id, true); await decide(H, r2b.id, true)
-    const vipThrice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
-    ok('mm: after 7 days the reward extends vip_until by 7 more days', Math.round((new Date(vipThrice) - new Date(vipAfter)) / 86400000) === 7, `${vipAfter} -> ${vipThrice}`)
+    const vipThrice = (await su(`select max(ends_at) e from plan_grants where user_id=$1 and source='matchmaker' and plan='plus'`, [A])).rows[0].e
+    ok('mm: after 7 days the reward stacks 7 more Plus days', Math.round((new Date(vipThrice) - new Date(vipAfter)) / 86400000) === 7, `${vipAfter} -> ${vipThrice}`)
+    await su(`insert into plan_grants (user_id, plan, source, note) values ($1, 'vip', 'admin', 'test')`, [A])
 
     // ----- declines are silent -----
     const r3 = await refer(A, I, J, 'maybe')
@@ -3146,7 +3151,7 @@ export async function run(db) {
     ok('status: new one replaces the old (one current per user)',
        (await su(`select count(*)::int c from user_statuses where user_id=$1 and replaced_at is null`, [B])).rows[0].c === 1 &&
        (await mine(B))?.text === 'Badminton later' && second.plan_tag === 'badminton')
-    ok('status: a preset also sets the 24 h plan', (await su(`select tag from user_plans where user_id=$1`, [B])).rows[0]?.tag === 'badminton')
+    ok('status: a preset is stored on the status only (24 h plans removed)', (await su(`select to_regclass('public.user_plans') r`)).rows[0].r === null)
     ok('status: replaced row kept for retention', (await su(`select count(*)::int c from user_statuses where user_id=$1`, [B])).rows[0].c === 2)
     ok('status: text required and at most 60 characters', !!(await fails(() => set(B, '☕', '   '))) && !!(await fails(() => set(B, '☕', 'x'.repeat(61)))) && !!(await fails(() => set(B, '', 'hi'))))
     ok('status: preset tags only', !!(await fails(() => set(B, '☕', 'hi', 'anything'))))
@@ -3585,9 +3590,264 @@ export async function run(db) {
   })()
   // ===== end duo dating =====
 
+
+  // ===== plans: free / plus / vip (20261009000280) =====
+  // Gates and quotas per level, staff get everything, grant stacking and expiry, legacy VIP,
+  // promo and admin grants, the matrix editor (roles, logging), disabled features.
+  await (async () => {
+    // From here on new profiles start on free (the hook at the top of run() is for older blocks).
+    await su(`drop trigger test_auto_vip on public.profiles`)
+    await su(`drop function public.test_auto_vip()`)
+    const id = (n) => `a2800000-0000-4000-8000-0000000000${String(n).padStart(2, '0')}`
+    const [F, P, V, S, M1, M2, M3, V2, ADM, MOD, L] = Array.from({ length: 11 }, (_, i) => id(i + 1))
+    const people = [[F, 'Pl Free', 'female', '{male}'], [P, 'Pl Plus', 'female', '{male}'], [V, 'Pl Vip', 'female', '{male}'],
+      [S, 'Pl Staff', 'male', '{female}'], [M1, 'Pl M1', 'male', '{female}'], [M2, 'Pl M2', 'male', '{female}'],
+      [M3, 'Pl M3', 'male', '{female}'], [V2, 'Pl Vip2', 'male', '{female}'], [ADM, 'Pl Admin', 'male', '{female}'],
+      [MOD, 'Pl Mod', 'male', '{female}'], [L, 'Pl Legacy', 'female', '{male}']]
+    for (const [i, [u, name, g, w]] of people.entries()) {
+      await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '60192800' + String(i).padStart(3, '0')])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1996-06-06',$2,$3,'George Town','SRID=4326;POINT(100.33 5.41)')`, [name, g, w])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [people.map((p) => p[0])])
+    await su(`insert into admins (user_id, role) values ($1, 'viewer'), ($2, 'admin'), ($3, 'moderator')`, [S, ADM, MOD])
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const err = async (fn) => { try { await fn(); return null } catch (e) { return e } }
+    const gate = (e, key, hint = 'feature') => !!e && e.code === 'VP402' && e.detail === key && e.hint === hint
+    const grant = (u, plan, days, source = 'admin') => su(`select grant_plan($1, $2, $3, $4) e`, [u, plan, days, source]).then((r) => r.rows[0].e)
+    const planOf = async (u) => (await su(`select current_plan($1) p`, [u])).rows[0].p
+    const access = async (u) => (await as(u, `select my_access() a`)).rows[0].a
+    const logs = async (action) => (await su(`select count(*)::int c from moderation_actions where action=$1 and admin_id=$2`, [action, ADM])).rows[0].c
+    const days = (t) => (new Date(t) - Date.now()) / 864e5
+
+    // ----- matrix seeds -----
+    const feats = (await su(`select key, min_plan, enabled from features`)).rows
+    const fmin = Object.fromEntries(feats.map((f) => [f.key, f.min_plan]))
+    ok('plans: matrix seeded', feats.length === 22 && feats.every((f) => f.enabled) && fmin.likes_per_day === 'free' && fmin.chat_photos === 'plus' &&
+       fmin.voice_messages === 'plus' && fmin.video_messages === 'plus' && fmin.calls === 'vip' && fmin.feed_post === 'plus' && fmin.feed_comment === 'plus' &&
+       fmin.feed_like === 'free' && fmin.who_liked_you === 'plus' && fmin.incognito === 'plus' && fmin.boost === 'plus' && fmin.vip_badge === 'vip' &&
+       fmin.event_priority === 'vip' && fmin.duo === 'free' && fmin.statuses === 'free' && fmin.crossed_paths === 'free' && fmin.message_before_match === 'vip' &&
+       ['read_receipts', 'profile_visitors', 'discover_priority'].every((k) => fmin[k] === 'vip'), JSON.stringify(fmin))
+    const lim = Object.fromEntries((await su(`select feature_key || ':' || plan k, limit_value v, period p from plan_limits`)).rows.map((r) => [r.k, [r.v, r.p]]))
+    ok('plans: limits seeded', JSON.stringify([lim['likes_per_day:free'], lim['likes_per_day:plus'], lim['blind_dating_per_day:free'], lim['blind_dating_per_day:plus'],
+       lim['blind_dating_per_day:vip'], lim['boost:plus'], lim['boost:vip'], lim['crush_links_per_30d:free'], lim['crush_links_per_30d:plus'], lim['crush_links_per_30d:vip'],
+       lim['message_before_match:vip']]) === JSON.stringify([[100, 'day'], [null, null], [3, 'day'], [10, 'day'], [null, null], [1, 'month'], [1, 'week'],
+       [1, 'month'], [3, 'month'], [5, 'month'], [1, 'day']]), JSON.stringify(lim))
+
+    // ----- clients cannot grant themselves anything -----
+    ok('plans: clients cannot write grants or the matrix', !!(await fails(() => as(F, `insert into plan_grants (user_id, plan, source) values ($1, 'vip', 'admin')`, [F]))) &&
+       !!(await fails(() => as(F, `update features set min_plan = 'free'`))) && !!(await fails(() => as(F, `insert into plan_limits values ('likes_per_day', 'free', null, null)`))) &&
+       !!(await fails(() => as(F, `insert into feature_uses (user_id, feature_key) values ($1, 'boost')`, [F]))))
+    ok('plans: internal helpers not callable by clients', !!(await fails(() => as(F, `select grant_plan($1, 'vip', 30, 'admin')`, [F]))) &&
+       !!(await fails(() => as(F, `select has_feature($1, 'calls')`, [F]))) && !!(await fails(() => as(F, `select current_plan($1)`, [V]))) &&
+       !!(await fails(() => as(F, `select consume_feature($1, 'boost')`, [F]))) &&
+       (await su(`select has_function_privilege('anon', 'public.my_access()', 'execute') v`)).rows[0].v === false)
+    ok('plans: admin RPCs not callable by clients', !!(await fails(() => as(ADM, `select admin_grant_plan($1, $1, 'vip', 30, null)`, [ADM]))) &&
+       !!(await fails(() => as(ADM, `select admin_set_feature($1, 'calls', true, 'free', null)`, [ADM]))))
+
+    // ----- levels, grants, stacking, expiry -----
+    ok('plans: no grant = free', (await planOf(F)) === 'free' && (await access(F)).plan === 'free' && (await access(F)).is_staff === false)
+    await grant(P, 'plus', 10); const pEnd = await grant(P, 'plus', 10)
+    ok('plans: grants of the same level stack', Math.abs(days(pEnd) - 20) < 0.01 && Math.abs(days((await access(P)).plan_until) - 20) < 0.01 && (await planOf(P)) === 'plus')
+    await grant(V, 'vip', 30)
+    ok('plans: vip level', (await planOf(V)) === 'vip' && (await access(V)).plan === 'vip')
+    // A higher level starts now; a lower one waits until the higher one ends.
+    const vEnd = await grant(V2, 'vip', 5)
+    const pAfter = await grant(V2, 'plus', 7)
+    ok('plans: plus after vip starts when vip ends', Math.abs(days(vEnd) - 5) < 0.01 && Math.abs(days(pAfter) - 12) < 0.01 && (await planOf(V2)) === 'vip')
+    ok('plans: own grants readable, others not', (await as(V2, `select count(*)::int c from plan_grants`)).rows[0].c === 2 &&
+       (await as(F, `select count(*)::int c from plan_grants`)).rows[0].c === 0)
+    await su(`update plan_grants set starts_at = now() - interval '6 days', ends_at = now() - interval '1 second' where user_id=$1 and plan='vip'`, [V2])
+    await su(`update plan_grants set starts_at = now() - interval '1 second' where user_id=$1 and plan='plus'`, [V2])
+    ok('plans: expiry is automatic, the queued plus takes over', (await planOf(V2)) === 'plus')
+    await su(`update plan_grants set revoked_at = now() where user_id=$1`, [V2])
+    ok('plans: revoked grants are ignored', (await planOf(V2)) === 'free')
+    await grant(V2, 'vip', 30)
+
+    // ----- legacy vip_until migration (the statement of 20261009000280, run again for one user) -----
+    const { readFileSync } = await import('node:fs')
+    const mig = readFileSync(new URL('../../supabase/migrations/20261009000280_plans.sql', import.meta.url), 'utf8')
+    const legacySql = mig.match(/insert into public\.plan_grants \(user_id, plan, source, starts_at, ends_at, note\)\nselect[\s\S]*?where p\.vip_until > now\(\);/)[0]
+    await su(`update profiles set vip_until = now() + interval '12 days' where id=$1`, [L])
+    await su(`update profiles set vip_until = now() - interval '1 day' where id=$1`, [M3])
+    await su(legacySql)
+    const lg = (await su(`select plan, source, ends_at from plan_grants where user_id=$1`, [L])).rows
+    ok('plans: active vip_until becomes a legacy vip grant', lg.length === 1 && lg[0].plan === 'vip' && lg[0].source === 'legacy' && Math.abs(days(lg[0].ends_at) - 12) < 0.01 &&
+       (await planOf(L)) === 'vip' && (await su(`select count(*)::int c from plan_grants where user_id=$1`, [M3])).rows[0].c === 0)
+    await su(`delete from plan_grants where user_id=$1`, [L])
+
+    // ----- staff get everything, no limits -----
+    const sa = await access(S)
+    ok('plans: staff (any role) get everything', sa.is_staff === true && sa.plan === 'vip' && Object.values(sa.features).every((f) => f.on && f.limit === null), JSON.stringify(sa.features.likes_per_day))
+    const fa = await access(F)
+    ok('plans: my_access for free', fa.features.chat_photos.on === false && fa.features.likes_per_day.on === true && fa.features.likes_per_day.limit === 100 &&
+       fa.features.likes_per_day.used === 0 && fa.features.calls.min_plan === 'vip' && fa.features.blind_dating_per_day.limit === 3, JSON.stringify(fa.features.likes_per_day))
+
+    // ----- Discover likes per day (the free limit lowered to 2 for the test) -----
+    await svc(`select admin_set_limit($1, 'likes_per_day', 'free', 2, 'day')`, [ADM])
+    const like = (u, t, dir = 'like') => as(u, `insert into swipes (swiped_id, direction) values ($1, $2)`, [t, dir])
+    await like(F, M1); await like(F, M2)
+    const lErr = await err(() => like(F, M3))
+    ok('plans: free likes stop at the daily limit (VP402 limit)', gate(lErr, 'likes_per_day', 'limit'), lErr?.message)
+    ok('plans: passes are not limited', !(await fails(() => like(F, M3, 'pass'))))
+    await like(P, M1); await like(P, M2)
+    ok('plans: plus likes are unlimited', !(await fails(() => like(P, M3))))
+    ok('plans: my_access shows the used quota', (await access(F)).features.likes_per_day.used === 2)
+    await svc(`select admin_set_limit($1, 'likes_per_day', 'free', 100, 'day')`, [ADM])
+
+    // ----- who liked you: blurred (count only) for free -----
+    await like(S, F); await like(S, P)
+    ok('plans: free sees the count, not the people', (await as(F, `select count_incoming_likes() n`)).rows[0].n === 1 &&
+       (await as(F, `select * from get_incoming_likes(50)`)).rows.length === 0)
+    ok('plans: plus sees who liked them', (await as(P, `select id from get_incoming_likes(50)`)).rows.map((r) => r.id).join() === S)
+
+    // ----- chat media by kind -----
+    const mf = (await su(`select ensure_match($1,$2,'swipe') id`, [F, M1])).rows[0].id
+    const mp = (await su(`select ensure_match($1,$2,'swipe') id`, [P, M2])).rows[0].id
+    const upload = (u, name) => as(u, `insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [name])
+    const photo = async (u, m, n) => { const p = `${m}/d2800000-0000-4000-8000-0000000000${n}.webp`; await upload(u, p)
+      return as(u, `insert into messages (match_id, image_path, image_width, image_height) values ($1, $2, 10, 10)`, [m, p]) }
+    const voice = async (u, m, n) => { const p = `${m}/d2800000-0000-4000-8000-0000000000${n}.webm`; await upload(u, p)
+      return as(u, `insert into messages (match_id, media_kind, media_path, media_mime, media_duration_ms) values ($1, 'voice', $2, 'audio/webm', 3000)`, [m, p]) }
+    const video = async (u, m, n) => { const p = `${m}/d2800000-0000-4000-8000-0000000000${n}.mp4`; await upload(u, p)
+      return as(u, `insert into messages (match_id, media_kind, media_path, media_mime, media_duration_ms) values ($1, 'video', $2, 'video/mp4', 3000)`, [m, p]) }
+    ok('plans: free can send text', !(await fails(() => as(F, `insert into messages (match_id, body) values ($1, 'hi')`, [mf]))))
+    ok('plans: free cannot send photos / voice / video', gate(await err(() => photo(F, mf, '01')), 'chat_photos') &&
+       gate(await err(() => voice(F, mf, '02')), 'voice_messages') && gate(await err(() => video(F, mf, '03')), 'video_messages'))
+    ok('plans: plus sends photos, voice and video', !(await fails(() => photo(P, mp, '05'))) && !(await fails(() => voice(P, mp, '06'))) && !(await fails(() => video(P, mp, '07'))))
+
+    // ----- feed: posts and comments need Plus, likes are free -----
+    ok('plans: free cannot post', gate(await err(() => as(F, `select create_post('free post')`)), 'feed_post'))
+    const post = (await as(P, `select create_post('plus post') id`)).rows[0].id
+    ok('plans: plus posts', !!post)
+    ok('plans: free cannot comment', gate(await err(() => as(F, `select create_comment($1, 'hey')`, [post])), 'feed_comment'))
+    ok('plans: plus comments', !(await fails(() => as(P, `select create_comment($1, 'hey')`, [post]))))
+    ok('plans: free can like posts', (await as(F, `select toggle_post_like($1) v`, [post])).rows[0].v === true)
+
+    // ----- a disabled feature blocks everyone but staff -----
+    await svc(`select admin_set_feature($1, 'feed_like', false, 'free', 'test')`, [ADM])
+    ok('plans: disabled feature blocks non-staff', gate(await err(() => as(V, `select toggle_post_like($1)`, [post])), 'feed_like') &&
+       (await access(V)).features.feed_like.on === false)
+    ok('plans: disabled feature still works for staff', (await as(S, `select toggle_post_like($1) v`, [post])).rows[0].v === true)
+    await svc(`select admin_set_feature($1, 'feed_like', true, 'free', null)`, [ADM])
+    await svc(`select admin_set_feature($1, 'statuses', false, 'free', null)`, [ADM])
+    ok('plans: statuses switch', gate(await err(() => as(F, `select set_status('☕', 'Coffee')`)), 'statuses') &&
+       !(await fails(() => as(S, `select set_status('☕', 'Coffee')`))))
+    await svc(`select admin_set_feature($1, 'statuses', true, 'free', null)`, [ADM])
+    ok('plans: duo and crossed paths are free', !(await fails(() => as(F, `select set_crossed_paths(true)`))))
+
+    // ----- calls: vip only, starting and accepting -----
+    const mv = (await su(`select ensure_match($1,$2,'swipe') id`, [V, V2])).rows[0].id
+    const mvp = (await su(`select ensure_match($1,$2,'swipe') id`, [V, M3])).rows[0].id
+    for (const [u, m] of [[V, mv], [V2, mv], [V, mvp], [M3, mvp], [P, mp], [M2, mp]]) {
+      await as(u, `select accept_calls_notice()`); await as(u, `select set_call_permission($1, true)`, [m])
+    }
+    ok('plans: plus cannot start a call', gate(await err(() => as(P, `select start_call($1, 'audio')`, [mp])), 'calls'))
+    ok('plans: vip cannot ring someone without calls (hint partner)', gate(await err(() => as(V, `select start_call($1, 'audio')`, [mvp])), 'calls', 'partner'))
+    const call = (await as(V, `select start_call($1, 'video') id`, [mv])).rows[0].id
+    ok('plans: vip to vip call rings and is answered', !!call && (await as(V2, `select answer_call($1) s`, [call])).rows[0].s === 'active')
+    await as(V, `select end_call($1)`, [call])
+    await db.exec(`select set_config('request.jwt.claim.sub', '', false)`)
+    const ring = (await su(`insert into calls (match_id, caller_id, callee_id, kind) values ($1, $2, $3, 'audio') returning id`, [mvp, V, M3])).rows[0].id
+    ok('plans: free cannot accept a call', gate(await err(() => as(M3, `select answer_call($1)`, [ring])), 'calls') &&
+       (await su(`select status from calls where id=$1`, [ring])).rows[0].status === 'ringing')
+    await su(`update calls set status = 'ended', ended_at = now() where id=$1`, [ring])
+
+    // ----- incognito: plus+, counts as off without the feature -----
+    ok('plans: free cannot switch incognito on', gate(await err(() => as(F, `update profiles set is_incognito = true where id=$1`, [F])), 'incognito'))
+    await as(P, `update profiles set is_incognito = true where id=$1`, [P])
+    const deck = async () => (await as(V2, `select id from get_swipe_candidates('{female}', 18, 99, 50, 50)`)).rows.map((r) => r.id)
+    ok('plans: plus incognito hides from people they did not like', !(await deck()).includes(P))
+    await su(`update plan_grants set revoked_at = now() where user_id=$1`, [P])
+    ok('plans: after a downgrade incognito stays set but counts as off', (await deck()).includes(P) &&
+       (await su(`select is_incognito i from profiles where id=$1`, [P])).rows[0].i === true)
+    ok('plans: switching incognito off is always allowed', !(await fails(() => as(P, `update profiles set is_incognito = false where id=$1`, [P]))))
+    await grant(P, 'plus', 30)
+
+    // ----- boost quota: plus 1 per month, vip 1 per week -----
+    ok('plans: free has no boost', gate(await err(() => as(F, `select activate_boost()`)), 'boost'))
+    const b1 = (await as(P, `select activate_boost() t`)).rows[0].t
+    ok('plans: boost lasts 30 minutes', Math.abs((new Date(b1) - Date.now()) / 60000 - 30) < 0.5)
+    ok('plans: a running boost is returned, not stacked', String((await as(P, `select activate_boost() t`)).rows[0].t) === String(b1) &&
+       (await su(`select count(*)::int c from feature_uses where user_id=$1`, [P])).rows[0].c === 1)
+    await su(`update profiles set vip_boost_until = now() - interval '1 second' where id = any($1)`, [[P]])
+    ok('plans: plus gets one boost per month', gate(await err(() => as(P, `select activate_boost()`)), 'boost', 'limit'))
+    await as(V, `select activate_boost()`)
+    await su(`update profiles set vip_boost_until = now() - interval '1 second' where id=$1`, [V])
+    ok('plans: vip one per week', gate(await err(() => as(V, `select activate_boost()`)), 'boost', 'limit'))
+    await su(`update feature_uses set created_at = now() - interval '8 days' where user_id=$1`, [V])
+    ok('plans: vip boost again after a week', !(await fails(() => as(V, `select activate_boost()`))))
+    ok('plans: purge keeps a month of uses', (await su(`select purge_feature_uses() n`)).rows[0].n === 0)
+
+    // ----- secret crush links per 30 days: free 1, vip 5 -----
+    const crush = (u) => as(u, `select create_referral_invite(true) c`)
+    await crush(F)
+    ok('plans: free gets one crush link per 30 days', gate(await err(() => crush(F)), 'crush_links_per_30d', 'limit') &&
+       !(await fails(() => as(F, `select create_referral_invite(false)`))))
+    for (let i = 0; i < 5; i++) await crush(V)
+    ok('plans: vip gets five', gate(await err(() => crush(V)), 'crush_links_per_30d', 'limit'))
+
+    // ----- VIP badge: vip only -----
+    ok('plans: VIP badge only for vip', JSON.stringify((await as(M1, `select vip_ids($1) id`, [[F, P, V]])).rows.map((r) => r.id)) === JSON.stringify([V]) &&
+       (await as(P, `select my_vip() v`)).rows[0].v.is_vip === false && (await as(V, `select my_vip() v`)).rows[0].v.is_vip === true)
+
+    // ----- Blind Dating: regular dates per day, events unlimited, vip priority in events -----
+    await su(`delete from random_chat_queue`)
+    for (let i = 0; i < 3; i++) {
+      await su(`insert into random_chat_sessions (user_a, user_b, kind, status, ended_at) values ($1, $2, 'blind', 'ended', now())`, [F, M1])
+      await su(`insert into random_chat_sessions (user_a, user_b, kind, status, ended_at) values ($1, $2, 'blind', 'ended', now())`, [P, M1])
+    }
+    ok('plans: free gets 3 blind dates a day', gate(await err(() => as(F, `select randomizer_join('{male}', 18, 99)`)), 'blind_dating_per_day', 'limit') &&
+       (await access(F)).features.blind_dating_per_day.used === 3)
+    ok('plans: plus gets more', !(await fails(() => as(P, `select randomizer_join('{male}', 18, 99)`))))
+    await as(P, `select randomizer_leave()`)
+    await su(`insert into random_chat_queue (user_id, want_genders, min_age, max_age, want_tags) values ($1, '{male}', 18, 99, '{}')`, [F])
+    ok('plans: someone out of dates is not paired from the queue', (await as(M2, `select randomizer_join('{female}', 18, 99) s`)).rows[0].s === null)
+    await su(`delete from random_chat_queue`)
+    const ev = (await su(`insert into scheduled_events (title_en, title_ms, title_ru, starts_at, ends_at, status) values ('Pl', 'Pl', 'Pl', now() - interval '1 minute', now() + interval '1 hour', 'live') returning id`)).rows[0].id
+    await su(`insert into random_chat_queue (user_id, want_genders, min_age, max_age, want_tags, event_id, enqueued_at) values
+      ($1, '{male}', 18, 99, '{}', $3, now() - interval '20 seconds'), ($2, '{male}', 18, 99, '{}', $3, now() - interval '10 seconds')`, [F, V, ev])
+    const es = (await as(M2, `select randomizer_join('{female}', 18, 99, '{}', $1) s`, [ev])).rows[0].s
+    ok('plans: vip is paired first in a Blind Dating Night', (await su(`select user_a from random_chat_sessions where id=$1`, [es])).rows[0]?.user_a === V)
+    const es2 = (await as(M3, `select randomizer_join('{female}', 18, 99, '{}', $1) s`, [ev])).rows[0].s
+    ok('plans: events are not limited by the daily quota', (await su(`select user_a from random_chat_sessions where id=$1`, [es2])).rows[0]?.user_a === F)
+    await su(`update random_chat_sessions set status = 'ended', ended_at = now() where id = any($1)`, [[es, es2]])
+    await su(`delete from random_chat_queue`)
+
+    // ----- promo codes grant plans -----
+    const upsertPromo = (code, benefits) => su(`select admin_upsert_promo($1, null, $2, null, null, $3::jsonb, null, false) id`, [ADM, code, JSON.stringify(benefits)])
+    ok('plans: promo benefits validated', !!(await fails(() => upsertPromo('PLGOLD', { plan: 'gold', days: 5 }))) &&
+       !!(await fails(() => upsertPromo('PLNODAYS', { plan: 'plus' }))) && !!(await fails(() => upsertPromo('PLBOTH', { plan: 'plus', days: 5, vip_days: 5 }))))
+    await upsertPromo('PLPLUS30', { plan: 'plus', days: 30 })
+    const pr = (await as(M1, `select redeem_promo('plplus30') r`)).rows[0].r
+    ok('plans: promo grants a plus plan', pr.status === 'granted' && pr.plan === 'plus' && (await planOf(M1)) === 'plus' &&
+       (await su(`select source from plan_grants where user_id=$1`, [M1])).rows[0].source === 'promo', JSON.stringify(pr))
+    const xm = (await su(`select benefits, is_active from promo_codes where code='XMUM_FIRST_100'`)).rows[0]
+    ok('plans: XMUM_FIRST_100 is VIP for 90 days and inactive', xm.benefits.plan === 'vip' && xm.benefits.days === 90 && xm.is_active === false)
+
+    // ----- admin RPCs: roles and logging -----
+    ok('plans: moderator cannot edit the matrix or grant', !!(await fails(() => svc(`select admin_set_feature($1, 'calls', true, 'plus', null)`, [MOD]))) &&
+       !!(await fails(() => svc(`select admin_grant_plan($1, $2, 'vip', 30, null)`, [MOD, F]))) && !!(await fails(() => svc(`select admin_plan_stats($1)`, [S]))))
+    ok('plans: matrix edits are logged', (await logs('plan.feature')) === 4 && (await logs('plan.limit')) === 2)
+    ok('plans: invalid matrix values rejected', !!(await fails(() => svc(`select admin_set_limit($1, 'likes_per_day', 'free', -1, 'day')`, [ADM]))) &&
+       !!(await fails(() => svc(`select admin_set_limit($1, 'likes_per_day', 'free', 5, 'year')`, [ADM]))) &&
+       !!(await fails(() => svc(`select admin_set_feature($1, 'nope', true, 'free', null)`, [ADM]))))
+    const gid = (await svc(`select admin_grant_plan($1, $2, 'vip', 7, 'thanks') id`, [ADM, F])).rows[0].id
+    const g = (await su(`select * from plan_grants where id=$1`, [gid])).rows[0]
+    ok('plans: admin grant', g.user_id === F && g.plan === 'vip' && g.source === 'admin' && g.granted_by === ADM && g.note === 'thanks' && (await planOf(F)) === 'vip' && (await logs('plan.grant')) === 1)
+    const up = (await svc(`select admin_user_plan($1, $2) u`, [ADM, F])).rows[0].u
+    ok('plans: admin sees the grants', up.plan === 'vip' && up.grants.length === 1 && up.grants[0].active === true)
+    await svc(`select admin_revoke_grant($1, $2)`, [ADM, gid])
+    await svc(`select admin_revoke_grant($1, $2)`, [ADM, gid])
+    ok('plans: admin revoke (logged once)', (await planOf(F)) === 'free' && (await logs('plan.revoke')) === 1)
+    const stats = (await svc(`select admin_plan_stats($1) s`, [ADM])).rows[0].s
+    ok('plans: stats by plan and by source', stats.by_plan.plus >= 2 && stats.by_plan.vip >= 2 && stats.staff >= 3 &&
+       stats.by_source.some((s) => s.source === 'promo' && s.active >= 1) && stats.by_source.some((s) => s.source === 'admin'), JSON.stringify(stats))
+  })()
+  // ===== end plans =====
+
   // ===== VIP perks (20261009000290; plans from 20261009000280) =====
   // Read receipts, profile visitors, Discover priority, notes on likes. Own users in Kota
-  // Kinabalu (far from everyone else), VIP through profiles.vip_until.
+  // Kinabalu (far from everyone else), VIP through plan grants (20261009000280).
   await (async () => {
     const ids = Array.from({ length: 17 }, (_, i) => `7a1b0000-0000-4000-8000-0000000000${String(i + 10)}`)
     const [A, B, C, D, E, F, MOD, N, O, V1, X, V2, V3, V4, W, Y, Z] = ids
@@ -3602,7 +3862,7 @@ export async function run(db) {
     }
     await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
     await su(`insert into admins values ($1)`, [MOD])
-    const vip = (u) => su(`update profiles set vip_until = now() + interval '30 days' where id=$1`, [u])
+    const vip = (u) => su(`select grant_plan($1, 'vip', 30, 'admin')`, [u])
     for (const u of [A, V1, V2, V3, V4, Z]) await vip(u)
     const one = async (u, sql, p) => (await as(u, sql, p)).rows[0]?.r
     const casts = (u, fn, args = []) => one(u, `select ${fn}(${args.map((_, i) => '$' + (i + 1)).join(',')}) r`, args)
@@ -3657,6 +3917,8 @@ export async function run(db) {
     ok('pv: one row per pair and day', (await visit(C, A)) === true && (await visits(A)).length === 1)
     ok('pv: self not recorded', (await visit(A, A)) === false)
     ok('pv: staff not recorded', (await visit(MOD, A)) === false)
+    // Incognito counts only while the plan includes it (20261009000280: plus and up).
+    await su(`select grant_plan($1, 'plus', 30, 'admin')`, [D])
     await su(`update profiles set is_incognito = true where id=$1`, [D])
     ok('pv: incognito viewer not recorded', (await visit(D, A)) === false)
     await as(A, `insert into blocks (blocked_id) values ($1)`, [E])
@@ -3669,6 +3931,7 @@ export async function run(db) {
     await visit(C, B); await visit(N, B)
     const teaser = await casts(B, 'my_profile_visitors')
     ok('pv: free user gets the count only', teaser.full === false && teaser.count === 2 && teaser.visitors.length === 0, JSON.stringify(teaser))
+    await su(`select grant_plan($1, 'plus', 30, 'admin')`, [C])
     await su(`update profiles set is_incognito = true where id=$1`, [C])
     ok('pv: a visitor who goes incognito drops out', (await casts(A, 'my_profile_visitors')).count === 0)
     await su(`update profiles set is_incognito = false where id=$1`, [C])
@@ -3700,23 +3963,23 @@ export async function run(db) {
     await su(`update profiles set discoverable = true where id = any($1)`, [[W, Y]])
     const note = (u, t, body) => casts(u, 'send_like_note', [t, body])
     const notesOf = async (u, only = null) => (await as(u, `select * from incoming_like_notes($1)`, [only])).rows
-    const errOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+    const errOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code === 'VP402' ? `VP402:${e.hint}` : e.code } }
     const n1 = await note(V2, W, '  Your hiking photos are great. Coffee at Gaya Street?  ')
     ok('note: VIP sends a note with the like', n1.state === 'visible' && n1.match_id === null && (await su(`select direction d from swipes where swiper_id=$1 and swiped_id=$2`, [V2, W])).rows[0]?.d === 'like', JSON.stringify(n1))
     const seen = await notesOf(W)
     ok('note: recipient reads it (trimmed, first name)', seen.length === 1 && seen[0].body === 'Your hiking photos are great. Coffee at Gaya Street?' && seen[0].first_name === 'Vp11' && seen[0].sender_id === V2, JSON.stringify(seen))
     ok('note: filter by card ids', (await notesOf(W, [V2])).length === 1 && (await notesOf(W, [V3])).length === 0)
     ok('note: nobody else reads it', (await notesOf(Y)).length === 0 && (await notesOf(V2)).length === 0)
-    ok('note: daily limit (1 per 24 h)', (await errOf(() => note(V2, Y, 'hello'))) === 'P0429')
-    ok('note: one note per person', (await errOf(async () => { await su(`update like_notes set created_at = now() - interval '25 hours' where sender_id=$1`, [V2]); return note(V2, W, 'again') })) === '23505')
-    ok('note: free users need the perk (VP402)', (await errOf(() => note(W, V2, 'hi'))) === 'VP402' && (await fails(() => note(W, V2, 'hi')))?.includes('Plan required'))
+    ok('note: daily limit (1 per 24 h)', (await errOf(() => note(V2, Y, 'hello'))) === 'VP402:limit')
+    ok('note: one note per person', (await errOf(async () => { await su(`update feature_uses set created_at = now() - interval '25 hours' where user_id=$1`, [V2]); return note(V2, W, 'again') })) === '23505')
+    ok('note: free users need the perk (VP402)', (await errOf(() => note(W, V2, 'hi'))) === 'VP402:feature' && (await fails(() => note(W, V2, 'hi')))?.includes('Plan required'))
     ok('note: 200 characters at most, not empty', (await errOf(() => note(V3, Y, 'x'.repeat(201)))) === '22023' && (await errOf(() => note(V3, Y, '   '))) === '22023')
     ok('note: not to yourself', (await errOf(() => note(V3, V3, 'me'))) === '22023')
     ok('note: table closed', !!(await fails(() => as(W, `select * from like_notes`))) && !!(await fails(() => as(V3, `insert into like_notes (sender_id, recipient_id, body) values ($1,$2,'x')`, [V3, Y]))))
     // risky note: held, never shown, still counts
     const held = await note(V3, Y, 'add me on whatsapp 0123456789')
     ok('note: risky text is held', held.state === 'held' && (await notesOf(Y)).length === 0 && (await su(`select held_kinds k from like_notes where id=$1`, [held.note_id])).rows[0].k.includes('messenger'))
-    ok('note: held note still counts against the limit', (await errOf(() => note(V3, W, 'hi there'))) === 'P0429')
+    ok('note: held note still counts against the limit', (await errOf(() => note(V3, W, 'hi there'))) === 'VP402:limit')
     ok('note: sender sees their own note state', (await casts(V3, 'my_like_note', [Y]))?.state === 'held' && (await casts(Y, 'my_like_note', [V3])) === null)
     // blocks hide it
     const n4 = await note(V4, Y, 'Hello from the islands')
@@ -3730,7 +3993,7 @@ export async function run(db) {
     const first = (await as(W, `select sender_id, body from messages where match_id=$1 order by created_at`, [mVW])).rows
     ok('note: match opens with the note as the first message', !!mVW && first.length === 1 && first[0].sender_id === V2 && first[0].body.startsWith('Your hiking photos'), JSON.stringify(first))
     ok('note: delivered note no longer listed', (await notesOf(W)).length === 0 && (await su(`select state, match_id from like_notes where id=$1`, [n1.note_id])).rows[0].match_id === mVW)
-    ok('note: no note to someone you already matched', (await errOf(async () => { await su(`update like_notes set created_at = now() - interval '25 hours'`); return note(V2, W, 'x') })) === '22023')
+    ok('note: no note to someone you already matched', (await errOf(async () => { await su(`update feature_uses set created_at = now() - interval '25 hours' where user_id=$1`, [V2]); return note(V2, W, 'x') })) === '22023')
     // a note to someone who already liked you: instant match, note delivered
     await like(Y, A)
     const n5 = await note(A, Y, 'Saw you liked me too')
@@ -3753,6 +4016,7 @@ export async function run(db) {
     ok('note: purge after 90 days, kept under an open report', (await su(`select purge_old_like_notes() n`)).rows[0].n === 1 && (await su(`select count(*)::int c from like_notes where id=$1`, [n4.note_id])).rows[0].c === 1)
     await su(`update reports set resolved_at = now() where target_type='like_note' and target_id=$1`, [n4.note_id])
     ok('note: purged once the report is resolved', (await su(`select purge_old_like_notes() n`)).rows[0].n === 1)
+    ok('note: staff need no plan and have no quota', !!(await note(MOD, W, 'Hi from the team')).note_id && !!(await note(MOD, Y, 'Second one today')).note_id)
     ok('note: no anon access', (await su(`select has_function_privilege('anon', 'public.send_like_note(uuid, text)', 'execute') v`)).rows[0].v === false &&
        (await su(`select has_function_privilege('authenticated', 'public.purge_old_like_notes()', 'execute') v`)).rows[0].v === false)
   })()

@@ -1,4 +1,5 @@
--- VIP perks (needs 20261009000280_plans: has_feature, feature_limit, is_staff, SQLSTATE VP402).
+-- VIP perks (needs 20261009000280_plans: has_feature, consume_feature, incognito_on, is_staff,
+-- SQLSTATE VP402).
 -- Every perk is gated in the database with has_feature(uid, key) (VIP, staff always allowed):
 --
 -- 1. Read receipts (feature 'read_receipts').
@@ -16,7 +17,7 @@
 --      read_at is null and it is newer than the reader's match_reads row.
 -- 2. Profile visitors (feature 'profile_visitors').
 --    * record_profile_visit(target): one row per (viewer, viewed, Malaysia day). Not recorded for
---      self, staff, incognito, shadow-banned, unverified or inactive viewers, or when either side
+--      self, staff, incognito (while the plan includes it), shadow-banned, unverified or inactive viewers, or when either side
 --      blocked the other (can_view_profile). Incognito is how a VIP hides their own visits.
 --    * my_profile_visitors(): VIP/staff get the list (name, age, first photo, when, liked);
 --      everybody else only the count (no photos, no ids: the blurred avatars are placeholders).
@@ -35,6 +36,11 @@
 --    * Report target 'like_note' (20261009000289): the subject is the sender; reporting hides the
 --      note at once. admin_open_like_note shows the text to a moderator of an open report, logged.
 --    * Kept 90 days (retention protocol), longer only under an open report.
+
+-- The four features were seeded as reserved in 20261009000280; they are live now.
+update public.features set note = null, updated_at = now()
+where key in ('read_receipts', 'profile_visitors', 'discover_priority', 'message_before_match')
+  and note = 'Зарезервировано';
 
 -- =============================================================================================
 -- 1. Read receipts
@@ -257,7 +263,8 @@ begin
   end if;
   select p.verification_status, p.is_active, p.is_incognito, p.shadow_banned, p.banned_at
   into v from public.profiles p where p.id = me;
-  if v.verification_status is distinct from 'approved' or not v.is_active or v.is_incognito
+  if v.verification_status is distinct from 'approved' or not v.is_active
+     or public.incognito_on(me, v.is_incognito)
      or v.shadow_banned or v.banned_at is not null or public.is_staff(me) then
     return false;
   end if;
@@ -303,7 +310,7 @@ begin
       and p.verification_status = 'approved'
       and p.is_active
       and not p.shadow_banned
-      and not p.is_incognito
+      and not public.incognito_on(p.id, p.is_incognito)
       and p.banned_at is null
       and not public.is_blocked_between(me, p.id)
     group by v.viewer_id
@@ -352,7 +359,7 @@ $$;
 
 -- =============================================================================================
 -- 3. Discover priority: get_swipe_candidates copied from its newest definition
---    (20261009000230: boost first, then "Similar plans"). One new ORDER BY key after the boost.
+--    (20261009000280: boost first, then similar statuses). One new ORDER BY key after the boost.
 -- =============================================================================================
 create or replace function public.get_swipe_candidates(
   p_genders       public.gender[],
@@ -382,8 +389,7 @@ returns table (
   pets              public.pets_status,
   children          public.children_plan,
   prompts           jsonb,
-  second_chance     boolean,
-  plan              text
+  second_chance     boolean
 )
 language plpgsql
 stable
@@ -406,8 +412,9 @@ begin
   p_max_km  := least(500, greatest(1, p_max_km));
   p_limit   := least(50, greatest(1, p_limit));
   if coalesce(p_similar_plans, false) then
-    select up.tag into my_plan from public.user_plans up
-    where up.user_id = me.id and up.expires_at > now();
+    select s.plan_tag into my_plan from public.user_statuses s
+    where s.user_id = me.id and s.replaced_at is null and s.expires_at > now()
+      and s.moderation_state <> 'removed';
   end if;
   me_new := me.created_at > now() - interval '14 days';
 
@@ -449,19 +456,21 @@ begin
        from public.profile_prompts pp where pp.profile_id = p.id),
       '[]'::jsonb
     ),
-    c.second_chance,
-    pl.tag
+    c.second_chance
   from public.swipe_candidate_pool(me.id, p_genders, p_min_age, p_max_age, p_max_km) c
   join public.profiles p on p.id = c.id
-  left join public.user_plans pl on pl.user_id = p.id and pl.expires_at > now()
+  left join public.user_statuses pl
+    on pl.user_id = p.id and pl.replaced_at is null and pl.expires_at > now()
+   and pl.moderation_state = 'visible'
   order by coalesce(p.vip_boost_until > now(), false) desc, -- VIP boost (20261009000230)
            -- Discover priority for new users nearby (20261009000290)
            (me_new
             and (lower(btrim(p.city)) = lower(btrim(me.city))
                  or (me.location is not null and p.location is not null
                      and extensions.st_dwithin(me.location, p.location, 30000)))
-            and public.has_feature(p.id, 'discover_priority')) desc,
-           (my_plan is not null and pl.tag is not distinct from my_plan) desc,
+            -- Staff accounts have every feature, but are not pushed to new users.
+            and public.has_feature(p.id, 'discover_priority') and not public.is_staff(p.id)) desc,
+           (my_plan is not null and pl.plan_tag is not distinct from my_plan) desc, -- similar statuses
            c.second_chance,
            p.last_active_at desc
   limit p_limit;
@@ -493,8 +502,9 @@ create index like_notes_sender_idx on public.like_notes (sender_id, created_at d
 alter table public.like_notes enable row level security;
 revoke all on public.like_notes from anon, authenticated;
 
--- A like with a note. Errors: 42501 not verified, VS001 muted, VP402 no perk (detail = feature
--- key), P0429 daily limit, 22023 bad text or target, 23505 a note to this person exists already.
+-- A like with a note. Errors: 42501 not verified, VS001 muted, VP402 (detail
+-- 'message_before_match', hint 'feature': no perk, 'limit': the daily quota is used up), 22023 bad
+-- text or target, 23505 a note to this person exists already.
 -- Returns {"note_id", "state": "visible"|"held", "match_id": uuid|null}.
 create function public.send_like_note(p_target uuid, p_body text)
 returns jsonb
@@ -506,8 +516,6 @@ as $$
 declare
   me     uuid := (select auth.uid());
   v_body text := btrim(coalesce(p_body, ''));
-  lim    int;
-  used   int;
   kinds  text[];
   nid    uuid;
   mid    uuid;
@@ -518,9 +526,7 @@ begin
   if exists (select 1 from public.profiles where id = me and muted_until > now()) then
     raise exception 'muted' using errcode = 'VS001';
   end if;
-  if not public.has_feature(me, 'message_before_match') then
-    raise exception 'Plan required' using errcode = 'VP402', detail = 'message_before_match';
-  end if;
+  perform public.assert_feature(me, 'message_before_match');
   if char_length(v_body) < 1 or char_length(v_body) > 200 then
     raise exception 'Note must be 1 to 200 characters' using errcode = 'invalid_parameter_value';
   end if;
@@ -535,16 +541,9 @@ begin
     raise exception 'Note already sent' using errcode = 'unique_violation';
   end if;
 
-  -- Daily limit (rolling 24 h). Staff: feature_limit null = unlimited.
-  lim := public.feature_limit(me, 'message_before_match');
-  if lim is not null then
-    perform pg_advisory_xact_lock(hashtextextended('like_note:' || me::text, 0));
-    select count(*)::int into used from public.like_notes n
-    where n.sender_id = me and n.created_at > now() - interval '24 hours';
-    if used >= lim then
-      raise exception 'Daily note limit reached' using errcode = 'P0429';
-    end if;
-  end if;
+  -- The quota of the plan (VIP: 1 per rolling day; staff unlimited), recorded in feature_uses.
+  -- VP402 with hint 'limit' when it is used up. One use per note, held ones included.
+  perform public.consume_feature(me, 'message_before_match');
 
   select coalesce(array_agg(distinct r.kind), '{}') into kinds from public.detect_message_risk(v_body) r;
 
