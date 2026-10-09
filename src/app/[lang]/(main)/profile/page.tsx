@@ -16,6 +16,8 @@ import { OwnProfileSkeleton } from '@/features/profile/components/profile-skelet
 import { ownCandidate } from '@/features/profile/own-card'
 import { getOwnPhotos, getOwnProfile, getTags } from '@/features/profile/queries'
 import { getVipStatus } from '@/features/promo/queries'
+import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
+import { CrossedPathsPromoRow } from '@/features/crossed-paths/components/crossed-paths-promo-row'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 
@@ -46,12 +48,13 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags, plan, vip] = await Promise.all([
+  const [photos, profile, tags, plan, vip, crossed] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
     getOwnPlan(viewer.id),
     getVipStatus(),
+    crossedPathsEnabled(),
   ])
   const card = profile && {
     ...ownCandidate(viewer.id, profile, photos, tags),
@@ -83,6 +86,8 @@ async function OwnProfile() {
           </Link>
           {plan !== undefined && <PlanButton initial={plan} variant="row" />}
           {card && <ProfilePreview candidate={card} />}
+          {/* Crossed paths is opt-in: invited here (and in Settings), not on top of Discover. */}
+          {crossed === false && <CrossedPathsPromoRow />}
         </div>
       </section>
       {profile && (

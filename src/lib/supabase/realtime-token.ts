@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from './server'
+import { createClient, dropDeadSession } from './server'
 
 export type BrowserToken = { token: string; expiresAt: number }
 
@@ -8,7 +8,8 @@ export type BrowserToken = { token: string; expiresAt: number }
 // The refresh token never leaves the HTTP-only cookie.
 export async function getBrowserToken(): Promise<BrowserToken | null> {
   const supabase = await createClient()
-  const { data } = await supabase.auth.getSession()
+  const { data, error } = await supabase.auth.getSession()
+  if (await dropDeadSession(error)) return null
   const session = data.session
   if (!session?.expires_at) return null
   return { token: session.access_token, expiresAt: session.expires_at * 1000 }

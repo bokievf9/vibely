@@ -1,7 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, dropDeadSession } from '@/lib/supabase/server'
 import type { Enums } from '@/types/database.types'
 
 export type Viewer = {
@@ -21,7 +21,8 @@ export type Viewer = {
 // Reads cookies, so callers must sit inside a <Suspense> boundary.
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   const supabase = await createClient()
-  const { data: claims } = await supabase.auth.getClaims()
+  const { data: claims, error } = await supabase.auth.getClaims()
+  if (await dropDeadSession(error)) return null
   const id = claims?.claims.sub
   if (!id) return null
 

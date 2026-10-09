@@ -1,7 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, dropDeadSession } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { hasRole, type AdminRole } from './roles'
 
@@ -11,7 +11,8 @@ export type Admin = { id: string; role: AdminRole }
 // existence isn't revealed.
 export const getAdmin = cache(async (): Promise<Admin> => {
   const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
+  const { data, error } = await supabase.auth.getClaims()
+  if (await dropDeadSession(error)) notFound()
   const userId = data?.claims.sub
   if (!userId) notFound()
 

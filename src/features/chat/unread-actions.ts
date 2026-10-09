@@ -1,7 +1,7 @@
 'use server'
 
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, dropDeadSession } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 
 // groups: Duo group chats exist on this database (their messages count too).
@@ -13,7 +13,8 @@ const countSchema = z.number().int().nonnegative()
 // caller's own private Realtime topic inbox:<user id>.
 export async function getUnreadSummary(): Promise<UserResult<UnreadSummary>> {
   const supabase = await createClient()
-  const { data: claims } = await supabase.auth.getClaims()
+  const { data: claims, error: authError } = await supabase.auth.getClaims()
+  if (await dropDeadSession(authError)) return fail('unauthorized')
   const userId = z.uuid().safeParse(claims?.claims.sub)
   if (!userId.success) return fail('unauthorized')
   const [{ data, error }, group] = await Promise.all([

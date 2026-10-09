@@ -25,6 +25,8 @@ const REFILL_AT = 3
 
 type Props = {
   defaultFilters: SwipeFilters
+  // Left of the header bar, in place of the large title (the Solo/Duo switch).
+  headerLeading?: ReactNode
   // Extra header buttons rendered by the server (e.g. "Who liked you" with its count).
   headerActions?: ReactNode
   // Optional strip above the deck (e.g. "You crossed paths"), rendered by the server.
@@ -43,6 +45,7 @@ const likeButton =
 
 export function SwipeDeck({
   defaultFilters,
+  headerLeading,
   headerActions,
   aboveDeck,
   plansAvailable,
@@ -145,7 +148,7 @@ export function SwipeDeck({
 
   return (
     <>
-      <PageHeader title={dict.swipe.title}>
+      <PageHeader title={dict.swipe.title} leading={headerLeading}>
         {headerActions}
         <button
           type="button"
@@ -156,7 +159,7 @@ export function SwipeDeck({
           <SlidersHorizontal className="size-[1.375rem]" />
         </button>
       </PageHeader>
-      <section className="flex flex-1 flex-col gap-4 px-3 pt-1 pb-3">
+      <section className="flex flex-1 flex-col gap-3 px-3 pt-1 pb-3">
         {banner}
         {aboveDeck}
         <FormError message={errorText(error)} />

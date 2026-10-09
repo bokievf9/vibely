@@ -78,6 +78,7 @@ export function CallScreen({ session, answered, onAnswered, onHangUp, onLost }: 
   return (
     <motion.div
       role="dialog"
+      data-no-auto-reload=""
       aria-modal="true"
       aria-label={session.peer.name}
       initial={{ opacity: 0, transform: from }}

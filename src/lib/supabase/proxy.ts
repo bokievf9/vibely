@@ -5,6 +5,7 @@ import { LOCALE_COOKIE, localePath } from '@/i18n/config'
 import { preferredLocale, splitLocale } from '@/i18n/negotiate'
 import type { Database } from '@/types/database.types'
 import { authCookieOptions } from './config'
+import { describeAuthError, isAuthCookieName, isDeadSessionError } from './auth-errors'
 import {
   parseRefCode,
   REF_COOKIE,
@@ -67,8 +68,17 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Must run before anything else: it triggers the token refresh that writes cookies.
-  const { data } = await supabase.auth.getClaims()
-  const isSignedIn = Boolean(data?.claims)
+  const { data, error } = await supabase.auth.getClaims()
+  // A refresh token Supabase rejects (already used, revoked, expired) never works again: drop the
+  // cookies so the next request does not retry the refresh, and continue signed out.
+  const sessionIsDead = isDeadSessionError(error)
+  if (sessionIsDead) {
+    console.warn(
+      `[auth] dropped a dead session cookie (${describeAuthError(error)}) on ${pathname}`,
+    )
+    response = clearAuthCookies(request, response)
+  }
+  const isSignedIn = !sessionIsDead && Boolean(data?.claims)
   const lang = locale ?? preferredLocale(request)
 
   const isLanding = rest === '/'
@@ -102,6 +112,27 @@ export async function updateSession(request: NextRequest) {
   return response
 }
 
+// Expires every Supabase auth cookie (chunks included) with the options they were set with, and
+// hides them from the rest of this request (the page render must not retry the refresh either).
+function clearAuthCookies(request: NextRequest, from: NextResponse): NextResponse {
+  const names = request.cookies
+    .getAll()
+    .map(({ name }) => name)
+    .filter(isAuthCookieName)
+  names.forEach((name) => request.cookies.delete(name))
+  // Rebuilt so the forwarded request headers no longer carry the dead cookies.
+  const response = NextResponse.next({ request })
+  from.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
+  from.headers.forEach((value, key) => {
+    if (key.toLowerCase() !== 'set-cookie' && !key.toLowerCase().startsWith('x-middleware-')) {
+      response.headers.set(key, value)
+    }
+  })
+  names.forEach((name) => response.cookies.set(name, '', { ...authCookieOptions, maxAge: 0 }))
+  return response
+}
+
+// Carries the response's cookie writes, deletions included (they are Set-Cookie entries too).
 function redirectWithCookies(request: NextRequest, from: NextResponse, pathname: string) {
   const url = request.nextUrl.clone()
   url.pathname = pathname

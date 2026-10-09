@@ -65,6 +65,7 @@ async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchPa
         }}
         aboveDeck={<CrossedPathsStrip />}
         plansAvailable={plan !== undefined}
+        headerLeading={duo ? <DiscoverModeToggle mode="solo" /> : undefined}
         headerActions={
           <>
             {/* With live statuses the own bubble of the carousel opens the one "What's your
@@ -78,8 +79,9 @@ async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchPa
         }
         banner={
           <>
-            {duo && <DiscoverModeToggle mode="solo" />}
-            {statuses && <StatusCarousel initial={statuses} plan={plan} className="-mx-3" />}
+            {statuses && (
+              <StatusCarousel initial={statuses} plan={plan} compact className="-mx-3" />
+            )}
             <Suspense fallback={null}>
               <NightBanner />
             </Suspense>
