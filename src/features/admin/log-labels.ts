@@ -29,6 +29,10 @@ export const ACTION_LABELS: Record<string, string> = {
   'note.add': 'Добавил заметку',
   'note.delete': 'Удалил заметку',
   'phone.block': 'Заблокировал номер',
+  'prompt.add': 'Добавил вопрос дня',
+  'prompt.edit': 'Изменил вопрос дня',
+  'prompt.move': 'Переставил вопрос дня',
+  'prompt.delete': 'Удалил вопрос дня',
   'phone.unblock': 'Разблокировал номер',
   'admin.add': 'Добавил в команду',
   'admin.role': 'Изменил роль',
@@ -38,6 +42,13 @@ export const ACTION_LABELS: Record<string, string> = {
   'view.transcript': 'Просмотр переписки блайнд-дейта',
   'export.audit_log': 'Выгрузил журнал (CSV)',
   'legal.export': 'Выгрузил данные по юр. запросу',
+  'event.create': 'Создал вечер свиданий вслепую',
+  'event.update': 'Изменил вечер свиданий вслепую',
+  'event.cancel': 'Отменил вечер свиданий вслепую',
+  'promo.create': 'Создал промокод',
+  'promo.update': 'Изменил промокод',
+  'promo.activate': 'Включил промокод',
+  'promo.deactivate': 'Выключил промокод',
 }
 
 export const actionLabel = (action: string) => ACTION_LABELS[action] ?? action

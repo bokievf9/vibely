@@ -7,7 +7,7 @@ import type { LegalSection } from './types'
 export const matchmakerLegal: Record<Locale, { privacy: LegalSection }> = {
   en: {
     privacy: {
-      heading: '5c. Introductions by friends and Incognito mode',
+      heading: '5e. Introductions by friends and Incognito mode',
       paragraphs: [
         'Introductions: a user may introduce two of their own matches to each other. The first person sees the other person\'s first photo, first name and age, together with the introducer\'s note. The second person sees the same only after the first person said they are interested. A "No thanks" is never shown to anyone, including the introducer. If both are interested, a regular match is created and the note is shown as the first message of that chat; the introducer learns only that the introduction worked.',
         'An introduction is possible only between people who are matched with the introducer, who have not blocked each other, and at most 5 times a day per user. The same two people cannot be introduced again for 90 days. A block between any of the three people cancels the introduction. Introductions and their notes are deleted after 90 days.',
@@ -17,7 +17,7 @@ export const matchmakerLegal: Record<Locale, { privacy: LegalSection }> = {
   },
   ms: {
     privacy: {
-      heading: '5c. Perkenalan oleh kawan dan Mod inkognito',
+      heading: '5e. Perkenalan oleh kawan dan Mod inkognito',
       paragraphs: [
         'Perkenalan: pengguna boleh mengenalkan dua padanan mereka sendiri antara satu sama lain. Orang pertama melihat foto pertama, nama pertama dan umur orang kedua, bersama nota daripada pengenal. Orang kedua melihat perkara yang sama hanya selepas orang pertama menyatakan minat. "Tidak apa" tidak pernah ditunjukkan kepada sesiapa, termasuk pengenal. Jika kedua-duanya berminat, padanan biasa dibuat dan nota dipaparkan sebagai mesej pertama sembang itu; pengenal hanya tahu bahawa perkenalan itu berjaya.',
         'Perkenalan hanya boleh dibuat antara orang yang berpadanan dengan pengenal, yang tidak menyekat satu sama lain, dan paling banyak 5 kali sehari bagi setiap pengguna. Dua orang yang sama tidak boleh dikenalkan semula selama 90 hari. Sekatan antara mana-mana tiga orang itu membatalkan perkenalan. Perkenalan dan notanya dipadam selepas 90 hari.',
@@ -27,7 +27,7 @@ export const matchmakerLegal: Record<Locale, { privacy: LegalSection }> = {
   },
   ru: {
     privacy: {
-      heading: '5c. Знакомства через друзей и режим инкогнито',
+      heading: '5e. Знакомства через друзей и режим инкогнито',
       paragraphs: [
         'Знакомства: пользователь может познакомить двух своих мэтчей друг с другом. Первый человек видит первое фото, имя и возраст второго, а также записку того, кто знакомит. Второй видит то же самое только после того, как первый ответил, что ему интересно. Отказ никогда никому не показывается, в том числе тому, кто знакомит. Если заинтересованы оба, создаётся обычный мэтч, а записка показывается первым сообщением в этом чате; тот, кто знакомил, узнаёт только то, что знакомство состоялось.',
         'Познакомить можно только людей, у которых есть мэтч с тем, кто знакомит, которые не блокировали друг друга, и не более 5 раз в день на пользователя. Одних и тех же двух людей нельзя познакомить повторно в течение 90 дней. Блокировка между любыми из троих отменяет знакомство. Знакомства и записки к ним удаляются через 90 дней.',

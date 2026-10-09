@@ -6,7 +6,8 @@
 -- Functions copied from their newest definitions and extended with one clause each:
 --   swipe_candidate_pool, incoming_like_ids, search_profiles_by_username  (20261009000151)
 --   get_crossed_paths, compute_crossed_paths                               (20261009000200)
--- get_swipe_candidates (20261009000200) reads the pool, so it needs no copy.
+-- get_swipe_candidates (newest: 20261009000230, VIP boost order + p_similar_plans) reads the
+-- pool, so it is not copied and keeps its signature and ordering.
 --
 -- Matchmaker: A introduces two of their OWN matches, B and C.
 --   * create_referral(b, c, note): A has active matches with both, no blocks among the three,

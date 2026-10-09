@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion'
 import { HeartHandshake, UserRound } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { FormError } from '@/components/ui/field'
+import { VipBadge } from '@/components/ui/vip-badge'
 import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
@@ -70,6 +71,7 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-[linear-gradient(to_top,rgb(10_6_10/0.9),rgb(10_6_10/0.4)_55%,transparent)] px-3.5 pt-12 pb-3 text-[17px] font-bold tracking-[-0.02em] text-white">
                     <span className="truncate">{person.name}</span>
                     <span className="shrink-0 font-light text-white/90">, {person.age}</span>
+                    {person.vip && <VipBadge size={16} className="ml-1 shrink-0 self-center" />}
                   </span>
                   <span
                     aria-hidden

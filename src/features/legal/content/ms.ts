@@ -1,6 +1,8 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { matchmakerLegal } from './matchmaker'
+import { crushLegal } from './crush'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -63,6 +65,12 @@ export const ms: LegalContent = {
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ms.privacy,
       // --- end crossed paths & plans ---
+      // --- secret crush (src/features/legal/content/crush.ts) ---
+      crushLegal.ms.privacy,
+      // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ms.privacy,
+      // --- end private replies & question of the day ---
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ms.privacy,
       // --- end matchmaker & incognito ---
@@ -182,6 +190,12 @@ export const ms: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.terms,
       // --- end calls ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ms.terms,
+      // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.ms.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Moderasi',
         paragraphs: [
@@ -201,6 +215,7 @@ export const ms: LegalContent = {
         heading: '8. Perkhidmatan',
         paragraphs: [
           'Vibely disediakan "seadanya". Kami berusaha memastikan ia sentiasa tersedia dan selamat, tetapi kami boleh mengubah, menjeda atau menghentikan ciri. Kami tidak menjanjikan anda akan menemui padanan.',
+          'Kod promo dan VIP: kami mungkin mengedarkan kod promo (contohnya di acara atau melalui rakan kongsi) yang membuka ciri VIP untuk tempoh terhad, seperti lencana VIP, dipaparkan dahulu di Discover, melihat siapa yang menyukai anda atau keutamaan dalam temu janji buta. Sesetengah kod terhad bilangannya, sah sehingga tarikh tertentu, dikhaskan untuk kumpulan tertentu (contohnya jantina yang disahkan melalui semakan swafoto) atau memerlukan swafoto yang diluluskan. Ciri adalah peribadi, tidak boleh dipindahkan atau ditukar dengan wang, dan kami boleh membatalkannya serta menyekat kod tersebut jika ia dikongsi, dijual semula atau digunakan untuk melanggar Syarat ini.',
         ],
       },
       {

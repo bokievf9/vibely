@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { ageFromBirthDate } from '@/lib/utils'
+import { getVipIds } from '@/features/promo/queries'
 import { signPhotoPaths } from './queries'
 import { getPlansFor } from '@/features/plans/queries'
 import type { PlanTag } from '@/features/plans/tags'
@@ -23,6 +24,8 @@ export type PublicProfile = {
   swiped: 'like' | 'pass' | null
   // Active 24-hour plan, if any.
   plan: PlanTag | null
+  // VIP right now (promo codes).
+  vip: boolean
 }
 
 // Full profile of someone the viewer has matched with (swipes or a mutual blind date Connect),
@@ -36,7 +39,7 @@ export async function getPublicProfile(
   if (userId === viewerId) return null
   const supabase = await createClient()
   const [a, b] = [userId, viewerId].sort()
-  const [{ data: match }, { data: p }, { data: swipe }, plans] = await Promise.all([
+  const [{ data: match }, { data: p }, { data: swipe }, plans, vips] = await Promise.all([
     supabase
       .from('matches')
       .select('id')
@@ -57,6 +60,7 @@ export async function getPublicProfile(
       .eq('swiped_id', userId)
       .maybeSingle(),
     getPlansFor([userId]),
+    getVipIds([userId]),
   ])
   if (!p || (!match && !p.discoverable)) return null
 
@@ -79,5 +83,6 @@ export async function getPublicProfile(
     matchId: match?.id ?? null,
     swiped: swipe?.direction ?? null,
     plan: plans.get(userId) ?? null,
+    vip: vips.has(userId),
   }
 }

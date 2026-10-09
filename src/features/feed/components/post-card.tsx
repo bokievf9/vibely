@@ -10,6 +10,7 @@ import { AuthorLine } from './author-line'
 import { ContentMenu } from './content-menu'
 import { formatCount } from './format-count'
 import { LikeButton } from './like-button'
+import { ReplyPrivately } from './reply-privately'
 
 type Props = { post: FeedPost; linkToThread?: boolean; onDeleted: () => void }
 
@@ -60,6 +61,7 @@ export function PostCard({ post, linkToThread = true, onDeleted }: Props) {
           <MessageCircle className="size-[1.375rem] shrink-0" aria-hidden />
           <span className="tabular-nums">{formatCount(post.comments, locale)}</span>
         </LocaleLink>
+        {!post.isMine && <ReplyPrivately postId={post.id} />}
       </footer>
     </article>
   )

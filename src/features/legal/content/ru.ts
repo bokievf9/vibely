@@ -1,6 +1,8 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { matchmakerLegal } from './matchmaker'
+import { crushLegal } from './crush'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -63,6 +65,12 @@ export const ru: LegalContent = {
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ru.privacy,
       // --- end crossed paths & plans ---
+      // --- secret crush (src/features/legal/content/crush.ts) ---
+      crushLegal.ru.privacy,
+      // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ru.privacy,
+      // --- end private replies & question of the day ---
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ru.privacy,
       // --- end matchmaker & incognito ---
@@ -182,6 +190,12 @@ export const ru: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ru.terms,
       // --- end calls ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ru.terms,
+      // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.ru.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Модерация',
         paragraphs: [
@@ -201,6 +215,7 @@ export const ru: LegalContent = {
         heading: '8. Сервис',
         paragraphs: [
           'Vibely предоставляется «как есть». Мы стараемся, чтобы сервис был доступен и безопасен, но можем менять, приостанавливать или отключать функции. Мы не обещаем, что вы найдёте пару.',
+          'Промокоды и VIP: мы можем раздавать промокоды (например, на мероприятиях или через партнёров), которые на ограниченный срок открывают VIP-возможности: значок VIP, показ первым в Discover, просмотр тех, кто вас лайкнул, или приоритет в блайнд-дейте. Некоторые коды ограничены по количеству, действуют до определённой даты, предназначены для определённой группы (например, для пола, подтверждённого проверкой селфи) или требуют одобренного селфи. Бонусы личные, не передаются и не обмениваются на деньги; мы можем отозвать их и заблокировать код, если им делятся, перепродают или используют для нарушения этих Условий.',
         ],
       },
       {

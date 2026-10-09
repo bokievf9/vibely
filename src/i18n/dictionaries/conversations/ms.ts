@@ -1,0 +1,54 @@
+import type { ConversationsDictionary } from './en'
+
+export const conversationsMs: ConversationsDictionary = {
+  replyPrivately: 'Balas secara peribadi',
+  replyTitle: 'Balas secara peribadi',
+  replyHint:
+    'Hanya penulis membacanya. Anda kekal tanpa nama sebagai "Pasangan #123" dan mereka kekal dengan nama hantaran. Jika kedua-dua mahu, anda boleh dedahkan diri kemudian.',
+  replyPlaceholder: 'Tulis balasan anda…',
+  replySent: 'Dihantar. Perbualan ada dalam Sembang.',
+  postAuthor: 'Penulis hantaran',
+  postUnavailable: 'Hantaran ini tidak lagi tersedia.',
+  pinnedPost: 'Membalas hantaran ini',
+  pinnedPrompt: 'Soalan hari ini',
+  bothChose: 'Anda berdua memilih: {answer}',
+  youChose: 'Anda: {answer}',
+  theyChose: 'Mereka: {answer}',
+  authorHint:
+    'Seseorang membalas hantaran anda secara peribadi. Mereka hanya nampak nama hantaran anda.',
+  replierHint: 'Penulis melihat anda sebagai {alias}.',
+  promptHint: 'Anda berdua memilih jawapan yang sama. Sambung apabila serasi.',
+  revealIdentity: 'Dedahkan identiti',
+  revealLocked: '{n} mesej setiap pihak untuk membuka',
+  revealLockedProgress: 'Anda {mine}/{n} · mereka {theirs}/{n}',
+  revealWaiting: 'Anda minta mendedahkan. Menunggu mereka…',
+  revealConfirmHint:
+    'Jika kedua-dua menekannya, profil anda terbuka dan ia menjadi padanan. Tiada apa yang ditunjukkan sebelum itu.',
+  endedTitle: 'Perbualan ini telah tamat',
+  endedHint: 'Tiada lagi yang boleh dihantar di sini.',
+  backToChats: 'Kembali ke sembang',
+  privateReplies: 'Balasan peribadi',
+  privateRepliesHint: 'Perbualan tanpa nama daripada suapan dan soalan hari ini.',
+  noMessagesYet: 'Tegur untuk bermula',
+  pushReply: 'Seseorang membalas hantaran anda secara peribadi',
+  pushReplyBody: 'Buka Vibely untuk membacanya. Anda kekal tanpa nama.',
+  pushReplyMessage: 'Mesej baharu dalam balasan peribadi',
+  pushReplyMessageBody: 'Buka Vibely untuk membacanya.',
+  promptTitle: 'Soalan hari ini',
+  promptNewAt: 'Soalan baharu setiap hari jam 7 malam',
+  promptAnswered: '{count} menjawab',
+  promptSame: 'Mereka memilih yang sama',
+  promptAnswerHint: 'Jawab untuk melihat keputusan dan siapa berdekatan yang memilih sama.',
+  promptChange: 'Tukar jawapan',
+  promptSameHint: 'Orang berdekatan yang memilih jawapan anda. Tegur untuk mula bersembang.',
+  promptNobody: 'Belum ada orang berdekatan dengan jawapan anda. Cuba lagi nanti.',
+  sayHi: 'Tegur',
+  promptPush: 'Soalan hari ini: {question}',
+  promptPushBody: 'Jawab dan lihat siapa memilih yang sama.',
+}
+
+export const conversationErrorsMs = {
+  revealLocked: 'Pendedahan dibuka selepas 5 mesej daripada setiap pihak.',
+  conversationUnavailable: 'Perbualan ini tidak tersedia.',
+  conversationLimit: 'Anda telah memulakan 10 perbualan hari ini. Cuba lagi esok.',
+}

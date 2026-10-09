@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, fmt, hasLocale, localePath, type Locale } from '@/i18n/
 import { getDictionary } from '@/i18n/server'
 import type { Dictionary } from '@/i18n/dictionaries/en'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
+import { userCanSeeLikes } from '@/features/promo/queries'
 import type { NotificationType } from './prefs'
 import type { PushPayload } from './types'
 
@@ -140,21 +141,61 @@ export function notifyBlindMatch(userId: string, matchId: string | null) {
   )
 }
 
+// Blind Dating Night reminders for people who tapped "Remind me": 15 minutes before the start
+// and when it goes live (POST /api/cron/events-push, rows from event_push_due). Short TTL: a
+// reminder delivered after the night is pointless.
+export type EventPush = {
+  kind: 'reminder' | 'start'
+  eventId: string
+  title: Record<Locale, string>
+}
+
+export function notifyEvent(userId: string, push: EventPush): Promise<void> {
+  return sendToUser(
+    userId,
+    'events',
+    (dict, locale) => ({
+      title: fmt(push.kind === 'start' ? dict.events.pushLiveTitle : dict.events.pushSoonTitle, {
+        title: push.title[locale],
+      }),
+      body: push.kind === 'start' ? dict.events.pushLiveBody : dict.events.pushSoonBody,
+      url: localePath(locale, push.kind === 'start' ? '/blind-date?event=1' : '/blind-date'),
+      tag: `event-${push.eventId}`,
+    }),
+    { ttl: 20 * 60 },
+  )
+}
+
+// Secret crush (invite link): the invitee said yes, so it is a match. Sent to the inviter.
+export function notifyCrushMatch(inviterId: string, inviteeName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(inviterId, 'crush', (dict, locale) => ({
+      title: dict.crush.pushTitle,
+      body: fmt(dict.crush.pushBody, { name: inviteeName }),
+      url: chatUrl(locale, matchId),
+      tag: `match-${matchId}`,
+    })),
+  )
+}
+
 // A one-way like. Never the liker's name or photo: only that someone did. Skipped when the liker
-// is paused, because the recipient could not find them in "Who liked you" anyway.
-// One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
+// is paused or in Incognito mode, because the recipient could not find them in "Who liked you"
+// anyway. One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
 export function notifyNewLike(userId: string, likerId: string) {
   inBackground(async () => {
+    // '*': is_incognito (20261009000240) may not exist yet on this database.
     const { data: liker } = await createAdminClient()
       .from('profiles')
-      .select('discoverable')
+      .select('*')
       .eq('id', likerId)
       .maybeSingle()
-    if (!liker?.discoverable) return
+    if (!liker?.discoverable || liker.is_incognito === true) return
+    // A VIP with the see_likes perk (promo codes) gets the list even when the flag is off.
+    const visible = LIKES_VISIBLE_FREE || (await userCanSeeLikes(userId))
     await sendToUser(userId, 'likes', (dict, locale) => ({
       title: dict.likes.pushTitle,
-      body: LIKES_VISIBLE_FREE ? dict.likes.pushBody : dict.likes.pushBodyLocked,
-      url: localePath(locale, LIKES_VISIBLE_FREE ? '/likes' : '/swipe'),
+      body: visible ? dict.likes.pushBody : dict.likes.pushBodyLocked,
+      url: localePath(locale, visible ? '/likes' : '/swipe'),
       tag: 'likes',
     }))
   })

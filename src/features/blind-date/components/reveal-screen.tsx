@@ -17,11 +17,11 @@ import { AliasAvatar } from './alias-avatar'
 const POP = { type: 'spring', bounce: 0.3, duration: 0.6 } as const
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
-type Props = { session: BlindSession; onNext: () => void }
+type Props = { session: BlindSession; onNext: () => void; nextLabel?: string }
 
 // Both pressed Connect: the gradient placeholders turn into real photos, then name and age.
 // Profile data only reaches the browser at this point (get_blind_session after the match).
-export function RevealScreen({ session, onNext }: Props) {
+export function RevealScreen({ session, onNext, nextLabel }: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
   const router = useLocaleRouter()
@@ -130,7 +130,7 @@ export function RevealScreen({ session, onNext }: Props) {
             </Button>
           )}
           <Button variant="ghost" fullWidth onClick={onNext}>
-            {t.next}
+            {nextLabel ?? t.next}
           </Button>
         </motion.div>
       </div>

@@ -6,6 +6,7 @@ import { FeedList } from '@/features/feed/components/feed-list'
 import { PostListSkeleton } from '@/features/feed/components/post-card'
 import { feedFixture } from '@/features/feed/components/worst-case'
 import { getFeedPage } from '@/features/feed/queries'
+import { getDailyPrompt, getPromptMatches } from '@/features/prompts/queries'
 import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,7 +29,12 @@ async function Feed({ searchParams }: Pick<PageProps<'/[lang]/feed'>, 'searchPar
   // Dev-only worst-case data (?data=worst | ?data=empty); always null in production.
   const fixture =
     process.env.NODE_ENV === 'production' ? null : feedFixture(String((await searchParams).data))
-  return <FeedList initial={fixture ?? (await getFeedPage('new', null))} />
+  const [page, prompt] = await Promise.all([
+    fixture ?? getFeedPage('new', null),
+    fixture ? null : getDailyPrompt(),
+  ])
+  const matches = prompt && prompt.myOption !== null ? await getPromptMatches(prompt.id) : []
+  return <FeedList initial={page} prompt={prompt} promptMatches={matches} />
 }
 
 // The shape of FeedList: note, collapsed composer, tabs, cards.

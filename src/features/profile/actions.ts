@@ -6,6 +6,8 @@ import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { claimReferralFromCookie } from '@/features/referrals/claim'
+import { redeemForViewer } from '@/features/promo/redeem'
+import { isValidPromoCode, normalizePromoCode, type PromoOutcome } from '@/features/promo/schemas'
 import { usernameErrorKey } from '@/features/username/errors'
 import {
   editableProfileSchema,
@@ -58,12 +60,19 @@ async function replacePrompts(prompts: ProfilePrompt[], userId: string): Promise
   return !(await supabase.from('profile_prompts').insert(rows)).error
 }
 
-export async function createProfile(input: NewProfileInput): Promise<UserResult> {
+export type CreateProfileResult = { promo: PromoOutcome | null }
+
+// Creates the profile, then redeems the optional promo code. A rejected code comes back as a
+// field error on `promoCode` with the profile already saved: the form keeps the user on the step
+// to fix or clear the code, and a resubmit only retries the code (see the early return).
+export async function createProfile(
+  input: NewProfileInput,
+): Promise<UserResult<CreateProfileResult>> {
   const parsed = newProfileSchema.safeParse(input)
   if (!parsed.success) return invalid(parsed.error)
   const viewer = await getViewer()
   if (!viewer) return fail('unauthorized')
-  if (viewer.profile) return ok(undefined)
+  if (viewer.profile) return applyPromo(parsed.data.promoCode)
 
   const { displayName, username, birthDate, gender, interestedIn, bio, city, tagIds, location } =
     parsed.data
@@ -90,7 +99,19 @@ export async function createProfile(input: NewProfileInput): Promise<UserResult>
 
   await replaceTags(tagIds, viewer.id)
   await claimReferralFromCookie()
-  return ok(undefined)
+  return applyPromo(parsed.data.promoCode)
+}
+
+async function applyPromo(raw: string | undefined): Promise<UserResult<CreateProfileResult>> {
+  const code = raw ?? ''
+  if (code === '') return ok({ promo: null })
+  if (!isValidPromoCode(code)) {
+    return { ok: false, error: 'promoFormat', fieldErrors: { promoCode: ['promoFormat'] } }
+  }
+  const result = await redeemForViewer(normalizePromoCode(code))
+  if (!result.ok)
+    return { ok: false, error: result.error, fieldErrors: { promoCode: [result.error] } }
+  return ok({ promo: result.data })
 }
 
 export async function updateProfile(input: EditableProfileInput): Promise<UserResult> {
