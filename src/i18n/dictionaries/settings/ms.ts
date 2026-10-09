@@ -14,6 +14,8 @@ export const settingsMs: SettingsDictionary = {
     new_people: 'Orang baharu berdekatan',
     status_replies: 'Balasan kepada status anda',
     calls: 'Panggilan masuk',
+    post_replies: 'Balasan peribadi pada hantaran anda',
+    daily_prompt: 'Soalan hari ini',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',

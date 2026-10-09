@@ -25,6 +25,8 @@ type Props = {
   disabled: boolean
   // Replaces the composer in the same bottom slot (the "chat ended" card), so nothing above moves.
   footer?: ReactNode
+  // Post / prompt conversations: the partner is usually away, the server pushes them (throttled).
+  notifyPartner?: boolean
   onSent: (m: BlindMessage) => void
   onTyping: () => void
 }
@@ -39,6 +41,7 @@ export function AnonChat({
   partnerTyping,
   disabled,
   footer,
+  notifyPartner = false,
   onSent,
   onTyping,
 }: Props) {
@@ -91,7 +94,7 @@ export function AnonChat({
     const body = draft.trim()
     if (!body || pending || disabled) return
     startTransition(async () => {
-      const result = await sendBlind(sessionId, body)
+      const result = await sendBlind(sessionId, body, notifyPartner)
       if (!result.ok) return setError(result.error)
       setError(undefined)
       setDraft('')

@@ -1,5 +1,6 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -55,6 +56,8 @@ export const en: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.privacy,
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.privacy,
       // --- end calls ---
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.en.privacy,
@@ -174,6 +177,8 @@ export const en: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.terms,
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.terms,
       // --- end calls ---
       {
         heading: '6. Moderation',

@@ -13,6 +13,8 @@ export const settingsEn = {
     new_people: 'New people nearby',
     status_replies: 'Replies to your status',
     calls: 'Incoming calls',
+    post_replies: 'Private replies to your posts',
+    daily_prompt: 'Question of the day',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',

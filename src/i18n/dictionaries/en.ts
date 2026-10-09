@@ -16,6 +16,7 @@ import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
 import { statusErrorsEn, statusesEn } from './statuses/en'
+import { conversationErrorsEn, conversationsEn } from './conversations/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -40,6 +41,7 @@ export const en = {
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
     ...statusErrorsEn,
+    ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -394,6 +396,7 @@ export const en = {
   crossed: crossedEn,
   plans: plansEn,
   statuses: statusesEn,
+  conversations: conversationsEn,
 }
 
 export type Dictionary = typeof en

@@ -14,6 +14,8 @@ export const settingsRu: SettingsDictionary = {
     new_people: 'Новые люди рядом',
     status_replies: 'Ответы на ваш статус',
     calls: 'Входящие звонки',
+    post_replies: 'Личные ответы на ваши посты',
+    daily_prompt: 'Вопрос дня',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

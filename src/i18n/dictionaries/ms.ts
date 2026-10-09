@@ -17,6 +17,7 @@ import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
 import { statusErrorsMs, statusesMs } from './statuses/ms'
+import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -41,6 +42,7 @@ export const ms: Dictionary = {
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
     ...statusErrorsMs,
+    ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -401,4 +403,5 @@ export const ms: Dictionary = {
   crossed: crossedMs,
   plans: plansMs,
   statuses: statusesMs,
+  conversations: conversationsMs,
 }

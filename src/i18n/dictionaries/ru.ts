@@ -17,6 +17,7 @@ import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 import { crossedRu, plansRu } from './nearby/ru'
 import { statusErrorsRu, statusesRu } from './statuses/ru'
+import { conversationErrorsRu, conversationsRu } from './conversations/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -43,6 +44,7 @@ export const ru: Dictionary = {
     ...passwordErrorsRu,
     ...sanctionErrorsRu,
     ...statusErrorsRu,
+    ...conversationErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -399,4 +401,5 @@ export const ru: Dictionary = {
   crossed: crossedRu,
   plans: plansRu,
   statuses: statusesRu,
+  conversations: conversationsRu,
 }

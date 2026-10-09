@@ -6,6 +6,8 @@ import { ArrowUp, EyeOff, MapPin, Newspaper, PenLine } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
+import { DailyPromptCard } from '@/features/prompts/components/daily-prompt-card'
+import type { DailyPrompt, PromptMatch } from '@/features/prompts/types'
 import { createPost, loadFeedPage } from '../actions'
 import type { FeedPage, FeedTab } from '../types'
 import { Composer } from './composer'
@@ -19,7 +21,14 @@ const PREFETCH_MARGIN = '0px 0px 1200px 0px'
 // Pinned below the sticky page header.
 const BELOW_HEADER = 'top-[calc(var(--header-h)+0.5rem)]'
 
-export function FeedList({ initial }: { initial: FeedPage }) {
+type Props = {
+  initial: FeedPage
+  // Question of the day (null: none active, not verified, or the migration is not applied).
+  prompt?: DailyPrompt | null
+  promptMatches?: PromptMatch[]
+}
+
+export function FeedList({ initial, prompt = null, promptMatches = [] }: Props) {
   const { dict } = useI18n()
   const [tab, setTab] = useState<FeedTab>('new')
   const [page, setPage] = useState(initial)
@@ -96,6 +105,7 @@ export function FeedList({ initial }: { initial: FeedPage }) {
 
   return (
     <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
+      {prompt && <DailyPromptCard prompt={prompt} matches={promptMatches} />}
       <Composer
         id={COMPOSER_ID}
         placeholder={dict.feed.placeholder}
