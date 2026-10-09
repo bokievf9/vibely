@@ -39,7 +39,8 @@ export const usernameMs: UsernameDictionary = {
   like: 'Suka secara rahsia',
   liked: 'Suka rahsia dihantar',
   likeHint: 'Dia hanya akan tahu jika dia juga suka anda.',
-  likedHint: 'Dia hanya akan tahu jika dia juga suka anda. Kemudian ia padanan dan sembang akan dibuka.',
+  likedHint:
+    'Dia hanya akan tahu jika dia juga suka anda. Kemudian ia padanan dan sembang akan dibuka.',
 }
 
 export const usernameErrorsMs: typeof usernameErrorsEn = {

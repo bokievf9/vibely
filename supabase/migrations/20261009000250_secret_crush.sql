@@ -248,3 +248,14 @@ grant execute on function public.answer_crush(boolean) to authenticated;
 -- Settings -> Notifications: "Your crush likes you back".
 alter table public.notification_prefs add column crush boolean not null default true;
 grant insert (crush), update (crush) on public.notification_prefs to authenticated;
+
+-- Daily where pg_cron exists (Supabase; not the local test database).
+do $$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron with schema pg_catalog;
+    perform cron.schedule('purge-referral-invites', '17 20 * * *',
+      'select public.purge_referral_invites()');
+  end if;
+end;
+$$;

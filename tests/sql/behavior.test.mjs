@@ -2096,6 +2096,126 @@ export async function run(db) {
   })()
   // ===== end crossed paths & plans =====
 
+  // ===== secret crush (20261009000250) =====
+  await (async () => {
+    const ids = Array.from({ length: 9 }, (_, i) => `d0000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    // INV invites; N1 (compatible, says yes), N2 (incompatible), N3 (says no), N4 (blocks, dismisses);
+    // OLD signed up long ago; UNV is never verified; P1/P2 like each other from a profile page.
+    const [INV, N1, N2, N3, N4, OLD, UNV, P1, P2] = ids
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601488800' + String(i).padStart(2, '0')])
+    const female = new Set([N1, N3, N4, OLD, P2])
+    for (const [i, u] of ids.entries()) {
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,'Kuala Lumpur','SRID=4326;POINT(101.671 3.13)')`, ['Cr' + i, female.has(u) ? 'female' : 'male', female.has(u) ? '{male}' : '{female}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [[INV, OLD, P1, P2]])
+    await su(`update profiles set created_at = now() - interval '2 days' where id=$1`, [OLD])
+    const pending = async (u) => (await as(u, `select * from get_pending_crush()`)).rows
+    const matched = async (a, b) => (await su(`select id from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0]?.id ?? null
+    const likes = async (a, b) => (await su(`select count(*)::int c from swipes where (swiper_id=$1 and swiped_id=$2) or (swiper_id=$2 and swiped_id=$1)`, [a, b])).rows[0].c
+    const invite = async (u, crush) => (await as(u, `select create_referral_invite($1) c`, [crush])).rows[0].c
+
+    // creating invites
+    ok('crush: unverified cannot create an invite', !!(await fails(() => invite(UNV, true))))
+    const c1 = await invite(INV, true), c2 = await invite(INV, true), c3 = await invite(INV, true)
+    ok('crush: single-use codes', [c1, c2, c3].every((c) => /^[a-z0-9]{8}$/.test(c)) && new Set([c1, c2, c3]).size === 3, [c1, c2, c3].join())
+    const limitErr = await fails(() => invite(INV, true))
+    ok('crush: at most 3 crush invites per 30 days', !!limitErr && limitErr.includes('crush_limit'), limitErr)
+    const c0 = await invite(INV, false)
+    ok('crush: plain invites are not limited by the crush limit', /^[a-z0-9]{8}$/.test(c0))
+    ok('crush: the flag lives on the invite row only', (await su(`select is_crush from referral_invites where code=$1`, [c0])).rows[0].is_crush === false &&
+       (await su(`select count(*)::int c from information_schema.columns where table_name='profiles' and column_name like '%crush%'`)).rows[0].c === 0)
+    ok('crush: invites never readable by clients', !!(await fails(() => as(INV, `select * from referral_invites`))) && !!(await fails(() => as(N1, `select * from referral_invites`))) &&
+       !!(await fails(() => as(INV, `update referral_invites set is_crush = true`))) && !!(await fails(() => as(INV, `delete from referral_invites`))))
+
+    // claiming (at sign-up, before verification)
+    ok('crush: invitee claims the invite', (await as(N1, `select claim_referral($1) v`, [c1.toUpperCase()])).rows[0].v === true &&
+       (await su(`select referred_by r from profiles where id=$1`, [N1])).rows[0].r === INV &&
+       (await su(`select invitee_id i, claimed_at is not null t from referral_invites where code=$1`, [c1])).rows[0].i === N1)
+    ok('crush: an invite is claimed once', (await as(N4, `select claim_referral($1) v`, [c1])).rows[0].v === false &&
+       (await su(`select referred_by r from profiles where id=$1`, [N4])).rows[0].r === null)
+    ok('crush: a person claims one invite', (await as(N1, `select claim_referral($1) v`, [c2])).rows[0].v === false &&
+       (await su(`select invitee_id i from referral_invites where code=$1`, [c2])).rows[0].i === null)
+    ok('crush: own code not claimable', (await as(INV, `select claim_referral($1) v`, [c0])).rows[0].v === false)
+    ok('crush: old profile cannot claim', (await as(OLD, `select claim_referral($1) v`, [c0])).rows[0].v === false)
+    await as(N2, `select claim_referral($1)`, [c2]); await as(N3, `select claim_referral($1)`, [c3])
+    ok('crush: inviter only sees the invite count, as today', (await as(INV, `select invited from get_my_referral()`)).rows[0].invited === 3)
+    await su(`update referral_invites set created_at = now() - interval '31 days' where code=$1`, [c0])
+    ok('crush: expired invite not claimable', (await as(N4, `select claim_referral($1) v`, [c0])).rows[0].v === false)
+
+    // the card
+    ok('crush: no card before verification', (await pending(N1)).length === 0 && !!(await fails(() => as(N1, `select answer_crush(true)`))))
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [[N1, N2, N3]])
+    const card = await pending(N1)
+    ok('crush: card after verification', card.length === 1 && card[0].inviter_id === INV && card[0].display_name === 'Cr0' && card[0].age === 30 && card[0].compatible === true, JSON.stringify(card))
+    ok('crush: inviter and others see no card', (await pending(INV)).length === 0 && (await pending(P1)).length === 0)
+    ok('crush: incompatible = reveal without a match offer', (await pending(N2))[0]?.compatible === false)
+    ok('crush: no card for a plain invite', (await as(N4, `select claim_referral($1) v`, [await invite(P1, false)])).rows[0].v === true && (await pending(N4)).length === 0)
+    await su(`update profiles set referred_by = null where id=$1`, [N4]); await su(`delete from referral_invites where inviter_id=$1`, [P1])
+
+    // yes
+    const yes = (await as(N1, `select * from answer_crush(true)`)).rows[0]
+    const mid = await matched(INV, N1)
+    ok('crush: yes = mutual match', !!mid && yes.match_id === mid && yes.inviter_id === INV, JSON.stringify(yes))
+    ok('crush: match built from two likes, like a swipe match', (await su(`select count(*)::int c from swipes where ((swiper_id=$1 and swiped_id=$2) or (swiper_id=$2 and swiped_id=$1)) and direction='like'`, [INV, N1])).rows[0].c === 2 &&
+       (await su(`select source from matches where id=$1`, [mid])).rows[0].source === 'swipe')
+    ok('crush: card shown once', (await pending(N1)).length === 0 && !!(await fails(() => as(N1, `select answer_crush(true)`))))
+    ok('crush: answer stored', (await su(`select crush_answer a, crush_answered_at is not null t from referral_invites where code=$1`, [c1])).rows[0].a === true)
+    // no
+    const no = (await as(N3, `select * from answer_crush(false)`)).rows[0]
+    ok('crush: no = nothing happens', no.inviter_id === INV && no.match_id === null && (await matched(INV, N3)) === null && (await likes(INV, N3)) === 0)
+    ok('crush: no is never shown to the inviter', (await as(INV, `select count(*)::int c from get_incoming_likes()`)).rows[0].c === 0 &&
+       (await as(INV, `select count(*)::int c from swipes`)).rows[0].c === 1 && (await pending(N3)).length === 0)
+    // incompatible
+    const inc = (await as(N2, `select * from answer_crush(true)`)).rows[0]
+    ok('crush: incompatible yes = no match', inc.match_id === null && (await matched(INV, N2)) === null && (await likes(INV, N2)) === 0)
+
+    // 30-day window, blocks, dismissal
+    await su(`update referral_invites set created_at = now() - interval '31 days' where code=$1`, [c1])
+    const c4 = await invite(INV, true)
+    ok('crush: limit window is 30 days', /^[a-z0-9]{8}$/.test(c4))
+    ok('crush: unverified invitee claims but gets no card', (await as(N4, `select claim_referral($1) v`, [c4])).rows[0].v === true && (await pending(N4)).length === 0)
+    await su(`update profiles set verification_status='approved' where id=$1`, [N4])
+    ok('crush: card once verified', (await pending(N4)).length === 1)
+    await as(N4, `insert into blocks (blocked_id) values ($1)`, [INV])
+    ok('crush: no card while blocked', (await pending(N4)).length === 0)
+    await as(N4, `delete from blocks where blocked_id=$1`, [INV])
+    await su(`update profiles set discoverable = false where id=$1`, [INV])
+    ok('crush: paused inviter still shows (not discoverable but visible)', (await pending(N4)).length === 1)
+    await su(`update profiles set is_active = false where id=$1`, [INV])
+    ok('crush: inactive inviter hides the card', (await pending(N4)).length === 0)
+    await su(`update profiles set is_active = true, discoverable = true where id=$1`, [INV])
+    const dis = (await as(N4, `select * from answer_crush(null)`)).rows[0]
+    ok('crush: dismiss = seen, nothing stored as an answer', dis.match_id === null && (await pending(N4)).length === 0 && (await likes(INV, N4)) === 0 &&
+       (await su(`select crush_answer a, crush_answered_at is not null t from referral_invites where code=$1`, [c4])).rows[0].a === null &&
+       (await su(`select crush_answered_at is not null t from referral_invites where code=$1`, [c4])).rows[0].t === true)
+
+    // retention & grants
+    await su(`select purge_referral_invites()`)
+    ok('crush: expired unclaimed invites purged, claimed kept', (await su(`select string_agg(code, ',' order by code) s from referral_invites where inviter_id=$1`, [INV])).rows[0].s === [c1, c2, c3, c4].sort().join())
+    ok('crush: no anon access, purge is server-only', (await su(`select has_function_privilege('anon', 'public.get_pending_crush()', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('anon', 'public.answer_crush(boolean)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('anon', 'public.create_referral_invite(boolean)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_referral_invites()', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.crush_compatible(uuid, uuid)', 'execute') v`)).rows[0].v === false)
+    ok('crush: notification pref defaults on', (await as(N1, `insert into notification_prefs default values returning crush`)).rows[0].crush === true)
+
+    // secret like from a profile page (people search / crossed paths): the same insert as the deck
+    await as(P1, `insert into swipes (swiped_id, direction) values ($1,'like')`, [P2])
+    ok('secret like: target sees nothing', (await as(P2, `select count(*)::int c from swipes`)).rows[0].c === 0 && (await matched(P1, P2)) === null)
+    ok('secret like: only "who liked you" shows it, by design', (await as(P2, `select id from get_incoming_likes()`)).rows.map((r) => r.id).join() === P1)
+    await as(P2, `insert into swipes (swiped_id, direction) values ($1,'like')`, [P1])
+    ok('secret like: mutual like = match', !!(await matched(P1, P2)))
+    const readers = (await su(`select string_agg(p.proname, ',' order by p.proname) s from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.prosrc ~ 'public\\.swipes' and p.prokind = 'f' and has_function_privilege('authenticated', p.oid, 'execute')`)).rows[0].s
+    // Everything else goes through server-only helpers (incoming_like_ids, swipe_candidate_pool).
+    ok('secret like: only known RPCs read swipes', readers === 'answer_crush', readers)
+    ok('secret like: swipe helpers are server-only', (await su(`select bool_and(not has_function_privilege('authenticated', p.oid, 'execute')) v from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname in ('incoming_like_ids', 'swipe_candidate_pool', 'new_people_alert_recipients')`)).rows[0].v === true)
+    ok('secret like: no view exposes swipes', (await su(`select count(*)::int c from pg_views where schemaname = 'public' and definition ~ 'swipes'`)).rows[0].c === 0)
+  })()
+  // ===== end secret crush =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

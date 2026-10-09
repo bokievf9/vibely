@@ -38,7 +38,8 @@ export const usernameRu: UsernameDictionary = {
   like: 'Тайный лайк',
   liked: 'Тайный лайк отправлен',
   likeHint: 'Этот человек узнает о нём, только если лайкнет вас в ответ.',
-  likedHint: 'Этот человек узнает о нём, только если лайкнет вас в ответ. Тогда будет мэтч и откроется чат.',
+  likedHint:
+    'Этот человек узнает о нём, только если лайкнет вас в ответ. Тогда будет мэтч и откроется чат.',
 }
 
 export const usernameErrorsRu: typeof usernameErrorsEn = {
