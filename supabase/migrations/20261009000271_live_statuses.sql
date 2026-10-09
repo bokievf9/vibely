@@ -494,7 +494,8 @@ grant insert (status_replies), update (status_replies) on public.notification_pr
 
 -- ---------------------------------------------------------------------------------------------
 -- Reports: the subject of a status report is its author (newest reports_set_subject was
--- 20261009000161; copied with the 'status' branch added).
+-- 20261009000261, Duo Dating; copied with its group_message / group_member branches kept and
+-- the 'status' branch added).
 -- ---------------------------------------------------------------------------------------------
 create or replace function public.reports_set_subject()
 returns trigger
@@ -528,11 +529,22 @@ begin
       into new.subject_id
       from public.calls c
       where c.id = new.target_id and new.reporter_id in (c.caller_id, c.callee_id);
+    -- Group reports (20261009000261): the reporter must be (or have been) a member of that group.
+    when 'group_message' then
+      select m.sender_id into new.subject_id
+      from public.group_messages m
+      join public.group_members gm on gm.group_id = m.group_id and gm.user_id = new.reporter_id
+      where m.id = new.target_id and m.kind <> 'system';
+    when 'group_member' then
+      select gm.user_id into new.subject_id
+      from public.group_members gm
+      join public.group_members mine on mine.group_id = gm.group_id and mine.user_id = new.reporter_id
+      where gm.id = new.target_id;
     when 'status' then
       select user_id into new.subject_id from public.user_statuses where id = new.target_id;
   end case;
 
-  if new.target_type in ('message', 'photo', 'call', 'status') then
+  if new.target_type in ('message', 'photo', 'call', 'group_message', 'group_member', 'status') then
     if new.subject_id is null then
       raise exception 'Report target not found' using errcode = 'no_data_found';
     end if;

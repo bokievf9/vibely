@@ -3500,6 +3500,11 @@ export async function run(db) {
     ok('report: group member subject is that user', (await su(`select subject_id s from reports where id=$1`, [r2])).rows[0].s === B)
     ok('report: non-member cannot report a group member', !!(await fails(() => rep(E, 'group_member', memberB))))
     ok('report: queue lists group cases', (await svc(`select target_type::text t from admin_report_queue($1) where target_id in ($2, $3) order by t`, [ADM, m1, memberB])).rows.map((r) => r.t).join() === 'group_member,group_message')
+    // 20261009000271 redefines reports_set_subject after 261: the newest definition must keep the
+    // group branches next to 'status' (a CASE without them raises case_not_found).
+    const subjectSrc = (await su(`select prosrc from pg_proc where proname = 'reports_set_subject'`)).rows[0].prosrc
+    ok('report: newest reports_set_subject covers group and status targets',
+      ["'group_message'", "'group_member'", "'status'"].every((t) => subjectSrc.includes(`when ${t} then`)))
     // evidence
     const tr = (type, id, reporter, adm = ADM) => svc(`select admin_open_group_transcript($1,$2,$3,$4) r`, [adm, type, id, reporter]).then((r) => r.rows[0].r)
     const ev = await tr('group_message', m1, C)
