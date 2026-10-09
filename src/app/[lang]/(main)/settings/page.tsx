@@ -14,6 +14,8 @@ import { PushToggle } from '@/features/push/components/push-toggle'
 import { BlockedUsers } from '@/features/settings/components/blocked-users'
 import { NotificationPrefsRows } from '@/features/settings/components/notification-prefs'
 import { PauseToggle } from '@/features/settings/components/pause-toggle'
+import { PromoSettingsRow } from '@/features/promo/components/promo-settings'
+import { getVipStatus } from '@/features/promo/queries'
 import { SettingsSection } from '@/features/settings/components/settings-section'
 import { SettingsSkeleton } from '@/features/settings/components/settings-skeleton'
 import {
@@ -48,12 +50,14 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword] = await Promise.all([
+  const [privacy, prefs, blocked, username, hasPassword, vip] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
     getUsernameSettings(),
     getHasPassword(),
+    // Null until the promo migration (20261009000230) is applied: the row is hidden then.
+    getVipStatus(),
   ])
 
   return (
@@ -77,6 +81,11 @@ async function Settings() {
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
       </SettingsSection>
+      {vip && (
+        <SettingsSection title={dict.promo.section}>
+          <PromoSettingsRow initial={vip} />
+        </SettingsSection>
+      )}
       <SettingsSection title={dict.settings.blocked}>
         <BlockedUsers initial={blocked} />
       </SettingsSection>

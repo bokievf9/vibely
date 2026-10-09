@@ -7,6 +7,7 @@ import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import { notifyNewLike, notifyNewMatch } from '@/features/push/send'
+import { getVipIds } from '@/features/promo/queries'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
 
 const storedPhotos = z.array(z.object({ path: z.string(), width: z.number(), height: z.number() }))
@@ -25,7 +26,10 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
   if (error) return fail(error.code === '42501' ? 'unauthorized' : 'generic')
 
   const photosById = new Map(data.map((c) => [c.id, storedPhotos.catch([]).parse(c.photos)]))
-  const urls = await signPhotoPaths([...photosById.values()].flat().map((p) => p.path))
+  const [urls, vips] = await Promise.all([
+    signPhotoPaths([...photosById.values()].flat().map((p) => p.path)),
+    getVipIds(data.map((c) => c.id)),
+  ])
 
   return ok(
     data.map((c) => ({
@@ -43,6 +47,7 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
       about: aboutFromRow(c),
       prompts: parsePrompts(c.prompts),
       secondChance: c.second_chance,
+      vip: vips.has(c.id),
     })),
   )
 }

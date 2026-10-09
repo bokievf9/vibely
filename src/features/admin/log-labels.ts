@@ -38,6 +38,10 @@ export const ACTION_LABELS: Record<string, string> = {
   'view.transcript': 'Просмотр переписки блайнд-дейта',
   'export.audit_log': 'Выгрузил журнал (CSV)',
   'legal.export': 'Выгрузил данные по юр. запросу',
+  'promo.create': 'Создал промокод',
+  'promo.update': 'Изменил промокод',
+  'promo.activate': 'Включил промокод',
+  'promo.deactivate': 'Выключил промокод',
 }
 
 export const actionLabel = (action: string) => ACTION_LABELS[action] ?? action

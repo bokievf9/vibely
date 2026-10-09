@@ -15,6 +15,7 @@ import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
 import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
+import { promoRu, promoErrorsRu } from './promo/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -40,6 +41,7 @@ export const ru: Dictionary = {
     ...usernameErrorsRu,
     ...passwordErrorsRu,
     ...sanctionErrorsRu,
+    ...promoErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -393,4 +395,5 @@ export const ru: Dictionary = {
   flows: flowsRu,
   reports: reportsRu,
   sanctions: sanctionsRu,
+  promo: promoRu,
 }

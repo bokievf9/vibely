@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { VerifiedBadge } from '@/components/ui/verified-badge'
+import { VipBadge } from '@/components/ui/vip-badge'
 import type { Dictionary } from '@/i18n/dictionaries/en'
 import type { OwnPhoto } from '../queries'
 
@@ -10,13 +11,24 @@ type Props = {
   age: number | null
   city: string
   verified: boolean
+  // VIP right now (promo codes); shown after the verified mark.
+  vip?: boolean
   mainPhoto: OwnPhoto | null
   t: Dictionary['avatar']
 }
 
 // Top of the own profile page: a large main photo in a gradient ring, then name, age, ✓,
 // @username and city, centered like a profile hero.
-export function OwnProfileHeader({ name, username, age, city, verified, mainPhoto, t }: Props) {
+export function OwnProfileHeader({
+  name,
+  username,
+  age,
+  city,
+  verified,
+  vip = false,
+  mainPhoto,
+  t,
+}: Props) {
   return (
     <div className="flex flex-col items-center gap-4 pt-2 text-center">
       <span className="relative">
@@ -35,6 +47,7 @@ export function OwnProfileHeader({ name, username, age, city, verified, mainPhot
             {age !== null && <span className="font-normal text-white/80">, {age}</span>}
           </span>
           {verified && <VerifiedBadge size={22} />}
+          {vip && <VipBadge size={20} />}
         </h2>
         <p className="text-muted text-callout flex max-w-full min-w-0 items-center justify-center gap-1.5">
           <span className="truncate">@{username}</span>

@@ -987,6 +987,9 @@ export type Database = {
           username: string
           username_changed_at: string | null
           verification_status: Database['public']['Enums']['verification_status']
+          vip_boost_until: string | null
+          vip_perks: Json
+          vip_until: string | null
         }
         Insert: {
           ban_reason?: string | null
@@ -1029,6 +1032,9 @@ export type Database = {
           username: string
           username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
+          vip_boost_until?: string | null
+          vip_perks?: Json
+          vip_until?: string | null
         }
         Update: {
           ban_reason?: string | null
@@ -1071,6 +1077,9 @@ export type Database = {
           username?: string
           username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
+          vip_boost_until?: string | null
+          vip_perks?: Json
+          vip_until?: string | null
         }
         Relationships: [
           {
@@ -1078,6 +1087,104 @@ export type Database = {
             columns: ['referred_by']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      promo_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          benefits: Json
+          code: string
+          created_at: string
+          created_by: string | null
+          current_uses: number
+          expires_at: string | null
+          gender_restriction: Database['public']['Enums']['gender'] | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          requires_verified: boolean
+          updated_at: string
+        }
+        Insert: {
+          benefits?: Json
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          expires_at?: string | null
+          gender_restriction?: Database['public']['Enums']['gender'] | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          requires_verified?: boolean
+          updated_at?: string
+        }
+        Update: {
+          benefits?: Json
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          expires_at?: string | null
+          gender_restriction?: Database['public']['Enums']['gender'] | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          requires_verified?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promo_redemptions: {
+        Row: {
+          code_id: string
+          granted_at: string | null
+          id: string
+          perks: Json
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          granted_at?: string | null
+          id?: string
+          perks?: Json
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          granted_at?: string | null
+          id?: string
+          perks?: Json
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'promo_redemptions_code_id_fkey'
+            columns: ['code_id']
+            isOneToOne: false
+            referencedRelation: 'promo_codes'
             referencedColumns: ['id']
           },
         ]
@@ -1966,6 +2073,36 @@ export type Database = {
           width: number
         }[]
       }
+      admin_promo_redemptions: {
+        Args: { p_admin: string; p_code: string }
+        Returns: {
+          display_name: string
+          granted_at: string
+          phone: string
+          redeemed_at: string
+          user_id: string
+          username: string
+        }[]
+      }
+      admin_promo_stats: {
+        Args: { p_admin: string }
+        Returns: {
+          benefits: Json
+          code: string
+          created_at: string
+          created_by: string
+          current_uses: number
+          expires_at: string
+          gender_restriction: Database['public']['Enums']['gender']
+          granted_count: number
+          id: string
+          is_active: boolean
+          max_uses: number
+          pending_count: number
+          requires_verified: boolean
+          updated_at: string
+        }[]
+      }
       admin_release_report: {
         Args: {
           p_admin: string
@@ -2122,6 +2259,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_set_promo_active: {
+        Args: { p_active: boolean; p_admin: string; p_id: string }
+        Returns: undefined
+      }
       admin_set_shadow_ban: {
         Args: {
           p_admin: string
@@ -2144,6 +2285,19 @@ export type Database = {
       admin_unblock_phone: {
         Args: { p_admin: string; p_id: string; p_reason?: string }
         Returns: undefined
+      }
+      admin_upsert_promo: {
+        Args: {
+          p_admin: string
+          p_benefits: Json
+          p_code: string
+          p_expires_at: string | null
+          p_gender: Database['public']['Enums']['gender'] | null
+          p_id: string | null
+          p_max_uses: number | null
+          p_requires_verified: boolean
+        }
+        Returns: string
       }
       admin_warn_user: {
         Args: {
@@ -2382,6 +2536,7 @@ export type Database = {
           tags: string[]
         }[]
       }
+      has_vip_perk: { Args: { p_perk: string; p_user: string }; Returns: boolean }
       hook_before_user_created: { Args: { event: Json }; Returns: Json }
       incoming_like_ids: {
         Args: never
@@ -2395,6 +2550,7 @@ export type Database = {
       is_match_participant: { Args: { m: string }; Returns: boolean }
       is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
       is_verified: { Args: never; Returns: boolean }
+      is_vip: { Args: { p_user: string }; Returns: boolean }
       lift_expired_sanctions: { Args: never; Returns: number }
       log_moderation: {
         Args: {
@@ -2441,10 +2597,12 @@ export type Database = {
           username: string
         }[]
       }
+      my_vip: { Args: never; Returns: Json }
       new_people_alert_recipients: {
         Args: { p_profile: string }
         Returns: string[]
       }
+      normalize_promo_code: { Args: { p: string }; Returns: string }
       normalize_username: { Args: { u: string }; Returns: string }
       password_login_check: {
         Args: { p_ip: unknown; p_username: string }
@@ -2458,6 +2616,8 @@ export type Database = {
         Returns: undefined
       }
       phone_e164: { Args: { p_phone: string }; Returns: string }
+      promo_benefits_valid: { Args: { b: Json }; Returns: boolean }
+      promo_grant: { Args: { p_benefits: Json; p_user: string }; Returns: Json }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
       purge_old_message_flags: { Args: never; Returns: number }
@@ -2481,6 +2641,7 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      redeem_promo: { Args: { p_code: string }; Returns: Json }
       refresh_user_risk: { Args: { p_user: string }; Returns: number }
       remove_my_password: { Args: never; Returns: boolean }
       reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
@@ -2630,6 +2791,7 @@ export type Database = {
       username_base: { Args: { p_name: string }; Returns: string }
       username_error: { Args: { u: string }; Returns: string }
       username_status: { Args: { p_username: string }; Returns: string }
+      vip_ids: { Args: { p_ids: string[] }; Returns: string[] }
     }
     Enums: {
       admin_role: 'viewer' | 'moderator' | 'admin' | 'owner'

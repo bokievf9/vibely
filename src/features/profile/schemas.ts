@@ -49,11 +49,14 @@ export type ProfileInput = z.infer<typeof profileSchema>
 export const newProfileSchema = profileSchema.extend({
   acceptTerms: z.boolean().refine((v) => v, e('termsRequired')),
   username: usernameSchema,
+  // Optional promo code (redeemed right after the profile is created; see createProfile).
+  promoCode: z.string().trim().max(40).optional(),
 })
 // The edit form shares these fields so both forms have the same shape; they are ignored there.
 export const profileFormSchema = profileSchema.extend({
   acceptTerms: z.boolean(),
   username: z.string(),
+  promoCode: z.string().optional(),
 })
 
 export type NewProfileInput = z.infer<typeof newProfileSchema>

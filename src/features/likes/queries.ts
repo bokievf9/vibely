@@ -2,6 +2,7 @@ import 'server-only'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
+import { getVipIds } from '@/features/promo/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import type { Candidate } from '@/features/swipe/schemas'
 
@@ -21,7 +22,10 @@ export async function getIncomingLikes(): Promise<Candidate[]> {
   if (error) return []
 
   const photosById = new Map(data.map((c) => [c.id, storedPhotos.catch([]).parse(c.photos)]))
-  const urls = await signPhotoPaths([...photosById.values()].flat().map((p) => p.path))
+  const [urls, vips] = await Promise.all([
+    signPhotoPaths([...photosById.values()].flat().map((p) => p.path)),
+    getVipIds(data.map((c) => c.id)),
+  ])
 
   return data.map((c) => ({
     id: c.id,
@@ -31,6 +35,7 @@ export async function getIncomingLikes(): Promise<Candidate[]> {
     city: c.city,
     distanceKm: c.distance_km,
     secondChance: false,
+    vip: vips.has(c.id),
     tags: c.tags,
     photos: (photosById.get(c.id) ?? []).flatMap((p) => {
       const url = urls.get(p.path)

@@ -193,6 +193,7 @@ export const ms: LegalContent = {
         heading: '8. Perkhidmatan',
         paragraphs: [
           'Vibely disediakan "seadanya". Kami berusaha memastikan ia sentiasa tersedia dan selamat, tetapi kami boleh mengubah, menjeda atau menghentikan ciri. Kami tidak menjanjikan anda akan menemui padanan.',
+          'Kod promo dan VIP: kami mungkin mengedarkan kod promo (contohnya di acara atau melalui rakan kongsi) yang membuka ciri VIP untuk tempoh terhad, seperti lencana VIP, dipaparkan dahulu di Discover, melihat siapa yang menyukai anda atau keutamaan dalam temu janji buta. Sesetengah kod terhad bilangannya, sah sehingga tarikh tertentu, dikhaskan untuk kumpulan tertentu (contohnya jantina yang disahkan melalui semakan swafoto) atau memerlukan swafoto yang diluluskan. Ciri adalah peribadi, tidak boleh dipindahkan atau ditukar dengan wang, dan kami boleh membatalkannya serta menyekat kod tersebut jika ia dikongsi, dijual semula atau digunakan untuk melanggar Syarat ini.',
         ],
       },
       {

@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, fmt, hasLocale, localePath, type Locale } from '@/i18n/
 import { getDictionary } from '@/i18n/server'
 import type { Dictionary } from '@/i18n/dictionaries/en'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
+import { userCanSeeLikes } from '@/features/promo/queries'
 import type { NotificationType } from './prefs'
 import type { PushPayload } from './types'
 
@@ -151,10 +152,12 @@ export function notifyNewLike(userId: string, likerId: string) {
       .eq('id', likerId)
       .maybeSingle()
     if (!liker?.discoverable) return
+    // A VIP with the see_likes perk (promo codes) gets the list even when the flag is off.
+    const visible = LIKES_VISIBLE_FREE || (await userCanSeeLikes(userId))
     await sendToUser(userId, 'likes', (dict, locale) => ({
       title: dict.likes.pushTitle,
-      body: LIKES_VISIBLE_FREE ? dict.likes.pushBody : dict.likes.pushBodyLocked,
-      url: localePath(locale, LIKES_VISIBLE_FREE ? '/likes' : '/swipe'),
+      body: visible ? dict.likes.pushBody : dict.likes.pushBodyLocked,
+      url: localePath(locale, visible ? '/likes' : '/swipe'),
       tag: 'likes',
     }))
   })

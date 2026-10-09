@@ -35,4 +35,6 @@ export type Candidate = {
   prompts: ProfilePrompt[]
   // Passed more than 14 days ago and shown again.
   secondChance: boolean
+  // VIP right now (promo codes, 20261009000230): a small crown next to the name.
+  vip?: boolean
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft, MapPin, MessageCircle } from 'lucide-react'
 import { VerifiedBadge } from '@/components/ui/verified-badge'
+import { VipBadge } from '@/components/ui/vip-badge'
 import { getViewer } from '@/features/auth/session'
 import { unmatch } from '@/features/chat/actions'
 import { AboutDetails, PromptCards } from '@/features/profile/components/about-details'
@@ -53,6 +54,7 @@ async function ProfileView({ params }: Pick<PageProps<'/[lang]/profile/[userId]'
           <h1 className="text-[2.125rem] leading-[1.1] font-bold tracking-[-0.03em] [overflow-wrap:anywhere] [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">
             {profile.name}, <span className="font-light text-white/90">{profile.age}</span>
             <VerifiedBadge size={26} className="ml-1.5 align-[-0.1em]" />
+            {profile.vip && <VipBadge size={24} className="ml-1 align-[-0.1em]" />}
           </h1>
           <p className="flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-white/80">
             <span className="truncate">@{profile.username}</span>

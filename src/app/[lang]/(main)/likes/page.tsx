@@ -7,6 +7,7 @@ import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
 import { LikesGrid } from '@/features/likes/components/likes-grid'
 import { LikesSkeleton } from '@/features/likes/components/likes-skeleton'
 import { countIncomingLikes, getIncomingLikes } from '@/features/likes/queries'
+import { viewerCanSeeLikes } from '@/features/promo/queries'
 import { fmt } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
 
@@ -27,8 +28,10 @@ export default async function LikesPage() {
 }
 
 async function Likes() {
-  // Without the free flag the list is never loaded: only the count reaches the browser.
-  if (LIKES_VISIBLE_FREE) return <LikesGrid initial={await getIncomingLikes()} />
+  // Without the free flag the list is never loaded: only the count reaches the browser. A VIP
+  // with the see_likes perk (promo codes) gets the list while the VIP lasts.
+  if (LIKES_VISIBLE_FREE || (await viewerCanSeeLikes()))
+    return <LikesGrid initial={await getIncomingLikes()} />
   const [count, dict] = await Promise.all([countIncomingLikes(), getDictionary()])
   return (
     <EmptyState
