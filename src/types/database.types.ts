@@ -652,9 +652,153 @@ export type Database = {
           },
         ]
       }
+      event_participants: {
+        Row: {
+          event_id: string
+          joined_at: string
+          user_id: string
+          want_genders: Database['public']['Enums']['gender'][]
+        }
+        Insert: {
+          event_id: string
+          joined_at?: string
+          user_id: string
+          want_genders: Database['public']['Enums']['gender'][]
+        }
+        Update: {
+          event_id?: string
+          joined_at?: string
+          user_id?: string
+          want_genders?: Database['public']['Enums']['gender'][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_participants_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_participants_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      event_reminders: {
+        Row: {
+          created_at: string
+          event_id: string
+          reminder_sent_at: string | null
+          start_sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          reminder_sent_at?: string | null
+          start_sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          reminder_sent_at?: string | null
+          start_sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_reminders_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_reminders_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      scheduled_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          ends_at: string
+          id: string
+          parent_id: string | null
+          recurrence: string | null
+          starts_at: string
+          stats_joined: number
+          stats_matches: number
+          stats_pairs: number
+          status: Database['public']['Enums']['event_status']
+          theme: string | null
+          title_en: string
+          title_ms: string
+          title_ru: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ends_at: string
+          id?: string
+          parent_id?: string | null
+          recurrence?: string | null
+          starts_at: string
+          stats_joined?: number
+          stats_matches?: number
+          stats_pairs?: number
+          status?: Database['public']['Enums']['event_status']
+          theme?: string | null
+          title_en: string
+          title_ms: string
+          title_ru: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ends_at?: string
+          id?: string
+          parent_id?: string | null
+          recurrence?: string | null
+          starts_at?: string
+          stats_joined?: number
+          stats_matches?: number
+          stats_pairs?: number
+          status?: Database['public']['Enums']['event_status']
+          theme?: string | null
+          title_en?: string
+          title_ms?: string
+          title_ru?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'scheduled_events_parent_id_fkey'
+            columns: ['parent_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       notification_prefs: {
         Row: {
           calls: boolean
+          events: boolean
           feed_replies: boolean
           likes: boolean
           messages: boolean
@@ -666,6 +810,7 @@ export type Database = {
         }
         Insert: {
           calls?: boolean
+          events?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
@@ -677,6 +822,7 @@ export type Database = {
         }
         Update: {
           calls?: boolean
+          events?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
@@ -1217,6 +1363,7 @@ export type Database = {
       random_chat_queue: {
         Row: {
           enqueued_at: string
+          event_id: string | null
           last_seen_at: string
           max_age: number
           min_age: number
@@ -1226,6 +1373,7 @@ export type Database = {
         }
         Insert: {
           enqueued_at?: string
+          event_id?: string | null
           last_seen_at?: string
           max_age: number
           min_age: number
@@ -1235,6 +1383,7 @@ export type Database = {
         }
         Update: {
           enqueued_at?: string
+          event_id?: string | null
           last_seen_at?: string
           max_age?: number
           min_age?: number
@@ -1243,6 +1392,13 @@ export type Database = {
           want_tags?: number[]
         }
         Relationships: [
+          {
+            foreignKeyName: 'random_chat_queue_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'random_chat_queue_user_id_fkey'
             columns: ['user_id']
@@ -1263,6 +1419,7 @@ export type Database = {
           decision_b: boolean | null
           end_reason: string | null
           ended_at: string | null
+          event_id: string | null
           id: string
           match_id: string | null
           revealed_at: string | null
@@ -1281,6 +1438,7 @@ export type Database = {
           decision_b?: boolean | null
           end_reason?: string | null
           ended_at?: string | null
+          event_id?: string | null
           id?: string
           match_id?: string | null
           revealed_at?: string | null
@@ -1299,6 +1457,7 @@ export type Database = {
           decision_b?: boolean | null
           end_reason?: string | null
           ended_at?: string | null
+          event_id?: string | null
           id?: string
           match_id?: string | null
           revealed_at?: string | null
@@ -1308,6 +1467,13 @@ export type Database = {
           user_b?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'random_chat_sessions_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'random_chat_sessions_match_id_fkey'
             columns: ['match_id']
@@ -1899,6 +2065,14 @@ export type Database = {
         Args: { p_admin: string; p_reference: string; p_user: string }
         Returns: Json
       }
+      admin_cancel_event: {
+        Args: { p_admin: string; p_event: string; p_reason?: string }
+        Returns: undefined
+      }
+      admin_event_stats: {
+        Args: { p_admin: string; p_event: string }
+        Returns: Json
+      }
       admin_find_users: {
         Args: { p_admin: string; p_limit?: number; p_query?: string }
         Returns: {
@@ -1936,6 +2110,29 @@ export type Database = {
       admin_get_phone: {
         Args: { p_admin: string; p_user: string }
         Returns: string
+      }
+      admin_list_events: {
+        Args: { p_admin: string; p_limit?: number }
+        Returns: {
+          created_at: string
+          created_by: string
+          ended_at: string
+          ends_at: string
+          id: string
+          in_room: number
+          joined: number
+          matches: number
+          pairs: number
+          parent_id: string
+          recurrence: string
+          reminders: number
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
+        }[]
       }
       admin_list_team: {
         Args: { p_admin: string }
@@ -2291,6 +2488,21 @@ export type Database = {
         Returns: Database['public']['Enums']['call_status']
       }
       end_user_activity: { Args: { p_user: string }; Returns: string[] }
+      admin_upsert_event: {
+        Args: {
+          p_admin: string
+          p_ends_at: string
+          p_id: string | null
+          p_recurrence: string | null
+          p_starts_at: string
+          p_status?: Database['public']['Enums']['event_status']
+          p_theme: string | null
+          p_title_en: string
+          p_title_ms: string
+          p_title_ru: string
+        }
+        Returns: string
+      }
       ensure_match: {
         Args: {
           a: string
@@ -2346,6 +2558,24 @@ export type Database = {
       ping_location: { Args: { p_lat: number; p_lng: number }; Returns: boolean }
       set_crossed_paths: { Args: { p_enabled: boolean }; Returns: boolean }
       set_plan: { Args: { p_tag: string }; Returns: string }
+      event_push_due: {
+        Args: never
+        Returns: {
+          event_id: string
+          kind: string
+          starts_at: string
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
+          user_id: string
+        }[]
+      }
+      event_remind: {
+        Args: { p_event: string; p_on: boolean }
+        Returns: boolean
+      }
+      event_tick: { Args: never; Returns: Json }
       get_blocked_users: {
         Args: never
         Returns: {
@@ -2359,6 +2589,7 @@ export type Database = {
         Args: { p_session?: string }
         Returns: {
           common_tags: string[]
+          event_id: string
           id: string
           match_id: string
           my_alias: number
@@ -2368,6 +2599,23 @@ export type Database = {
           partner_alias: number
           started_at: string
           state: string
+        }[]
+      }
+      get_current_event: {
+        Args: never
+        Returns: {
+          ends_at: string
+          id: string
+          in_room: number
+          joined: number
+          reminded: boolean
+          server_now: string
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
         }[]
       }
       get_incoming_likes: {
@@ -2541,6 +2789,7 @@ export type Database = {
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
       randomizer_join: {
         Args: {
+          p_event_id?: string
           p_genders: Database['public']['Enums']['gender'][]
           p_max_age: number
           p_min_age: number
@@ -2713,6 +2962,7 @@ export type Database = {
       call_status: 'ringing' | 'active' | 'ended' | 'missed' | 'declined'
       children_plan: 'have' | 'want' | 'dont_want' | 'not_sure'
       education_level: 'secondary' | 'diploma' | 'bachelor' | 'master' | 'phd' | 'other'
+      event_status: 'draft' | 'scheduled' | 'live' | 'ended' | 'cancelled'
       gender: 'male' | 'female' | 'other'
       habit_frequency: 'never' | 'sometimes' | 'often'
       match_source: 'swipe' | 'randomizer'
@@ -2872,6 +3122,7 @@ export const Constants = {
       call_status: ['ringing', 'active', 'ended', 'missed', 'declined'],
       children_plan: ['have', 'want', 'dont_want', 'not_sure'],
       education_level: ['secondary', 'diploma', 'bachelor', 'master', 'phd', 'other'],
+      event_status: ['draft', 'scheduled', 'live', 'ended', 'cancelled'],
       gender: ['male', 'female', 'other'],
       habit_frequency: ['never', 'sometimes', 'often'],
       match_source: ['swipe', 'randomizer'],

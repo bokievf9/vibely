@@ -140,6 +140,31 @@ export function notifyBlindMatch(userId: string, matchId: string | null) {
   )
 }
 
+// Blind Dating Night reminders for people who tapped "Remind me": 15 minutes before the start
+// and when it goes live (POST /api/cron/events-push, rows from event_push_due). Short TTL: a
+// reminder delivered after the night is pointless.
+export type EventPush = {
+  kind: 'reminder' | 'start'
+  eventId: string
+  title: Record<Locale, string>
+}
+
+export function notifyEvent(userId: string, push: EventPush): Promise<void> {
+  return sendToUser(
+    userId,
+    'events',
+    (dict, locale) => ({
+      title: fmt(push.kind === 'start' ? dict.events.pushLiveTitle : dict.events.pushSoonTitle, {
+        title: push.title[locale],
+      }),
+      body: push.kind === 'start' ? dict.events.pushLiveBody : dict.events.pushSoonBody,
+      url: localePath(locale, push.kind === 'start' ? '/blind-date?event=1' : '/blind-date'),
+      tag: `event-${push.eventId}`,
+    }),
+    { ttl: 20 * 60 },
+  )
+}
+
 // A one-way like. Never the liker's name or photo: only that someone did. Skipped when the liker
 // is paused, because the recipient could not find them in "Who liked you" anyway.
 // One notification at a time (same tag): a burst of likes doesn't flood the lock screen.

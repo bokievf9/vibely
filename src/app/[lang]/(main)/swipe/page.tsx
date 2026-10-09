@@ -5,6 +5,8 @@ import { getViewer } from '@/features/auth/session'
 import { CrossedPathsStrip } from '@/features/crossed-paths/components/crossed-paths-strip'
 import { PlanButton } from '@/features/plans/components/plan-picker'
 import { getOwnPlan } from '@/features/plans/queries'
+import { EventWidget } from '@/features/events/components/event-widget'
+import { getCurrentEvent } from '@/features/events/queries'
 import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
@@ -48,6 +50,17 @@ async function Deck() {
           </Suspense>
         </>
       }
+      banner={
+        <Suspense fallback={null}>
+          <NightBanner />
+        </Suspense>
+      }
     />
   )
+}
+
+// The next (or live) Blind Dating Night, above the deck. Nothing when there is none.
+async function NightBanner() {
+  const event = await getCurrentEvent()
+  return event ? <EventWidget initial={event} className="mx-1 shrink-0" /> : null
 }
