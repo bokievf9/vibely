@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { clearPlan } from '@/features/plans/actions'
 import { PLAN_ICONS, PLAN_TAGS, type OwnPlan, type PlanTag } from '@/features/plans/tags'
 import { clearStatus, setStatus } from '../actions'
-import { EMOJI_PICKS, PLAN_EMOJI, STATUS_MAX_LENGTH, codePoints } from '../schemas'
+import { EMOJI_PICKS, PLAN_EMOJI, STATUS_MAX_LENGTH, codePoints } from '../format'
 import type { OwnStatus } from '../types'
 
 type Props = {

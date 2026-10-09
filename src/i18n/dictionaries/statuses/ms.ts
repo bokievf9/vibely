@@ -23,7 +23,8 @@ export const statusesMs: StatusesDictionary = {
   change: 'Tukar',
   posted: 'Status anda dipaparkan selama 3 jam.',
   underReview: 'Sedang disemak',
-  underReviewHint: 'Pasukan kami sedang menyemak status anda. Buat masa ini hanya anda yang nampak.',
+  underReviewHint:
+    'Pasukan kami sedang menyemak status anda. Buat masa ini hanya anda yang nampak.',
   timeLeft: '{h} j {m} min lagi',
   minutesLeft: '{m} min lagi',
   open: 'Buka status {name}',

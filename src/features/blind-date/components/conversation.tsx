@@ -125,11 +125,14 @@ export function Conversation({ userId, initialSession, initialMessages }: Props)
           waitingText: c.revealWaiting,
           lockedHint:
             progress && !progress.unlocked
-              ? `${fmt(c.revealLocked, { n: REVEAL_UNLOCK_MESSAGES })} · ${fmt(c.revealLockedProgress, {
-                  mine: REVEAL_UNLOCK_MESSAGES - progress.mineLeft,
-                  theirs: REVEAL_UNLOCK_MESSAGES - progress.theirsLeft,
-                  n: REVEAL_UNLOCK_MESSAGES,
-                })}`
+              ? `${fmt(c.revealLocked, { n: REVEAL_UNLOCK_MESSAGES })} · ${fmt(
+                  c.revealLockedProgress,
+                  {
+                    mine: REVEAL_UNLOCK_MESSAGES - progress.mineLeft,
+                    theirs: REVEAL_UNLOCK_MESSAGES - progress.theirsLeft,
+                    n: REVEAL_UNLOCK_MESSAGES,
+                  },
+                )}`
               : undefined,
         }
       : undefined

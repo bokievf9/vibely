@@ -7,9 +7,7 @@ import { asPlanTag } from '@/features/plans/tags'
 import type { Json } from '@/types/database.types'
 import type { LiveStatus, OwnStatus, StatusesState } from './types'
 
-const photoSchema = z
-  .object({ path: z.string(), width: z.number(), height: z.number() })
-  .nullable()
+const photoSchema = z.object({ path: z.string(), width: z.number(), height: z.number() }).nullable()
 
 const ownSchema = z.object({
   id: z.uuid(),

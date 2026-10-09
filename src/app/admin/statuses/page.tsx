@@ -65,9 +65,7 @@ async function Queue({ searchParams }: Pick<PageProps<'/admin/statuses'>, 'searc
         href={(f) => href({ filter: f ?? 'held' })}
       />
       {!statuses.length ? (
-        <p className="text-muted">
-          {filter === 'held' ? 'Все статусы проверены' : 'Статусов нет'}
-        </p>
+        <p className="text-muted">{filter === 'held' ? 'Все статусы проверены' : 'Статусов нет'}</p>
       ) : (
         <StatusQueue
           key={`${filter}:${page}`}

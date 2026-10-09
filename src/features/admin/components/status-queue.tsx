@@ -20,7 +20,13 @@ const kindLabel = (k: string) =>
 
 // Live statuses for review: approve (held -> visible) or remove. Both close the open reports on
 // the status and are logged.
-export function StatusQueue({ statuses, canDecide }: { statuses: AdminStatus[]; canDecide: boolean }) {
+export function StatusQueue({
+  statuses,
+  canDecide,
+}: {
+  statuses: AdminStatus[]
+  canDecide: boolean
+}) {
   const { pending, error, run } = useModeration()
 
   return (
@@ -44,7 +50,8 @@ export function StatusQueue({ statuses, canDecide }: { statuses: AdminStatus[]; 
                 )}
                 {s.banned && <BannedBadge />}
                 <span className="text-muted">
-                  {formatDate(s.createdAt)} · {live ? `до ${formatDate(s.expiresAt)}` : 'не активен'}
+                  {formatDate(s.createdAt)} ·{' '}
+                  {live ? `до ${formatDate(s.expiresAt)}` : 'не активен'}
                 </span>
               </div>
               <p className="text-lg break-words">
@@ -70,7 +77,9 @@ export function StatusQueue({ statuses, canDecide }: { statuses: AdminStatus[]; 
                       size="sm"
                       variant="secondary"
                       disabled={pending}
-                      onClick={() => void run(() => moderateStatus({ id: s.id, decision: 'approve' }))}
+                      onClick={() =>
+                        void run(() => moderateStatus({ id: s.id, decision: 'approve' }))
+                      }
                     >
                       <Check className="size-4" /> Одобрить
                     </Button>

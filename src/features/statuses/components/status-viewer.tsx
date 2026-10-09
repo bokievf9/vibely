@@ -13,7 +13,7 @@ import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { cn } from '@/lib/utils'
 import { startStatusConversation } from '@/features/blind-date/actions'
 import { ReportDialog } from '@/features/safety/components/report-dialog'
-import { timeLeft } from '../schemas'
+import { timeLeft } from '../format'
 import type { LiveStatus, OwnStatus, Photo } from '../types'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
@@ -188,7 +188,10 @@ function Viewer(props: Props) {
               {Array.from({ length: count }, (_, i) => (
                 <li
                   key={i}
-                  className={cn('h-0.5 flex-1 rounded-full', i <= index ? 'bg-white' : 'bg-white/30')}
+                  className={cn(
+                    'h-0.5 flex-1 rounded-full',
+                    i <= index ? 'bg-white' : 'bg-white/30',
+                  )}
                 />
               ))}
             </ol>
@@ -294,7 +297,10 @@ function ReplyBox({ status, onTyping }: { status: LiveStatus; onTyping: (on: boo
 
   if (sent) {
     return (
-      <div role="status" className="flex flex-col items-center gap-2 rounded-3xl bg-white/10 p-3 text-center backdrop-blur">
+      <div
+        role="status"
+        className="flex flex-col items-center gap-2 rounded-3xl bg-white/10 p-3 text-center backdrop-blur"
+      >
         <p className="text-sm">{t.replySent}</p>
         <LocaleLink
           href={`/blind-date/${sent}`}
