@@ -11,6 +11,7 @@ export const settingsEn = {
     feed_replies: 'Replies in the feed',
     random_reveal: 'Blind date matches',
     new_people: 'New people nearby',
+    status_replies: 'Replies to your status',
     calls: 'Incoming calls',
   },
   privacy: 'Privacy',

@@ -12,6 +12,7 @@ export const settingsMs: SettingsDictionary = {
     feed_replies: 'Balasan dalam suapan',
     random_reveal: 'Padanan temu janji buta',
     new_people: 'Orang baharu berdekatan',
+    status_replies: 'Balasan kepada status anda',
     calls: 'Panggilan masuk',
   },
   privacy: 'Privasi',
