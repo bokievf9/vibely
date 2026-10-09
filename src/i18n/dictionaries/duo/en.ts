@@ -40,13 +40,15 @@ export const duoEn = {
   bioPlaceholder: 'Two sentences about you two (up to 120 characters)',
   bioHeld: 'Your bio is under review and hidden from other duos until a moderator checks it.',
   prefs: 'Duo preferences',
-  prefsHint: 'Who both of you want to meet. Each person in the other duo has to fit someone here, and the other way round.',
+  prefsHint:
+    'Who both of you want to meet. Each person in the other duo has to fit someone here, and the other way round.',
   ageRange: 'Age',
   maxDistance: 'Distance',
   save: 'Save',
   saved: 'Saved',
   leaveDuo: 'Leave the duo',
-  leaveConfirm: 'Leave the duo with {name}? It ends for both of you. Group chats you already have stay.',
+  leaveConfirm:
+    'Leave the duo with {name}? It ends for both of you. Group chats you already have stay.',
   editProfile: 'Edit duo profile',
   // deck
   deckEmpty: 'No duos around right now',
@@ -59,7 +61,8 @@ export const duoEn = {
   // inbox
   inboxTitle: 'Duo inbox',
   inboxEmpty: 'Nothing here yet',
-  inboxEmptyHint: 'When you or your friend like a duo, it shows up here for an hour so either of you can undo it.',
+  inboxEmptyHint:
+    'When you or your friend like a duo, it shows up here for an hour so either of you can undo it.',
   likedThisDuo: '{name} liked this duo',
   youLikedThisDuo: 'You liked this duo',
   undo: 'Undo',
@@ -87,7 +90,8 @@ export const duoEn = {
   blockMember: 'Block a member',
   pickMember: 'Who?',
   memberLeft: 'left',
-  recordingNote: 'For everyone’s safety, group messages and photos are stored (photos for 90 days). Only moderators handling a report can read them.',
+  recordingNote:
+    'For everyone’s safety, group messages and photos are stored (photos for 90 days). Only moderators handling a report can read them.',
   noCalls: 'Duo chats are text and photos only.',
   photoPreview: 'Photo',
   // push
@@ -102,7 +106,8 @@ export const duoEn = {
   pushGroupPhotoBody: 'Someone sent a photo. Open Vibely to see it.',
   noResults: 'No one found with that username',
   createLink: 'Create an invite link',
-  blockMemberConfirm: 'Block {name}? You leave this chat, you no longer see each other, and your duo will never be matched with theirs again.',
+  blockMemberConfirm:
+    'Block {name}? You leave this chat, you no longer see each other, and your duo will never be matched with theirs again.',
   notifyType: 'Duo dating',
 }
 

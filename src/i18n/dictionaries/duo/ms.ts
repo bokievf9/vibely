@@ -17,12 +17,14 @@ export const duoMs: DuoDictionary = {
   copyLink: 'Salin pautan',
   copied: 'Pautan disalin',
   shareLink: 'Kongsi pautan',
-  linkHint: 'Sesiapa yang disahkan dan membuka pautan ini boleh menyertai duo anda. Hanya seorang boleh menerimanya.',
+  linkHint:
+    'Sesiapa yang disahkan dan membuka pautan ini boleh menyertai duo anda. Hanya seorang boleh menerimanya.',
   searchFriend: 'Cari kawan melalui @namapengguna',
   invite: 'Jemput',
   invited: 'Dijemput',
   pendingTitle: 'Menunggu {name}',
-  pendingHint: 'Mereka akan melihat jemputan anda dalam Teroka di bawah Duo. Anda boleh membatalkannya bila-bila masa.',
+  pendingHint:
+    'Mereka akan melihat jemputan anda dalam Teroka di bawah Duo. Anda boleh membatalkannya bila-bila masa.',
   pendingLinkTitle: 'Pautan jemputan sedia',
   cancelInvite: 'Batalkan jemputan',
   invitesTitle: 'Jemputan untuk anda',
@@ -30,32 +32,38 @@ export const duoMs: DuoDictionary = {
   accept: 'Terima',
   decline: 'Tolak',
   joinTitle: 'Sertai {name} sebagai duo?',
-  joinText: 'Anda akan melihat dan bersembang bersama. Profil anda sendiri kekal seperti sedia ada.',
+  joinText:
+    'Anda akan melihat dan bersembang bersama. Profil anda sendiri kekal seperti sedia ada.',
   joinInvalid: 'Pautan jemputan ini tidak lagi sah.',
   teamTitle: 'Duo anda',
   withName: 'Anda dan {name}',
   bioLabel: 'Bio duo',
   bioPlaceholder: 'Dua ayat tentang anda berdua (sehingga 120 aksara)',
-  bioHeld: 'Bio anda sedang disemak dan disembunyikan daripada duo lain sehingga moderator memeriksanya.',
+  bioHeld:
+    'Bio anda sedang disemak dan disembunyikan daripada duo lain sehingga moderator memeriksanya.',
   prefs: 'Keutamaan duo',
-  prefsHint: 'Siapa yang anda berdua mahu temui. Setiap orang dalam duo lain perlu sesuai dengan seseorang di sini, dan sebaliknya.',
+  prefsHint:
+    'Siapa yang anda berdua mahu temui. Setiap orang dalam duo lain perlu sesuai dengan seseorang di sini, dan sebaliknya.',
   ageRange: 'Umur',
   maxDistance: 'Jarak',
   save: 'Simpan',
   saved: 'Disimpan',
   leaveDuo: 'Keluar dari duo',
-  leaveConfirm: 'Keluar dari duo dengan {name}? Ia berakhir untuk anda berdua. Sembang kumpulan yang sudah ada kekal.',
+  leaveConfirm:
+    'Keluar dari duo dengan {name}? Ia berakhir untuk anda berdua. Sembang kumpulan yang sudah ada kekal.',
   editProfile: 'Edit profil duo',
   deckEmpty: 'Tiada duo berdekatan buat masa ini',
   deckEmptyHint: 'Luaskan keutamaan duo anda atau kembali kemudian. Duo baharu muncul di sini.',
   likeDuo: 'Suka duo ini',
   passDuo: 'Langkau',
   kmAway: '{km} km dari sini',
-  teamLike: 'Suka adalah untuk seluruh duo: kawan anda melihatnya dan boleh membatalkannya dalam masa sejam.',
+  teamLike:
+    'Suka adalah untuk seluruh duo: kawan anda melihatnya dan boleh membatalkannya dalam masa sejam.',
   inbox: 'Peti masuk duo',
   inboxTitle: 'Peti masuk duo',
   inboxEmpty: 'Belum ada apa-apa',
-  inboxEmptyHint: 'Apabila anda atau kawan anda menyukai duo, ia muncul di sini selama sejam supaya sesiapa antara anda boleh membatalkannya.',
+  inboxEmptyHint:
+    'Apabila anda atau kawan anda menyukai duo, ia muncul di sini selama sejam supaya sesiapa antara anda boleh membatalkannya.',
   likedThisDuo: '{name} menyukai duo ini',
   youLikedThisDuo: 'Anda menyukai duo ini',
   undo: 'Batal',
@@ -76,12 +84,14 @@ export const duoMs: DuoDictionary = {
   systemRemoved: '{name} telah dikeluarkan',
   youLeft: 'Anda keluar dari sembang ini',
   leaveGroup: 'Keluar dari kumpulan',
-  leaveGroupConfirm: 'Keluar dari sembang kumpulan ini? Yang lain boleh terus bersembang tanpa anda.',
+  leaveGroupConfirm:
+    'Keluar dari sembang kumpulan ini? Yang lain boleh terus bersembang tanpa anda.',
   reportMember: 'Laporkan ahli',
   blockMember: 'Sekat ahli',
   pickMember: 'Siapa?',
   memberLeft: 'keluar',
-  recordingNote: 'Untuk keselamatan semua, mesej dan foto kumpulan disimpan (foto selama 90 hari). Hanya moderator yang mengendalikan laporan boleh membacanya.',
+  recordingNote:
+    'Untuk keselamatan semua, mesej dan foto kumpulan disimpan (foto selama 90 hari). Hanya moderator yang mengendalikan laporan boleh membacanya.',
   noCalls: 'Sembang duo hanya untuk teks dan foto.',
   photoPreview: 'Foto',
   pushInvite: 'Jemputan duo 🤝',
@@ -95,7 +105,8 @@ export const duoMs: DuoDictionary = {
   pushGroupPhotoBody: 'Seseorang menghantar foto. Buka Vibely untuk melihatnya.',
   noResults: 'Tiada sesiapa dengan nama pengguna itu',
   createLink: 'Cipta pautan jemputan',
-  blockMemberConfirm: 'Sekat {name}? Anda akan keluar dari sembang ini, anda tidak lagi melihat satu sama lain, dan duo anda tidak akan dipadankan dengan duo mereka lagi.',
+  blockMemberConfirm:
+    'Sekat {name}? Anda akan keluar dari sembang ini, anda tidak lagi melihat satu sama lain, dan duo anda tidak akan dipadankan dengan duo mereka lagi.',
   notifyType: 'Duo',
 }
 
