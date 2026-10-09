@@ -14,6 +14,9 @@ import { getPublicProfile } from '@/features/profile/public-profile'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
 import { ProfileLikeButton } from '@/features/username/components/profile-like-button'
 import { localePath } from '@/i18n/config'
+import { ProfileNote } from '@/features/vip-perks/components/profile-note'
+import { VisitRecorder } from '@/features/vip-perks/components/visit-recorder'
+import { getSentNote } from '@/features/vip-perks/queries'
 import { getDictionary, getLocale } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,16 +49,23 @@ async function ProfileView({
     viewer && /^[0-9a-f-]{36}$/.test(userId) ? await getPublicProfile(userId, viewer.id) : null
   if (!profile) notFound()
   // Matched: back to the chat. Opened from Discover (crossed paths): back to Discover.
-  // Opened from people search: back to the search.
+  // Opened from "Who viewed you": back there. Opened from people search: back to the search.
   const fromDiscover = from === 'discover'
+  const fromVisitors = from === 'visitors'
   const backHref = profile.matchId
     ? `/chats/${profile.matchId}`
     : fromDiscover
       ? '/swipe'
-      : '/search'
+      : fromVisitors
+        ? '/visitors'
+        : '/search'
+  // "Like with a note" (VIP): only before a match and when the viewer did not pass.
+  const canNote = !profile.matchId && profile.swiped !== 'pass'
+  const sentNote = canNote ? await getSentNote(profile.id) : null
 
   return (
     <article className="flex flex-col">
+      <VisitRecorder userId={profile.id} />
       {/* Full-bleed photo; name, handle and city sit on a gradient over its lower part. */}
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-b-[2rem] shadow-[0_24px_48px_-28px_rgb(0_0_0/0.9)]">
         <PhotoCarousel photos={profile.photos} alt={profile.name} priority />
@@ -84,7 +94,9 @@ async function ProfileView({
           <Link
             href={localePath(locale, backHref)}
             aria-label={
-              profile.matchId || fromDiscover ? dict.common.back : dict.username.backToSearch
+              profile.matchId || fromDiscover || fromVisitors
+                ? dict.common.back
+                : dict.username.backToSearch
             }
             className="glass-dark pointer-events-auto flex size-11 items-center justify-center rounded-full text-white transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94] active:bg-black/70"
           >
@@ -129,7 +141,13 @@ async function ProfileView({
           </Link>
         ) : (
           profile.swiped !== 'pass' && (
-            <ProfileLikeButton userId={profile.id} liked={profile.swiped === 'like'} />
+            <>
+              <ProfileLikeButton userId={profile.id} liked={profile.swiped === 'like'} />
+              {/* Reads the viewer's plan (useAccess): its own boundary, the page never waits. */}
+              <Suspense fallback={null}>
+                <ProfileNote userId={profile.id} sent={sentNote} />
+              </Suspense>
+            </>
           )
         )}
       </div>

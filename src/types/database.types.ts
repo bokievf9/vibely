@@ -4043,6 +4043,34 @@ export type Database = {
       username_base: { Args: { p_name: string }; Returns: string }
       username_error: { Args: { u: string }; Returns: string }
       username_status: { Args: { p_username: string }; Returns: string }
+      admin_open_like_note: {
+        Args: { p_admin: string; p_note: string }
+        Returns: Json
+      }
+      incoming_like_notes: {
+        Args: { p_ids?: string[] | null }
+        Returns: {
+          body: string
+          created_at: string
+          first_name: string
+          id: string
+          sender_id: string
+        }[]
+      }
+      mark_match_read: { Args: { p_match: string }; Returns: string | null }
+      match_read_state: { Args: { p_match: string }; Returns: Json }
+      my_like_note: { Args: { p_target: string }; Returns: Json }
+      my_match_reads: {
+        Args: never
+        Returns: { last_read_at: string; match_id: string }[]
+      }
+      my_profile_visitors: { Args: { p_limit?: number }; Returns: Json }
+      my_read_receipts: { Args: never; Returns: Json }
+      purge_old_like_notes: { Args: never; Returns: number }
+      purge_old_profile_visits: { Args: never; Returns: number }
+      record_profile_visit: { Args: { p_target: string }; Returns: boolean }
+      send_like_note: { Args: { p_body: string; p_target: string }; Returns: Json }
+      set_read_receipts: { Args: { p_send: boolean }; Returns: boolean }
       vip_ids: { Args: { p_ids: string[] }; Returns: string[] }
     }
     Enums: {
@@ -4081,6 +4109,7 @@ export type Database = {
         | 'group_message'
         | 'group_member'
         | 'status'
+        | 'like_note'
       spoken_language:
         | 'malay'
         | 'english'
@@ -4253,6 +4282,7 @@ export const Constants = {
         'group_message',
         'group_member',
         'status',
+        'like_note',
       ],
       spoken_language: [
         'malay',

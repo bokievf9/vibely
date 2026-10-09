@@ -6,6 +6,7 @@ import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
 import { plansLegal } from './plans'
+import { vipPerksLegal } from './vip-perks'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -86,6 +87,9 @@ export const ms: LegalContent = {
       // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
       plansLegal.ms.privacy,
       // --- end Plus and VIP plans ---
+      // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
+      vipPerksLegal.ms.privacy,
+      // --- end read receipts, profile visits, notes ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [

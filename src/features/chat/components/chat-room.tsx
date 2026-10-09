@@ -8,6 +8,8 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { visibleOutgoing } from '../chat-state'
 import { loadMessagesBefore } from '../history-actions'
+import { loadReadReceipts } from '../actions'
+import { laterOf, LEGACY_RECEIPTS, readBroadcastSchema, type ReadReceipts } from '../read-receipts'
 import type { ChatMessage, Reaction } from '../types'
 import { ChatComposer, type ComposerPrefill } from './chat-composer'
 import type { ComposerMode } from './composer-banner'
@@ -33,6 +35,7 @@ type Props = {
   initialReactions: Reaction[]
   initialHasMore: boolean
   initialCalls?: CallEntry[]
+  initialReceipts?: ReadReceipts
 }
 
 export function ChatRoom({ matchId, viewerId, partnerId, partnerName, ...initial }: Props) {
@@ -48,6 +51,7 @@ export function ChatRoom({ matchId, viewerId, partnerId, partnerName, ...initial
   const [mode, setMode] = useState<ComposerMode | null>(null)
   const [viewer, setViewer] = useState<ViewerState | null>(null)
   const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
+  const [receipts, setReceipts] = useState<ReadReceipts>(initial.initialReceipts ?? LEGACY_RECEIPTS)
   const actions = useMessageActions({ chat, reactions, setMode, setViewer, setError })
   // Reply/edit target as currently loaded; dropped once it is deleted (by either side).
   const target = mode && chat.messages.find((m) => m.id === mode.message.id)
@@ -70,8 +74,24 @@ export function ChatRoom({ matchId, viewerId, partnerId, partnerName, ...initial
     onReady: () => {
       chat.resync()
       reactions.resync(chat.messages.map((m) => m.id))
+      if (receipts.mode === 'gated') void loadReadReceipts(matchId).then(mergeReceipts)
+    },
+    onRead: (payload) => {
+      const read = readBroadcastSchema.safeParse(payload)
+      if (!read.success || read.data.reader !== partnerId) return
+      setReceipts((r) =>
+        r.mode === 'gated' && r.enabled ? { ...r, seenUpTo: laterOf(r.seenUpTo, read.data.at) } : r,
+      )
     },
   })
+
+  function mergeReceipts(next: ReadReceipts) {
+    setReceipts((r) =>
+      next.mode === 'gated' && r.mode === 'gated' && next.enabled
+        ? { ...next, seenUpTo: laterOf(r.seenUpTo, next.seenUpTo) }
+        : next,
+    )
+  }
 
   useEffect(() => {
     if (last && last.senderId !== viewerId) clear()
@@ -109,6 +129,7 @@ export function ChatRoom({ matchId, viewerId, partnerId, partnerName, ...initial
             partnerId={partnerId}
             partnerName={partnerName}
             partnerTyping={partnerTyping}
+            receipts={receipts}
             hasMore={hasMore}
             loadingEarlier={loadingEarlier}
             highlightId={actions.highlightId}

@@ -1,6 +1,8 @@
 import 'server-only'
+import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Enums } from '@/types/database.types'
+import { getAdmin } from '../guard'
 import { logAccess } from './access'
 import { getCallsBetween, getCallsByIds, type ReportCall } from './call-recordings'
 import { signUrls } from './storage'
@@ -13,6 +15,13 @@ type Target = {
   reasons: { reporterId: string }[]
 }
 type Person = { id: string; name: string }
+
+const likeNoteSchema = z.object({
+  sender_id: z.string(),
+  body: z.string(),
+  state: z.string(),
+  created_at: z.string(),
+})
 
 // What the moderator needs to judge a report, and whom a ban would hit (`offender`).
 export type ReportContext =
@@ -45,6 +54,15 @@ export type ReportContext =
       text: string
       state: string
       expiresAt: string
+    }
+  // A note attached to a like (20261009000290). The text is read through admin_open_like_note,
+  // which checks the moderator role and the open report and logs every opening.
+  | {
+      kind: 'like_note'
+      offender: Person
+      body: string | null
+      state: string
+      sentAt: string
     }
 
 const ids = (targets: Target[], type: Target['targetType']) =>
@@ -253,6 +271,33 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       expiresAt: s.expires_at,
     }),
   )
+
+  const noteIds = ids(targets, 'like_note')
+  if (noteIds.length) {
+    const admin = await getAdmin()
+    const notes = await Promise.all(
+      noteIds.map((id) =>
+        db
+          .rpc('admin_open_like_note', { p_admin: admin.id, p_note: id })
+          .then(({ data, error }) => (error ? null : likeNoteSchema.safeParse(data).data)),
+      ),
+    )
+    const senders = notes.flatMap((n) => (n ? [n.sender_id] : []))
+    const { data: senderProfiles } = senders.length
+      ? await db.from('profiles').select('id, display_name').in('id', senders)
+      : { data: [] }
+    notes.forEach((n, i) => {
+      const id = noteIds[i]
+      if (!n || !id) return
+      out.set(`like_note:${id}`, {
+        kind: 'like_note',
+        offender: person(n.sender_id, senderProfiles?.find((p) => p.id === n.sender_id) ?? null),
+        body: n.body,
+        state: n.state,
+        sentAt: n.created_at,
+      })
+    })
+  }
 
   for (const s of sessions.data ?? []) {
     const target = targets.find((t) => t.targetId === s.id)

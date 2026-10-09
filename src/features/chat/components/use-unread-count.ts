@@ -56,6 +56,8 @@ export function useUnreadCount() {
       )
     }
     channel = channel
+      // A chat read on another tab or device (mark_match_read, 20261009000290).
+      .on('broadcast', { event: 'read' }, refresh)
       // Duo invites, partner likes and duo matches (broadcast by the duo RPCs).
       .on('broadcast', { event: 'duo' }, ({ payload }) => {
         emitDuoSignal(payload)

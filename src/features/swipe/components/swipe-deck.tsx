@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, useMotionValue } from 'framer-motion'
-import { Heart, SlidersHorizontal, X } from 'lucide-react'
+import { Heart, MessageSquareHeart, SlidersHorizontal, X } from 'lucide-react'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,9 @@ import { FormError } from '@/components/ui/field'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
-import { loadCandidates, swipe } from '../actions'
+import { cn } from '@/lib/utils'
+import { loadCandidates, swipe, type SwipeResult } from '../actions'
+import { LikeNoteSheet } from '@/features/vip-perks/components/like-note-sheet'
 import { setNewPeopleAlert } from '../deck-end-actions'
 import type { Candidate, SwipeFilters } from '../schemas'
 import { DeckEnd } from './deck-end'
@@ -20,7 +22,7 @@ import { MatchModal, type MatchInfo } from './match-modal'
 import { SwipeCard, type SwipeCardHandle } from './swipe-card'
 import type { Direction } from './swipe-physics'
 import { useSwipeFilters } from './use-swipe-filters'
-import { useUpgradeHandler } from '@/features/plans/components/access-provider'
+import { useAccess, useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 const REFILL_AT = 3
 
@@ -38,8 +40,9 @@ type Props = {
   banner?: ReactNode
 }
 
-// Pass is the quieter, smaller action; like is the big gradient one (Fitts: the likely tap is larger).
-const passButton =
+// Pass and "Like with a note" are the quieter, smaller actions on either side; like is the big
+// gradient one in the middle (Fitts: the likely tap is larger).
+const sideButton =
   'size-[3.75rem] rounded-full border border-border bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_10px_24px_-12px_rgb(0_0_0/0.9)] active:scale-[0.9] active:bg-fill'
 const likeButton =
   'size-[4.75rem] rounded-full active:scale-[0.9] shadow-[inset_0_1px_0_rgb(255_255_255/0.3),inset_0_-2px_0_rgb(0_0_0/0.12),0_14px_32px_-10px_rgb(255_77_125/0.7)]'
@@ -55,6 +58,8 @@ export function SwipeDeck({
   const { dict } = useI18n()
   const errorText = useErrorText()
   const upgradeOr = useUpgradeHandler()
+  // "Like with a note" (message_before_match, VIP): without it the button opens the upgrade sheet.
+  const { has, showUpgrade } = useAccess()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
   const [cards, setCards] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,6 +67,9 @@ export function SwipeDeck({
   const [error, setError] = useState<ErrorKey>()
   const [match, setMatch] = useState<MatchInfo | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [noting, setNoting] = useState<Candidate | null>(null)
+  // The like already went out with a note: the card leaves without a second swipe() call.
+  const noted = useRef(new Map<string, SwipeResult>())
   // The last card is still flying out: keep the stage mounted until it has left the screen.
   const [settling, setSettling] = useState(false)
   // Top card's drag progress (0..1), read by the back card without re-rendering the deck.
@@ -128,7 +136,10 @@ export function SwipeDeck({
     setCards(rest)
     if (rest.length === 0) setSettling(true)
     if (rest.length < REFILL_AT && !exhausted && !loading) void topUp()
-    const result = await swipe({ targetId: top.id, direction: dir })
+    const viaNote = noted.current.get(top.id)
+    const result = viaNote
+      ? { ok: true as const, data: viaNote }
+      : await swipe({ targetId: top.id, direction: dir })
     if (!result.ok) {
       // Daily like limit (VP402): the card comes back on top, the sheet says what Plus gives.
       if (upgradeOr(result)) {
@@ -203,11 +214,12 @@ export function SwipeDeck({
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex items-center justify-center gap-7 pt-1">
+            {/* Like stays in the centre: equal columns on both sides of it. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-7 pt-1">
               <Button
                 variant="secondary"
                 size="icon"
-                className={passButton}
+                className={cn(sideButton, 'justify-self-end')}
                 aria-label={dict.swipe.pass}
                 disabled={!top}
                 onClick={() => press('pass')}
@@ -223,6 +235,22 @@ export function SwipeDeck({
               >
                 <Heart className="size-9 fill-current drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" />
               </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={cn(sideButton, 'justify-self-start')}
+                aria-label={dict.vipPerks.note.button}
+                disabled={!top}
+                onClick={() => {
+                  if (!top) return
+                  if (!has('message_before_match')) {
+                    return showUpgrade({ feature: 'message_before_match', reason: 'feature' })
+                  }
+                  setNoting(top)
+                }}
+              >
+                <MessageSquareHeart className="text-accent size-6" strokeWidth={2.25} />
+              </Button>
             </div>
           </>
         )}
@@ -234,6 +262,20 @@ export function SwipeDeck({
           onClose={() => setFiltersOpen(false)}
           onApply={changeFilters}
           similarAvailable={similarAvailable}
+        />
+      )}
+      {noting && (
+        <LikeNoteSheet
+          key={noting.id}
+          open
+          targetId={noting.id}
+          onClose={() => setNoting(null)}
+          onSent={(result) => {
+            noted.current.set(noting.id, { matchId: result.matchId })
+            setNoting(null)
+            // The noted card leaves like a liked one (decide() skips the second like).
+            if (cards[0]?.id === noting.id) press('like')
+          }}
         />
       )}
       <MatchModal match={match} onClose={() => setMatch(null)} />

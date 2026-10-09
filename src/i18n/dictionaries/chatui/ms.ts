@@ -7,6 +7,7 @@ export const chatUiMs: ChatUiDictionary = {
   onlyNewMatches: 'Ketik padanan baharu untuk menyapa.',
   goDiscover: 'Pergi ke Teroka',
   sending: 'Menghantar',
+  sent: 'Dihantar',
   notSent: 'Tidak dihantar',
   retry: 'Cuba lagi',
   discard: 'Buang',

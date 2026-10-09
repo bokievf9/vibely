@@ -21,6 +21,7 @@ export const TARGET_LABELS: Record<Enums<'report_target'>, string> = {
   group_message: 'Сообщение в дуо-чате',
   group_member: 'Участник дуо-чата',
   status: 'Статус',
+  like_note: 'Записка к лайку',
 }
 
 // Users submit a report reason code ("fake: optional details").

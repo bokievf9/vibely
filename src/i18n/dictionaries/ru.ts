@@ -22,6 +22,7 @@ import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from './matchmaker/ru'
 import { eventErrorsRu, eventsRu } from './events/ru'
 import { crushRu } from './crush/ru'
 import { promoRu, promoErrorsRu } from './promo/ru'
+import { vipPerksRu, vipPerksErrorsRu } from './vip-perks/ru'
 import { duoRu, duoErrorsRu } from './duo/ru'
 import { conversationErrorsRu, conversationsRu } from './conversations/ru'
 
@@ -54,6 +55,7 @@ export const ru: Dictionary = {
     ...eventErrorsRu,
     ...promoErrorsRu,
     ...planErrorsRu,
+    ...vipPerksErrorsRu,
     ...duoErrorsRu,
     ...conversationErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
@@ -418,6 +420,7 @@ export const ru: Dictionary = {
   events: eventsRu,
   crush: crushRu,
   promo: promoRu,
+  vipPerks: vipPerksRu,
   duo: duoRu,
   conversations: conversationsRu,
 }

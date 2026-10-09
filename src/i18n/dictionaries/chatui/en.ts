@@ -7,6 +7,7 @@ export const chatUiEn = {
   onlyNewMatches: 'Tap a new match to say hi.',
   goDiscover: 'Go to Discover',
   sending: 'Sending',
+  sent: 'Sent',
   notSent: 'Not sent',
   retry: 'Retry',
   discard: 'Remove',

@@ -10,10 +10,14 @@ export type ChannelHandlers = {
   onReaction: (row: ReactionRow) => void
   // postgres_changes attached (first join or reconnect): resync what may have been missed.
   onReady: () => void
+  // The partner read the chat up to `at` (20261009000290; broadcast only to a sender allowed to
+  // see read receipts).
+  onRead?: (payload: unknown) => void
 }
 
 // One private match:<id> channel (read-only for clients) carrying postgres_changes on messages
-// and message_reactions, both filtered by match_id and RLS-checked per subscriber.
+// and message_reactions, both filtered by match_id and RLS-checked per subscriber, and the 'read'
+// broadcast of mark_match_read.
 export function useChatChannel(matchId: string, handlers: ChannelHandlers) {
   const ref = useRef(handlers)
   useEffect(() => {
@@ -39,6 +43,7 @@ export function useChatChannel(matchId: string, handlers: ChannelHandlers) {
       .on('postgres_changes', { event: 'UPDATE', ...reactions }, ({ new: row }) =>
         ref.current.onReaction(row as ReactionRow),
       )
+      .on('broadcast', { event: 'read' }, ({ payload }) => ref.current.onRead?.(payload))
       .on('system', {}, (payload: { extension?: string; status?: string }) => {
         if (payload.extension === 'postgres_changes' && payload.status === 'ok') {
           ref.current.onReady()

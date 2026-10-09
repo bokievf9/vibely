@@ -20,6 +20,7 @@ export const REPORT_TARGETS = [
   'group_message',
   'group_member',
   'status',
+  'like_note',
 ] as const satisfies readonly ReportTarget[]
 
 export const REASON_CODES = REPORT_REASONS

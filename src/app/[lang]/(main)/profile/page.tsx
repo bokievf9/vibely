@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronRight, Pencil, Settings } from 'lucide-react'
+import { ChevronRight, Eye, Pencil, Settings } from 'lucide-react'
+import { getProfileVisitors } from '@/features/vip-perks/queries'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { getViewer } from '@/features/auth/session'
@@ -47,12 +48,14 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags, vip, crossed] = await Promise.all([
+  const [photos, profile, tags, vip, crossed, visitors] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
     getVipStatus(),
     crossedPathsEnabled(),
+    // Null before 20261009000290: the row is hidden.
+    getProfileVisitors(),
   ])
   const card = profile && {
     ...ownCandidate(viewer.id, profile, photos, tags),
@@ -81,6 +84,20 @@ async function OwnProfile() {
             <span className="min-w-0 flex-1 truncate">{dict.profile.edit}</span>
             <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
           </Link>
+          {visitors && (
+            <Link href={localePath(locale, '/visitors')} className={groupedRowClassName}>
+              <span className="icon-tile">
+                <Eye className="size-[1.125rem]" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 truncate">{dict.vipPerks.visitors.entry}</span>
+              {visitors.count > 0 && (
+                <span className="bg-accent text-accent-foreground min-w-6 rounded-full px-2 py-0.5 text-center text-xs font-bold tabular-nums">
+                  {visitors.count > 99 ? '99+' : visitors.count}
+                </span>
+              )}
+              <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
+            </Link>
+          )}
           <BoostRow />
           {card && <ProfilePreview candidate={card} />}
           {/* Crossed paths is opt-in: invited here (and in Settings), not on top of Discover. */}

@@ -9,6 +9,7 @@ import { planFail } from '@/features/plans/errors'
 import { notifyNewMessage } from '@/features/push/send'
 import { hydrateMessages } from './hydrate'
 import { MESSAGE_COLUMNS } from './message-row'
+import { LEGACY_RECEIPTS, toReadReceipts, type ReadReceipts } from './read-receipts'
 import { sendSchema } from './schemas'
 import type { ChatMessage } from './types'
 
@@ -65,17 +66,31 @@ export async function sendMessage(
   return message ? ok(message) : fail('generic')
 }
 
+// The viewer read the chat. mark_match_read (20261009000290) keeps the read state out of the
+// messages (the sender sees it only with the read_receipts perk); before that migration the old
+// read_at update runs instead (PGRST202: function not found).
 export async function markRead(matchId: string): Promise<void> {
   const id = z.uuid().safeParse(matchId)
   const viewer = await getViewer()
   if (!id.success || !viewer) return
   const supabase = await createClient()
+  const { error } = await supabase.rpc('mark_match_read', { p_match: id.data })
+  if (error?.code !== 'PGRST202') return
   await supabase
     .from('messages')
     .update({ read_at: new Date().toISOString() })
     .eq('match_id', id.data)
     .neq('sender_id', viewer.id)
     .is('read_at', null)
+}
+
+// What the viewer may see of the partner's reading (resync after a reconnect).
+export async function loadReadReceipts(matchId: string): Promise<ReadReceipts> {
+  const id = z.uuid().safeParse(matchId)
+  if (!id.success) return LEGACY_RECEIPTS
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('match_read_state', { p_match: id.data })
+  return toReadReceipts(data, error)
 }
 
 export async function unmatch(matchId: string): Promise<UserResult> {

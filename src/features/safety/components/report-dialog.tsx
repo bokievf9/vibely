@@ -21,10 +21,20 @@ type Props = {
   title?: string
   // Shown above the reasons, e.g. that moderators will see the conversation.
   note?: string
+  // Closed after a successful report (e.g. a reported like note disappears).
+  onReported?: () => void
 }
 
 // Reusable for profiles, chats, messages, photos, calls, posts, comments and blind dates.
-export function ReportDialog({ open, onClose, targetType, targetId, title, note }: Props) {
+export function ReportDialog({
+  open,
+  onClose: close,
+  targetType,
+  targetId,
+  title,
+  note,
+  onReported,
+}: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const [reason, setReason] = useState<ReportInput['reason']>()
@@ -32,6 +42,10 @@ export function ReportDialog({ open, onClose, targetType, targetId, title, note 
   const [error, setError] = useState<ErrorKey>()
   const [sent, setSent] = useState(false)
   const [pending, startTransition] = useTransition()
+  const onClose = () => {
+    close()
+    if (sent) onReported?.()
+  }
 
   const submit = () =>
     startTransition(async () => {

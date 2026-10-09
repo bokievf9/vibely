@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { swipe } from '@/features/swipe/actions'
 import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
+import { NoteBubble } from '@/features/vip-perks/components/note-bubble'
 import { LikeSheet } from './like-sheet'
 import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
@@ -61,6 +62,13 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   className="bg-surface-raised relative block aspect-[3/4] w-full overflow-hidden rounded-[1.375rem] text-left shadow-[0_2px_4px_rgb(0_0_0/0.3),0_18px_36px_-20px_rgb(0_0_0/0.9)] transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   <GridPhoto person={person} eager={i < 4} />
+                  {person.note && (
+                    <NoteBubble
+                      note={person.note}
+                      clamp
+                      className="absolute inset-x-2 bottom-12 z-[1] py-1.5 text-[13px]"
+                    />
+                  )}
                   <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-[linear-gradient(to_top,rgb(10_6_10/0.9),rgb(10_6_10/0.4)_55%,transparent)] px-3.5 pt-12 pb-3 text-[17px] font-bold tracking-[-0.02em] text-white">
                     <span className="truncate">{person.name}</span>
                     <span className="shrink-0 font-light text-white/90">, {person.age}</span>

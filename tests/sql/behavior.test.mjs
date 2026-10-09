@@ -295,9 +295,11 @@ export async function run(db) {
   await as(U[0], `insert into blocks (blocked_id) values ($1)`, [U[1]])
   ok('unread count: blocked partner skipped', (await as(U[0], `select unread_message_count() n`)).rows[0].n === 0)
   await as(U[0], `delete from blocks where blocked_id=$1`, [U[1]])
-  await as(U[0], `update messages set read_at = now() where match_id=$1 and sender_id<>$2 and read_at is null`, [m.id, U[0]])
+  // 20261009000290: clients no longer write read_at; reads go through mark_match_read.
+  ok('clients cannot write read_at', !!(await fails(() => as(U[0], `update messages set read_at = now() where match_id=$1 and sender_id<>$2 and read_at is null`, [m.id, U[0]]))))
+  await as(U[0], `select mark_match_read($1)`, [m.id])
   ok('unread count drops after read', (await as(U[0], `select unread_message_count() n`)).rows[0].n === 0)
-  ok('sender sees read receipt', (await as(U[1], `select count(*)::int c from messages where sender_id=$1 and read_at is not null and body in ('a','b')`, [U[1]])).rows[0].c === 2)
+  ok('read state is not written to the messages', (await as(U[1], `select count(*)::int c from messages where sender_id=$1 and read_at is not null and body in ('a','b')`, [U[1]])).rows[0].c === 0)
   await su(`delete from random_chat_queue`)
   await su(`insert into random_chat_queue (user_id, want_genders, min_age, max_age, last_seen_at) values
     ($1,'{male}',18,99,now()), ($2,'{male}',18,99,now()), ($3,'{female}',18,99,now() - interval '2 minutes')`, [U[0], U[2], U[3]])
@@ -2080,6 +2082,8 @@ export async function run(db) {
     const plain = (await as(A, `select * from get_swipe_candidates('{female}', 18, 99, 5, 50)`)).rows
     ok('statuses: candidates carry no plan column', plain.length > 0 && !('plan' in plain[0]), JSON.stringify(plain[0]))
     await su(`update profiles set last_active_at = now() - interval '1 day' where id=$1`, [J])
+    // A joined over 14 days ago: no Discover priority key (20261009000290) in front of the sort.
+    await su(`update profiles set created_at = now() - interval '30 days' where id=$1`, [A])
     const similar = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, true)`)).rows
     const usual = (await as(A, `select id from get_swipe_candidates('{female}', 18, 99, 5, 50, false)`)).rows
     ok('statuses: "Similar statuses" sorts the same preset first', similar[0]?.id === J && usual[0]?.id !== J && similar.length === usual.length, JSON.stringify(similar.slice(0, 3)))
@@ -2405,7 +2409,9 @@ export async function run(db) {
     const readers = (await su(`select string_agg(p.proname, ',' order by p.proname) s from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.prosrc ~ 'public\\.swipes' and p.prokind = 'f' and has_function_privilege('authenticated', p.oid, 'execute')`)).rows[0].s
     // Everything else goes through server-only helpers (incoming_like_ids, swipe_candidate_pool).
-    ok('secret like: only known RPCs read swipes', readers === 'answer_crush', readers)
+    // 20261009000290: send_like_note writes the like, my_profile_visitors reads the caller's own
+    // likes, incoming_like_notes shows a note only to its recipient (the note is meant to be seen).
+    ok('secret like: only known RPCs read swipes', readers === 'answer_crush,incoming_like_notes,my_profile_visitors,send_like_note', readers)
     ok('secret like: swipe helpers are server-only', (await su(`select bool_and(not has_function_privilege('authenticated', p.oid, 'execute')) v from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname in ('incoming_like_ids', 'swipe_candidate_pool', 'new_people_alert_recipients')`)).rows[0].v === true)
     ok('secret like: no view exposes swipes', (await su(`select count(*)::int c from pg_views where schemaname = 'public' and definition ~ 'swipes'`)).rows[0].c === 0)
@@ -2561,6 +2567,8 @@ export async function run(db) {
     await as(M2, `select set_status('🏋️', 'Gym', 'gym')`)
     await as(F1, `select set_status('🏋️', 'Gym', 'gym')`)
     await su(`update profiles set last_active_at = now() - interval '2 days' where id=$1`, [F1])
+    // M2 joined over 14 days ago: no Discover priority key (20261009000290) in front of the sort.
+    await su(`update profiles set created_at = now() - interval '30 days' where id=$1`, [M2])
     const planDeck = (await as(M2, `select id from get_swipe_candidates('{female}', 18, 40, 50, 20, true)`)).rows
     ok('promo: boost outranks similar statuses, which outrank activity', planDeck[0]?.id === F3 && planDeck[1]?.id === F1, JSON.stringify(planDeck))
     await as(M2, `select clear_status()`)
@@ -2974,7 +2982,7 @@ export async function run(db) {
     const bcMsgs = await cardsIn(B, bc.id)
     ok('mm: note pinned as the first system message, already read', bcMsgs.length === 1 && bcMsgs[0].kind === 'system' && bcMsgs[0].body === 'You both love hiking' && bcMsgs[0].sender_id === A && bcMsgs[0].read_at !== null && bcMsgs[0].payload.referral_id === r1.id, JSON.stringify(bcMsgs))
     ok('mm: C reads the note too, A cannot (not a participant)', (await cardsIn(C, bc.id)).length === 1 && (await cardsIn(A, bc.id)).length === 0)
-    await as(C, `update messages set read_at = now() where match_id=$1 and read_at is null`, [ac])
+    await as(C, `select mark_match_read($1)`, [ac])
     ok('mm: unread count ignores the pinned note', (await as(C, `select unread_message_count() n`)).rows[0].n === 0)
     const noteMsg = (await su(`select id from messages where match_id=$1`, [bc.id])).rows[0].id
     ok('mm: nobody can delete the pinned note', !!(await fails(() => as(A, `select delete_message($1)`, [noteMsg]))) && !!(await fails(() => as(B, `select delete_message($1)`, [noteMsg]))))
@@ -3582,6 +3590,7 @@ export async function run(db) {
   })()
   // ===== end duo dating =====
 
+
   // ===== plans: free / plus / vip (20261009000280) =====
   // Gates and quotas per level, staff get everything, grant stacking and expiry, legacy VIP,
   // promo and admin grants, the matrix editor (roles, logging), disabled features.
@@ -3853,6 +3862,183 @@ export async function run(db) {
        stats.by_source.some((s) => s.source === 'promo' && s.active >= 1) && stats.by_source.some((s) => s.source === 'admin'), JSON.stringify(stats))
   })()
   // ===== end plans =====
+
+  // ===== VIP perks (20261009000290; plans from 20261009000280) =====
+  // Read receipts, profile visitors, Discover priority, notes on likes. Own users in Kota
+  // Kinabalu (far from everyone else), VIP through plan grants (20261009000280).
+  await (async () => {
+    const ids = Array.from({ length: 17 }, (_, i) => `7a1b0000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, E, F, MOD, N, O, V1, X, V2, V3, V4, W, Y, Z] = ids
+    const males = [A, C, D, E, F, MOD, N, O, V2, V3, V4]
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601377700' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) {
+      const male = males.includes(u)
+      // Z lives 20 km away in another town (Discover priority: within 30 km).
+      const point = u === Z ? 'POINT(116.25 5.98)' : 'POINT(116.07 5.98)'
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,$4,'SRID=4326;${point}')`, ['Vp' + i + ' Test', male ? 'male' : 'female', male ? '{female}' : '{male}', u === Z ? 'Penampang' : 'Kota Kinabalu'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
+    await su(`insert into admins values ($1)`, [MOD])
+    const vip = (u) => su(`select grant_plan($1, 'vip', 30, 'admin')`, [u])
+    for (const u of [A, V1, V2, V3, V4, Z]) await vip(u)
+    const one = async (u, sql, p) => (await as(u, sql, p)).rows[0]?.r
+    const casts = (u, fn, args = []) => one(u, `select ${fn}(${args.map((_, i) => '$' + (i + 1)).join(',')}) r`, args)
+    const matchOf = async (a, b) => (await su(`select id from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0]?.id ?? null
+    const like = (u, t) => as(u, `insert into swipes (swiped_id, direction) values ($1,'like')`, [t])
+
+    // ----- 1. read receipts -----
+    await like(A, B); await like(B, A)
+    const mAB = await matchOf(A, B)
+    ok('rr: match', !!mAB)
+    await as(A, `insert into messages (match_id, body) values ($1, 'hi B')`, [mAB])
+    ok('rr: unread for B before reading', (await casts(B, 'unread_message_count')) === 1)
+    const st0 = await casts(A, 'match_read_state', [mAB])
+    ok('rr: VIP sender sees "sent" only before the read', st0?.enabled === true && st0.seen_up_to === null, JSON.stringify(st0))
+    await su(`delete from realtime.messages where topic = any($1)`, [['match:' + mAB, 'inbox:' + A, 'inbox:' + B]])
+    const readAt = await casts(B, 'mark_match_read', [mAB])
+    ok('rr: mark read returns the time, unread drops', !!readAt && (await casts(B, 'unread_message_count')) === 0)
+    const stA = await casts(A, 'match_read_state', [mAB])
+    ok('rr: VIP sender sees "seen"', stA.enabled === true && !!stA.seen_up_to, JSON.stringify(stA))
+    const bc = async (topic) => (await su(`select payload from realtime.messages where topic=$1 and event='read'`, [topic])).rows
+    ok('rr: live tick broadcast on the match topic for the VIP sender', (await bc('match:' + mAB)).length === 1 && (await bc('match:' + mAB))[0].payload.reader === B)
+    ok('rr: reader\'s inbox told to refresh the badge', (await bc('inbox:' + B)).length === 1)
+    ok('rr: reading again without news: no write, no broadcast', String(await casts(B, 'mark_match_read', [mAB])) === String(readAt) && (await bc('match:' + mAB)).length === 1)
+    await as(B, `insert into messages (match_id, body) values ($1, 'hi A')`, [mAB])
+    await casts(A, 'mark_match_read', [mAB])
+    const stB = await casts(B, 'match_read_state', [mAB])
+    ok('rr: free sender sees nothing', stB.enabled === false && stB.seen_up_to === null, JSON.stringify(stB))
+    ok('rr: no live tick for a free sender', (await bc('match:' + mAB)).every((r) => r.payload.reader !== A))
+    ok('rr: outsider gets nothing', (await casts(C, 'match_read_state', [mAB])) === null && (await casts(C, 'mark_match_read', [mAB])) === null)
+    ok('rr: read state table and setting closed', !!(await fails(() => as(A, `select * from match_reads`))) && !!(await fails(() => as(A, `select send_read_receipts from profiles where id=$1`, [B]))))
+    const mine = await casts(A, 'my_read_receipts')
+    ok('rr: settings default on, perk shown', mine.send === true && mine.available === true && (await casts(B, 'my_read_receipts')).available === false, JSON.stringify(mine))
+    // the reader turns receipts off: nobody sees their reading
+    await casts(B, 'set_read_receipts', [false])
+    ok('rr: reader off hides their read state', (await casts(A, 'match_read_state', [mAB])).seen_up_to === null)
+    await as(A, `insert into messages (match_id, body) values ($1, 'still there?')`, [mAB])
+    await su(`delete from realtime.messages where topic=$1`, ['match:' + mAB])
+    await casts(B, 'mark_match_read', [mAB])
+    ok('rr: reader off: no live tick', (await bc('match:' + mAB)).length === 0)
+    await casts(B, 'set_read_receipts', [true])
+    // a VIP who turns receipts off cannot see others' either
+    await casts(A, 'set_read_receipts', [false])
+    const stOff = await casts(A, 'match_read_state', [mAB])
+    ok('rr: VIP with receipts off sees nobody', stOff.enabled === false && stOff.seen_up_to === null)
+    await casts(A, 'set_read_receipts', [true])
+    ok('rr: no anon access', (await su(`select has_function_privilege('anon', 'public.mark_match_read(uuid)', 'execute') v`)).rows[0].v === false)
+
+    // ----- 2. profile visitors -----
+    const visit = (u, t) => casts(u, 'record_profile_visit', [t])
+    const visits = async (viewed) => (await su(`select viewer_id from profile_visits where viewed_id=$1 order by viewer_id`, [viewed])).rows.map((r) => r.viewer_id)
+    ok('pv: a visit is recorded', (await visit(C, A)) === true)
+    ok('pv: one row per pair and day', (await visit(C, A)) === true && (await visits(A)).length === 1)
+    ok('pv: self not recorded', (await visit(A, A)) === false)
+    ok('pv: staff not recorded', (await visit(MOD, A)) === false)
+    // Incognito counts only while the plan includes it (20261009000280: plus and up).
+    await su(`select grant_plan($1, 'plus', 30, 'admin')`, [D])
+    await su(`update profiles set is_incognito = true where id=$1`, [D])
+    ok('pv: incognito viewer not recorded', (await visit(D, A)) === false)
+    await as(A, `insert into blocks (blocked_id) values ($1)`, [E])
+    ok('pv: blocked either way not recorded', (await visit(E, A)) === false)
+    await su(`update profiles set shadow_banned = true where id=$1`, [F])
+    ok('pv: shadow-banned viewer not recorded', (await visit(F, A)) === false)
+    ok('pv: only C visited', JSON.stringify(await visits(A)) === JSON.stringify([C]))
+    const full = await casts(A, 'my_profile_visitors')
+    ok('pv: VIP sees the list', full.full === true && full.count === 1 && full.visitors[0].id === C && full.visitors[0].name === 'Vp2 Test' && full.visitors[0].age >= 18 && 'visited_at' in full.visitors[0] && full.visitors[0].liked === false, JSON.stringify(full))
+    await visit(C, B); await visit(N, B)
+    const teaser = await casts(B, 'my_profile_visitors')
+    ok('pv: free user gets the count only', teaser.full === false && teaser.count === 2 && teaser.visitors.length === 0, JSON.stringify(teaser))
+    await su(`select grant_plan($1, 'plus', 30, 'admin')`, [C])
+    await su(`update profiles set is_incognito = true where id=$1`, [C])
+    ok('pv: a visitor who goes incognito drops out', (await casts(A, 'my_profile_visitors')).count === 0)
+    await su(`update profiles set is_incognito = false where id=$1`, [C])
+    ok('pv: table closed', !!(await fails(() => as(A, `select * from profile_visits`))) && !!(await fails(() => as(A, `insert into profile_visits (viewer_id, viewed_id) values ($1,$2)`, [A, B]))))
+    await su(`update profile_visits set visited_at = now() - interval '31 days' where viewer_id=$1 and viewed_id=$2`, [C, A])
+    ok('pv: older than 30 days not listed', (await casts(A, 'my_profile_visitors')).count === 0)
+    ok('pv: retention purge after 30 days', (await su(`select purge_old_profile_visits() n`)).rows[0].n === 1 && (await visits(A)).length === 0)
+    ok('pv: purge is not client-callable', (await su(`select has_function_privilege('authenticated', 'public.purge_old_profile_visits()', 'execute') v`)).rows[0].v === false)
+
+    // ----- 3. Discover priority -----
+    // Candidates of N/O (men): V1 (VIP, same city), Z (VIP, 20 km), X (free, most recently active).
+    await su(`update profiles set discoverable = false where id = any($1)`, [[B, W, Y]])
+    await su(`update profiles set last_active_at = now() - interval '1 hour' where id = any($1)`, [[V1, Z]])
+    await su(`update profiles set last_active_at = now() where id=$1`, [X])
+    await su(`update profiles set created_at = now() - interval '30 days' where id=$1`, [O])
+    const deck = async (u, km = 50) => (await as(u, `select id from get_swipe_candidates('{female}', 18, 99, $1)`, [km])).rows.map((r) => r.id)
+    const dn = await deck(N)
+    ok('dp: new user sees nearby VIPs first', dn.includes(X) && dn.indexOf(V1) < dn.indexOf(X) && dn.indexOf(Z) < dn.indexOf(X), JSON.stringify(dn))
+    const dO = await deck(O)
+    ok('dp: older users keep the usual order', dO[0] === X, JSON.stringify(dO))
+    await su(`update profiles set location = 'SRID=4326;POINT(116.6 5.98)', city = 'Ranau' where id=$1`, [Z])
+    const far = await deck(N, 100)
+    ok('dp: a VIP more than 30 km away in another city is not prioritised', far.indexOf(Z) > far.indexOf(X), JSON.stringify(far))
+    await su(`update profiles set vip_boost_until = now() + interval '1 hour' where id=$1`, [X])
+    ok('dp: boost still comes first', (await deck(N))[0] === X)
+    await su(`update profiles set vip_boost_until = null where id=$1`, [X])
+
+    // ----- 4. notes on likes -----
+    await su(`update profiles set discoverable = true where id = any($1)`, [[W, Y]])
+    const note = (u, t, body) => casts(u, 'send_like_note', [t, body])
+    const notesOf = async (u, only = null) => (await as(u, `select * from incoming_like_notes($1)`, [only])).rows
+    const errOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code === 'VP402' ? `VP402:${e.hint}` : e.code } }
+    const n1 = await note(V2, W, '  Your hiking photos are great. Coffee at Gaya Street?  ')
+    ok('note: VIP sends a note with the like', n1.state === 'visible' && n1.match_id === null && (await su(`select direction d from swipes where swiper_id=$1 and swiped_id=$2`, [V2, W])).rows[0]?.d === 'like', JSON.stringify(n1))
+    const seen = await notesOf(W)
+    ok('note: recipient reads it (trimmed, first name)', seen.length === 1 && seen[0].body === 'Your hiking photos are great. Coffee at Gaya Street?' && seen[0].first_name === 'Vp11' && seen[0].sender_id === V2, JSON.stringify(seen))
+    ok('note: filter by card ids', (await notesOf(W, [V2])).length === 1 && (await notesOf(W, [V3])).length === 0)
+    ok('note: nobody else reads it', (await notesOf(Y)).length === 0 && (await notesOf(V2)).length === 0)
+    ok('note: daily limit (1 per 24 h)', (await errOf(() => note(V2, Y, 'hello'))) === 'VP402:limit')
+    ok('note: one note per person', (await errOf(async () => { await su(`update feature_uses set created_at = now() - interval '25 hours' where user_id=$1`, [V2]); return note(V2, W, 'again') })) === '23505')
+    ok('note: free users need the perk (VP402)', (await errOf(() => note(W, V2, 'hi'))) === 'VP402:feature' && (await fails(() => note(W, V2, 'hi')))?.includes('Plan required'))
+    ok('note: 200 characters at most, not empty', (await errOf(() => note(V3, Y, 'x'.repeat(201)))) === '22023' && (await errOf(() => note(V3, Y, '   '))) === '22023')
+    ok('note: not to yourself', (await errOf(() => note(V3, V3, 'me'))) === '22023')
+    ok('note: table closed', !!(await fails(() => as(W, `select * from like_notes`))) && !!(await fails(() => as(V3, `insert into like_notes (sender_id, recipient_id, body) values ($1,$2,'x')`, [V3, Y]))))
+    // risky note: held, never shown, still counts
+    const held = await note(V3, Y, 'add me on whatsapp 0123456789')
+    ok('note: risky text is held', held.state === 'held' && (await notesOf(Y)).length === 0 && (await su(`select held_kinds k from like_notes where id=$1`, [held.note_id])).rows[0].k.includes('messenger'))
+    ok('note: held note still counts against the limit', (await errOf(() => note(V3, W, 'hi there'))) === 'VP402:limit')
+    ok('note: sender sees their own note state', (await casts(V3, 'my_like_note', [Y]))?.state === 'held' && (await casts(Y, 'my_like_note', [V3])) === null)
+    // blocks hide it
+    const n4 = await note(V4, Y, 'Hello from the islands')
+    ok('note: visible to Y', (await notesOf(Y)).some((r) => r.id === n4.note_id))
+    await as(Y, `insert into blocks (blocked_id) values ($1)`, [V4])
+    ok('note: a block hides it', (await notesOf(Y)).length === 0)
+    await su(`delete from blocks where blocker_id=$1`, [Y])
+    // the like back opens the match with the note as the first message
+    await like(W, V2)
+    const mVW = await matchOf(V2, W)
+    const first = (await as(W, `select sender_id, body from messages where match_id=$1 order by created_at`, [mVW])).rows
+    ok('note: match opens with the note as the first message', !!mVW && first.length === 1 && first[0].sender_id === V2 && first[0].body.startsWith('Your hiking photos'), JSON.stringify(first))
+    ok('note: delivered note no longer listed', (await notesOf(W)).length === 0 && (await su(`select state, match_id from like_notes where id=$1`, [n1.note_id])).rows[0].match_id === mVW)
+    ok('note: no note to someone you already matched', (await errOf(async () => { await su(`update feature_uses set created_at = now() - interval '25 hours' where user_id=$1`, [V2]); return note(V2, W, 'x') })) === '22023')
+    // a note to someone who already liked you: instant match, note delivered
+    await like(Y, A)
+    const n5 = await note(A, Y, 'Saw you liked me too')
+    ok('note: mutual like matches at once and delivers the note', !!n5.match_id && (await as(Y, `select body from messages where match_id=$1`, [n5.match_id])).rows[0]?.body === 'Saw you liked me too', JSON.stringify(n5))
+    // reports
+    const rep = async (u, id) => as(u, `insert into reports (target_type, target_id, reason) values ('like_note', $1, 'spam: pushy')`, [id])
+    ok('note: only the recipient can report it', !!(await fails(() => rep(W, n4.note_id))) && !!(await fails(() => rep(V4, n4.note_id))))
+    await rep(Y, n4.note_id)
+    ok('note: report subject is the sender', (await su(`select subject_id s from reports where target_type='like_note' and target_id=$1`, [n4.note_id])).rows[0].s === V4)
+    ok('note: reporting hides it at once', (await notesOf(Y)).length === 0 && (await su(`select state from like_notes where id=$1`, [n4.note_id])).rows[0].state === 'reported')
+    const svcq = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const opened = (await svcq(`select admin_open_like_note($1,$2) r`, [MOD, n4.note_id])).rows[0].r
+    ok('note: moderator reads the reported note, logged', opened.body === 'Hello from the islands' && opened.sender_id === V4 &&
+       (await su(`select count(*)::int c from moderation_actions where action='view.like_note' and target_id=$1`, [n4.note_id])).rows[0].c === 1)
+    ok('note: without an open report nothing is shown', !!(await fails(() => svcq(`select admin_open_like_note($1,$2)`, [MOD, held.note_id]))))
+    ok('note: non-staff refused, clients cannot call it', !!(await fails(() => svcq(`select admin_open_like_note($1,$2)`, [W, n4.note_id]))) && !!(await fails(() => as(MOD, `select admin_open_like_note($1,$2)`, [MOD, n4.note_id]))))
+    ok('note: queue lists note cases', (await svcq(`select count(*)::int c from admin_report_queue($1) where target_type='like_note' and target_id=$2`, [MOD, n4.note_id])).rows[0].c === 1)
+    // retention
+    await su(`update like_notes set created_at = now() - interval '91 days' where id in ($1, $2)`, [n4.note_id, held.note_id])
+    ok('note: purge after 90 days, kept under an open report', (await su(`select purge_old_like_notes() n`)).rows[0].n === 1 && (await su(`select count(*)::int c from like_notes where id=$1`, [n4.note_id])).rows[0].c === 1)
+    await su(`update reports set resolved_at = now() where target_type='like_note' and target_id=$1`, [n4.note_id])
+    ok('note: purged once the report is resolved', (await su(`select purge_old_like_notes() n`)).rows[0].n === 1)
+    ok('note: staff need no plan and have no quota', !!(await note(MOD, W, 'Hi from the team')).note_id && !!(await note(MOD, Y, 'Second one today')).note_id)
+    ok('note: no anon access', (await su(`select has_function_privilege('anon', 'public.send_like_note(uuid, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_old_like_notes()', 'execute') v`)).rows[0].v === false)
+  })()
+  // ===== end VIP perks =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail
