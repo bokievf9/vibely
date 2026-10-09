@@ -4,7 +4,9 @@ import {
   CalendarHeart,
   Heart,
   HeartHandshake,
+  Lightbulb,
   MessageCircle,
+  MessageSquareLock,
   Phone,
   Newspaper,
   Sparkles,
@@ -31,6 +33,8 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   calls: Phone,
   events: CalendarHeart,
   crush: HeartHandshake,
+  post_replies: MessageSquareLock,
+  daily_prompt: Lightbulb,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

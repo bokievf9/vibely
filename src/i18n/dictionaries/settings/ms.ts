@@ -15,6 +15,8 @@ export const settingsMs: SettingsDictionary = {
     calls: 'Panggilan masuk',
     events: 'Malam Temu Janji Buta',
     crush: 'Orang yang anda sukai membalas',
+    post_replies: 'Balasan peribadi pada hantaran anda',
+    daily_prompt: 'Soalan hari ini',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',

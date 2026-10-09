@@ -1,0 +1,53 @@
+import type { ConversationsDictionary } from './en'
+
+export const conversationsRu: ConversationsDictionary = {
+  replyPrivately: 'Ответить лично',
+  replyTitle: 'Ответить лично',
+  replyHint:
+    'Это прочитает только автор. Вы остаётесь анонимным «Собеседником #123», а автор сохраняет имя из поста. Если захотите оба, позже можно раскрыть, кто вы.',
+  replyPlaceholder: 'Напишите ответ…',
+  replySent: 'Отправлено. Переписка появится в «Чатах».',
+  postAuthor: 'Автор поста',
+  postUnavailable: 'Этот пост больше недоступен.',
+  pinnedPost: 'Ответ на этот пост',
+  pinnedPrompt: 'Вопрос дня',
+  bothChose: 'Вы оба выбрали: {answer}',
+  youChose: 'Вы: {answer}',
+  theyChose: 'Собеседник: {answer}',
+  authorHint: 'Кто-то ответил на ваш пост лично. Он видит только ваше имя из поста.',
+  replierHint: 'Автор видит вас как {alias}.',
+  promptHint: 'Вы оба выбрали один ответ. Нажмите «Познакомиться», когда захотите.',
+  revealIdentity: 'Раскрыть себя',
+  revealLocked: 'Откроется после {n} сообщений с каждой стороны',
+  revealLockedProgress: 'Вы {mine}/{n} · собеседник {theirs}/{n}',
+  revealWaiting: 'Вы предложили раскрыться. Ждём ответа…',
+  revealConfirmHint:
+    'Если нажмёте оба, профили откроются и будет мэтч. До этого ничего не показывается.',
+  endedTitle: 'Переписка завершена',
+  endedHint: 'Здесь больше ничего нельзя отправить.',
+  backToChats: 'К чатам',
+  privateReplies: 'Личные ответы',
+  privateRepliesHint: 'Анонимные переписки из ленты и вопроса дня.',
+  noMessagesYet: 'Поздоровайтесь первым',
+  pushReply: 'Кто-то ответил на ваш пост лично',
+  pushReplyBody: 'Откройте Vibely, чтобы прочитать. Вы остаётесь анонимны.',
+  pushReplyMessage: 'Новое сообщение в личном ответе',
+  pushReplyMessageBody: 'Откройте Vibely, чтобы прочитать.',
+  promptTitle: 'Вопрос дня',
+  promptNewAt: 'Новый вопрос каждый день в 19:00',
+  promptAnswered: 'Ответили: {count}',
+  promptSame: 'Выбрали то же',
+  promptAnswerHint: 'Ответьте, чтобы увидеть результаты и кто рядом выбрал то же.',
+  promptChange: 'Изменить ответ',
+  promptSameHint: 'Люди рядом с вашим ответом. Поздоровайтесь, чтобы начать чат.',
+  promptNobody: 'Рядом пока никого с вашим ответом. Загляните позже.',
+  sayHi: 'Привет',
+  promptPush: 'Вопрос дня: {question}',
+  promptPushBody: 'Ответьте и посмотрите, кто выбрал то же.',
+}
+
+export const conversationErrorsRu = {
+  revealLocked: 'Раскрыться можно после 5 сообщений с каждой стороны.',
+  conversationUnavailable: 'Эта переписка недоступна.',
+  conversationLimit: 'Сегодня вы уже начали 10 переписок. Попробуйте завтра.',
+}

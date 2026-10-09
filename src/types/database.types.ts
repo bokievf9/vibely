@@ -331,6 +331,57 @@ export type Database = {
           },
         ]
       }
+      daily_prompts: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          options_en: string[]
+          options_ms: string[]
+          options_ru: string[]
+          pushed_at: string | null
+          question_en: string
+          question_ms: string
+          question_ru: string
+          show_date: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          options_en: string[]
+          options_ms: string[]
+          options_ru: string[]
+          pushed_at?: string | null
+          question_en: string
+          question_ms: string
+          question_ru: string
+          show_date?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          options_en?: string[]
+          options_ms?: string[]
+          options_ru?: string[]
+          pushed_at?: string | null
+          question_en?: string
+          question_ms?: string
+          question_ru?: string
+          show_date?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -800,11 +851,13 @@ export type Database = {
           calls: boolean
           events: boolean
           crush: boolean
+          daily_prompt: boolean
           feed_replies: boolean
           likes: boolean
           messages: boolean
           new_matches: boolean
           new_people: boolean
+          post_replies: boolean
           random_reveal: boolean
           updated_at: string
           user_id: string
@@ -813,11 +866,13 @@ export type Database = {
           calls?: boolean
           events?: boolean
           crush?: boolean
+          daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
+          post_replies?: boolean
           random_reveal?: boolean
           updated_at?: string
           user_id?: string
@@ -826,11 +881,13 @@ export type Database = {
           calls?: boolean
           events?: boolean
           crush?: boolean
+          daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
+          post_replies?: boolean
           random_reveal?: boolean
           updated_at?: string
           user_id?: string
@@ -1393,6 +1450,42 @@ export type Database = {
           },
         ]
       }
+      prompt_answers: {
+        Row: {
+          created_at: string
+          option_idx: number
+          prompt_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          option_idx: number
+          prompt_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          option_idx?: number
+          prompt_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'prompt_answers_prompt_id_fkey'
+            columns: ['prompt_id']
+            isOneToOne: false
+            referencedRelation: 'daily_prompts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'prompt_answers_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1531,9 +1624,15 @@ export type Database = {
           ended_at: string | null
           event_id: string | null
           id: string
+          kind: string
+          last_push_at: string | null
           match_id: string | null
+          post_id: string | null
+          prompt_id: string | null
           revealed_at: string | null
+          revealed_from_start: boolean
           started_at: string
+          started_by: string | null
           status: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
@@ -1550,9 +1649,15 @@ export type Database = {
           ended_at?: string | null
           event_id?: string | null
           id?: string
+          kind?: string
+          last_push_at?: string | null
           match_id?: string | null
+          post_id?: string | null
+          prompt_id?: string | null
           revealed_at?: string | null
+          revealed_from_start?: boolean
           started_at?: string
+          started_by?: string | null
           status?: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
@@ -1569,9 +1674,15 @@ export type Database = {
           ended_at?: string | null
           event_id?: string | null
           id?: string
+          kind?: string
+          last_push_at?: string | null
           match_id?: string | null
+          post_id?: string | null
+          prompt_id?: string | null
           revealed_at?: string | null
+          revealed_from_start?: boolean
           started_at?: string
+          started_by?: string | null
           status?: Database['public']['Enums']['random_session_status']
           user_a?: string
           user_b?: string
@@ -1582,6 +1693,27 @@ export type Database = {
             columns: ['event_id']
             isOneToOne: false
             referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'posts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_prompt_id_fkey'
+            columns: ['prompt_id']
+            isOneToOne: false
+            referencedRelation: 'daily_prompts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_started_by_fkey'
+            columns: ['started_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
@@ -2210,6 +2342,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_delete_daily_prompt: {
+        Args: { p_admin: string; p_id: string }
+        Returns: undefined
+      }
       admin_delete_note: {
         Args: { p_admin: string; p_note: string }
         Returns: undefined
@@ -2315,6 +2451,10 @@ export type Database = {
           p_targets: string[]
           p_type: string
         }
+        Returns: undefined
+      }
+      admin_move_daily_prompt: {
+        Args: { p_admin: string; p_id: string; p_up: boolean }
         Returns: undefined
       }
       admin_open_call_recording: {
@@ -2605,6 +2745,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_upsert_daily_prompt: {
+        Args: { p_admin: string; p_id?: string; p_options: Json; p_question: Json }
+        Returns: string
+      }
       admin_warn_user: {
         Args: {
           p_admin: string
@@ -2629,6 +2773,10 @@ export type Database = {
       }
       array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
+      answer_daily_prompt: {
+        Args: { p_option: number; p_prompt: string }
+        Returns: Json
+      }
       assert_admin_role: {
         Args: {
           p_admin: string
@@ -2670,6 +2818,7 @@ export type Database = {
       claim_comment_push: { Args: { p_comment_id: string }; Returns: string }
       claim_referral: { Args: { p_code: string }; Returns: boolean }
       count_incoming_likes: { Args: never; Returns: number }
+      claim_session_push: { Args: { p_message: string }; Returns: Json }
       count_swipe_candidates: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -2692,6 +2841,10 @@ export type Database = {
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
       delete_message: { Args: { p_id: string }; Returns: string }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
+      daily_prompt_push_recipients: {
+        Args: { p_prompt: string }
+        Returns: string[]
+      }
       detect_message_risk: {
         Args: { p_text: string }
         Returns: {
@@ -2808,13 +2961,18 @@ export type Database = {
         Returns: {
           common_tags: string[]
           event_id: string
+          context: Json
           id: string
+          kind: string
           match_id: string
           my_alias: number
           my_decision: boolean
+          my_messages: number
           my_side: string
           partner: Json
           partner_alias: number
+          partner_messages: number
+          revealed_from_start: boolean
           started_at: string
           state: string
         }[]
@@ -2836,6 +2994,7 @@ export type Database = {
           title_ru: string
         }[]
       }
+      get_daily_prompt: { Args: never; Returns: Json }
       get_incoming_likes: {
         Args: { p_limit?: number }
         Returns: {
@@ -2875,6 +3034,15 @@ export type Database = {
           compatible: boolean
           display_name: string
           inviter_id: string
+          photo: Json
+        }[]
+      }
+      get_prompt_matches: {
+        Args: { p_limit?: number; p_prompt: string }
+        Returns: {
+          age: number
+          display_name: string
+          id: string
           photo: Json
         }[]
       }
@@ -2949,6 +3117,22 @@ export type Database = {
       is_verified: { Args: never; Returns: boolean }
       is_vip: { Args: { p_user: string }; Returns: boolean }
       lift_expired_sanctions: { Args: never; Returns: number }
+      list_my_conversations: {
+        Args: never
+        Returns: {
+          context: Json
+          id: string
+          kind: string
+          last_at: string
+          last_body: string
+          last_mine: boolean
+          my_side: string
+          partner: Json
+          partner_alias: number
+          revealed_from_start: boolean
+          started_at: string
+        }[]
+      }
       log_moderation: {
         Args: {
           p_action: string
@@ -3021,6 +3205,15 @@ export type Database = {
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
+      prompt_day: { Args: { p_at?: string }; Returns: string }
+      prompt_match_pool: {
+        Args: { p_me: string; p_prompt: string }
+        Returns: {
+          distance_m: number
+          id: string
+        }[]
+      }
+      prompt_window_end: { Args: { d: string }; Returns: string }
       randomizer_join: {
         Args: {
           p_event_id?: string
@@ -3080,6 +3273,8 @@ export type Database = {
       risk_kind_weight: { Args: { p_kind: string }; Returns: number }
       risk_normalize: { Args: { p_text: string }; Returns: string }
       risk_score_threshold: { Args: never; Returns: number }
+      reveal_unlock_messages: { Args: never; Returns: number }
+      rotate_daily_prompt: { Args: { p_at?: string }; Returns: string }
       search_profiles_by_username: {
         Args: { lim?: number; q: string }
         Returns: {
@@ -3090,6 +3285,13 @@ export type Database = {
           photo: Json
           username: string
         }[]
+      }
+      session_context: {
+        Args: {
+          s: Database['public']['Tables']['random_chat_sessions']['Row']
+          viewer: string
+        }
+        Returns: Json
       }
       set_call_permission: {
         Args: { p_allowed: boolean; p_match: string }
@@ -3119,6 +3321,14 @@ export type Database = {
       }
       submit_appeal: { Args: { p_body: string }; Returns: string }
       suggest_username: { Args: { p_name: string }; Returns: string }
+      start_post_conversation: {
+        Args: { p_body: string; p_post: string }
+        Returns: Json
+      }
+      start_prompt_conversation: {
+        Args: { p_prompt: string; p_target: string }
+        Returns: Json
+      }
       swipe_candidate_pool: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]

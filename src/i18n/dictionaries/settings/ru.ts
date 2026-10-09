@@ -15,6 +15,8 @@ export const settingsRu: SettingsDictionary = {
     calls: 'Входящие звонки',
     events: 'Вечера свиданий вслепую',
     crush: 'Взаимная симпатия по приглашению',
+    post_replies: 'Личные ответы на ваши посты',
+    daily_prompt: 'Вопрос дня',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

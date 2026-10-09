@@ -14,6 +14,8 @@ export const settingsEn = {
     calls: 'Incoming calls',
     events: 'Blind Dating Nights',
     crush: 'Your crush likes you back',
+    post_replies: 'Private replies to your posts',
+    daily_prompt: 'Question of the day',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',

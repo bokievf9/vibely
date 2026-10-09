@@ -1,6 +1,7 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { crushLegal } from './crush'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -63,6 +64,9 @@ export const en: LegalContent = {
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.en.privacy,
       // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.privacy,
+      // --- end private replies & question of the day ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -179,6 +183,9 @@ export const en: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.terms,
       // --- end calls ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.terms,
+      // --- end private replies & question of the day ---
       {
         heading: '6. Moderation',
         paragraphs: [
