@@ -2,7 +2,6 @@ import type { vipPerksEn, vipPerksErrorsEn } from './en'
 
 export const vipPerksRu: typeof vipPerksEn = {
   vip: 'VIP',
-  upsellCta: 'Получить VIP',
   receipts: {
     setting: 'Отчёты о прочтении',
     hint: 'Если выключить, никто не увидит, когда вы прочитали их сообщения, и вы тоже не увидите, когда прочитали ваши.',
@@ -42,13 +41,10 @@ export const vipPerksRu: typeof vipPerksEn = {
     from: 'Записка от {name}',
     report: 'Пожаловаться на записку',
     reportNote: 'Модераторы увидят эту записку. Она сразу исчезнет из ваших лайков.',
-    upsellTitle: 'Сообщение до мэтча',
-    upsellText: 'С VIP можно отправлять одну записку в день вместе с лайком.',
   },
 }
 
 export const vipPerksErrorsRu: typeof vipPerksErrorsEn = {
-  perkRequired: 'Это функция VIP.',
   noteLimitReached: 'Сегодняшняя записка уже отправлена. Попробуйте завтра.',
   noteAlreadySent: 'Вы уже отправили этому человеку записку.',
   noteUnavailable: 'Этому человеку больше нельзя отправить записку.',

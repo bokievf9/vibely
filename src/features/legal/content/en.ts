@@ -5,6 +5,7 @@ import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
+import { plansLegal } from './plans'
 import { vipPerksLegal } from './vip-perks'
 import type { LegalContent } from './types'
 
@@ -62,9 +63,9 @@ export const en: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.privacy,
       // --- end calls ---
-      // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
+      // --- crossed paths (src/features/legal/content/nearby.ts) ---
       nearbyLegal.en.privacy,
-      // --- end crossed paths & plans ---
+      // --- end crossed paths ---
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.en.privacy,
       // --- end secret crush ---
@@ -80,6 +81,9 @@ export const en: LegalContent = {
       // --- live statuses (src/features/legal/content/statuses.ts) ---
       statusesLegal.en.privacy,
       // --- end live statuses ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.en.privacy,
+      // --- end Plus and VIP plans ---
       // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
       vipPerksLegal.en.privacy,
       // --- end read receipts, profile visits, notes ---
@@ -208,6 +212,9 @@ export const en: LegalContent = {
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.en.terms,
       // --- end duo dating ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.en.terms,
+      // --- end Plus and VIP plans ---
       {
         heading: '6. Moderation',
         paragraphs: [
@@ -227,7 +234,7 @@ export const en: LegalContent = {
         heading: '8. The service',
         paragraphs: [
           'Vibely is provided "as is". We work to keep it available and secure, but we may change, pause or stop features. We do not promise that you will find a match.',
-          'Promo codes and VIP: we may hand out promo codes (for example at events or through partners) that unlock VIP perks for a limited time, such as a VIP badge, being shown first in Discover, seeing who liked you or priority in blind dating. Some codes are limited in number, valid until a date, reserved for a group (for example a gender confirmed by the selfie check) or require an approved selfie. Perks are personal, cannot be transferred or exchanged for money, and we may revoke them and block the code if it is shared, resold or used to break these Terms.',
+          'Promo codes and VIP: we may hand out promo codes (for example at events or through partners) that unlock a Plus or VIP plan for a limited time (see section 5e). Some codes are limited in number, valid until a date, reserved for a group (for example a gender confirmed by the selfie check) or require an approved selfie. Perks are personal, cannot be transferred or exchanged for money, and we may revoke them and block the code if it is shared, resold or used to break these Terms.',
         ],
       },
       {

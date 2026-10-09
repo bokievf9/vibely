@@ -2,7 +2,6 @@
 // en.ts so the main dictionary stays small. No em or en dashes in the copy.
 export const vipPerksEn = {
   vip: 'VIP',
-  upsellCta: 'Get VIP',
   receipts: {
     setting: 'Send read receipts',
     hint: 'When this is off, nobody sees when you read their messages, and you do not see when they read yours.',
@@ -41,13 +40,10 @@ export const vipPerksEn = {
     from: 'Note from {name}',
     report: 'Report note',
     reportNote: 'Moderators will see this note. It disappears from your likes right away.',
-    upsellTitle: 'Message before you match',
-    upsellText: 'With VIP you can send one note a day together with your like.',
   },
 }
 
 export const vipPerksErrorsEn = {
-  perkRequired: 'This is a VIP feature.',
   noteLimitReached: 'You have used today’s note. Try again tomorrow.',
   noteAlreadySent: 'You have already sent this person a note.',
   noteUnavailable: 'You can no longer send a note to this person.',

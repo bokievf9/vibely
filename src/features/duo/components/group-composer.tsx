@@ -10,6 +10,7 @@ import { getBrowserClient } from '@/lib/supabase/client'
 import { CHAT_BAR_MATERIAL_CLASS } from '@/features/chat/components/chat-layout'
 import { ComposerStatus, type StatusRow } from '@/features/chat/components/composer-status'
 import { CHAT_MEDIA_BUCKET } from '@/features/chat/types'
+import { useAccess, useUpgradeHandler } from '@/features/plans/components/access-provider'
 import { sendGroupMessage } from '../actions'
 import type { GroupMessage } from '../types'
 
@@ -32,6 +33,10 @@ export function GroupComposer({ groupId, error, aside, onSent, onError, onTyping
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState<'text' | 'photo' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Photos need Plus (chat_photos, 20261009000280), as in one-to-one chats.
+  const { has, showUpgrade } = useAccess()
+  const canPhoto = has('chat_photos')
+  const upgradeOr = useUpgradeHandler()
 
   const submit = async () => {
     const body = draft.trim()
@@ -59,7 +64,7 @@ export function GroupComposer({ groupId, error, aside, onSent, onError, onTyping
         .upload(path, file, { contentType: 'image/webp' })
       if (upload) return onError('photoSendFailed')
       const result = await sendGroupMessage({ groupId, image: { path, width, height } })
-      if (!result.ok) return onError(result.error)
+      if (!result.ok) return upgradeOr(result) ? onError(null) : onError(result.error)
       onError(null)
       onSent(result.data)
     } catch {
@@ -89,10 +94,15 @@ export function GroupComposer({ groupId, error, aside, onSent, onError, onTyping
       <div className="relative flex items-end gap-1">
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={() =>
+            canPhoto
+              ? fileRef.current?.click()
+              : showUpgrade({ feature: 'chat_photos', reason: 'feature' })
+          }
           disabled={!!sending}
           aria-label={dict.chats.sendPhoto}
-          className="text-foreground/70 active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50"
+          data-locked={!canPhoto || undefined}
+          className="text-foreground/70 active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50 data-[locked]:opacity-45"
         >
           <ImagePlus className="size-[1.375rem]" />
         </button>

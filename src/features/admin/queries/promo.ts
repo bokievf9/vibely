@@ -21,15 +21,17 @@ export type PromoCode = {
   pendingCount: number
 }
 
-// promo_codes.benefits (jsonb) → the form shape. Unknown or missing keys read as off.
+// promo_codes.benefits (jsonb) → the form shape. The new shape is {plan, days, boost_hours};
+// codes created before plans (20261009000280) have {vip_days, ...}: vip_days reads as VIP for
+// that many days (the old perk flags are part of VIP now). Unknown keys are ignored.
 export function parseBenefits(json: Json): PromoBenefits {
   const b = json && typeof json === 'object' && !Array.isArray(json) ? json : {}
   const num = (v: Json | undefined) => (typeof v === 'number' ? v : 0)
+  const plan = b.plan === 'plus' || b.plan === 'vip' ? b.plan : num(b.vip_days) > 0 ? 'vip' : null
   return {
-    vipDays: num(b.vip_days),
+    plan,
+    days: plan ? num(b.days) || num(b.vip_days) : 0,
     boostHours: num(b.boost_hours),
-    seeLikes: b.see_likes === true,
-    queuePriority: b.queue_priority === true,
   }
 }
 

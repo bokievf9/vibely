@@ -1,4 +1,4 @@
-import type { CrossedDictionary, PlansDictionary } from './en'
+import type { CrossedDictionary, PresetsDictionary } from './en'
 
 export const crossedMs: CrossedDictionary = {
   title: 'Anda berselisih jalan',
@@ -56,19 +56,11 @@ export const crossedMs: CrossedDictionary = {
   notNow: 'Bukan sekarang',
 }
 
-export const plansMs: PlansDictionary = {
-  title: 'Rancangan anda',
-  pick: 'Apa rancangan anda?',
-  hint: 'Pilih satu rancangan. Ia dipaparkan pada profil anda selama 24 jam.',
-  set: 'Tetapkan rancangan',
-  change: 'Tukar rancangan',
-  clear: 'Padam rancangan',
-  active: 'Rancangan: {plan}',
-  until: 'Dipaparkan hingga {time}',
-  open: 'Rancangan anda',
-  filter: 'Rancangan serupa dahulu',
-  filterHint: 'Orang dengan rancangan sama seperti anda dipaparkan dahulu, dalam jarak anda.',
-  filterNoPlan: 'Tetapkan rancangan dahulu untuk menggunakan ini.',
+// Status quick picks (the preset tags of 20261009000271) and the Discover sort by them.
+export const presetsMs: PresetsDictionary = {
+  filter: 'Status serupa dahulu',
+  filterHint:
+    'Orang yang statusnya menggunakan pilihan pantas sama seperti anda dipaparkan dahulu, dalam jarak anda.',
   tags: {
     coffee: 'Kawan minum kopi',
     football: 'Pergi tengok bola sepak',

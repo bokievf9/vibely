@@ -2,39 +2,11 @@ import 'server-only'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
-import type { IncomingNote, PerkAccess, ProfileVisitors, SentNote } from './types'
+import type { IncomingNote, ProfileVisitors, SentNote } from './types'
 
-// Everything here degrades to "not available" when the migration 20261009000290 (or the plans of
-// 20261009000280) is not applied: the RPC errors and the caller hides the entry.
-
-const accessSchema = z.object({
-  features: z.record(
-    z.string(),
-    z.object({ on: z.boolean(), limit: z.number().nullable(), used: z.number().nullable() }),
-  ),
-})
-
-// The viewer's VIP perks from my_access() (plans). Null when plans are not deployed.
-export async function getPerkAccess(): Promise<PerkAccess | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc('my_access')
-  if (error) return null
-  const parsed = accessSchema.safeParse(data)
-  if (!parsed.success) return null
-  const f = parsed.data.features
-  const note = f.message_before_match
-  return {
-    readReceipts: f.read_receipts?.on ?? false,
-    profileVisitors: f.profile_visitors?.on ?? false,
-    noteOn: note?.on ?? false,
-    // null: unlimited (staff).
-    notesLeft: !note?.on
-      ? 0
-      : note.limit === null
-        ? null
-        : Math.max(0, note.limit - (note.used ?? 0)),
-  }
-}
+// Everything here degrades to "not available" when the migration 20261009000290 is not applied:
+// the RPC errors and the caller hides the entry. The viewer's perks come from the plans layer
+// (getAccess / useAccess, src/features/plans).
 
 const receiptsSchema = z.object({ send: z.boolean(), available: z.boolean() })
 

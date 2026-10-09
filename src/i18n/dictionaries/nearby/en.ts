@@ -56,19 +56,11 @@ export const crossedEn = {
   notNow: 'Not now',
 }
 
-export const plansEn = {
-  title: 'Your plan',
-  pick: 'What are you up to?',
-  hint: 'Pick one plan. It shows on your profile for 24 hours.',
-  set: 'Set a plan',
-  change: 'Change plan',
-  clear: 'Clear plan',
-  active: 'Plan: {plan}',
-  until: 'Shows until {time}',
-  open: 'Your plan',
-  filter: 'Similar plans first',
-  filterHint: 'People with the same plan as yours show up first, within your distance.',
-  filterNoPlan: 'Set a plan first to use this.',
+// Status quick picks (the preset tags of 20261009000271) and the Discover sort by them.
+export const presetsEn = {
+  filter: 'Similar statuses first',
+  filterHint:
+    'People whose status uses the same quick pick as yours show up first, within your distance.',
   tags: {
     coffee: 'Coffee buddy',
     football: 'Going to a football match',
@@ -92,4 +84,4 @@ export const plansEn = {
 }
 
 export type CrossedDictionary = typeof crossedEn
-export type PlansDictionary = typeof plansEn
+export type PresetsDictionary = typeof presetsEn

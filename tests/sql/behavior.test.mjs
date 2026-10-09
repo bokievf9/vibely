@@ -3673,6 +3673,9 @@ export async function run(db) {
     const lg = (await su(`select plan, source, ends_at from plan_grants where user_id=$1`, [L])).rows
     ok('plans: active vip_until becomes a legacy vip grant', lg.length === 1 && lg[0].plan === 'vip' && lg[0].source === 'legacy' && Math.abs(days(lg[0].ends_at) - 12) < 0.01 &&
        (await planOf(L)) === 'vip' && (await su(`select count(*)::int c from plan_grants where user_id=$1`, [M3])).rows[0].c === 0)
+    ok('plans: a profile with vip_until null (or expired) stays free after the backfill', (await su(`select vip_until from profiles where id=$1`, [F])).rows[0].vip_until === null &&
+       (await su(`select count(*)::int c from plan_grants where user_id = any($1)`, [[F, M3]])).rows[0].c === 0 && (await planOf(F)) === 'free' && (await planOf(M3)) === 'free')
+    ok('plans: only admins rows are staff', (await su(`select is_staff($1) a, is_staff($2) b, is_staff(null) c`, [F, S])).rows[0].a === false && (await su(`select is_staff($1) b`, [S])).rows[0].b === true)
     await su(`delete from plan_grants where user_id=$1`, [L])
 
     // ----- staff get everything, no limits -----
@@ -3735,21 +3738,29 @@ export async function run(db) {
     await svc(`select admin_set_feature($1, 'statuses', true, 'free', null)`, [ADM])
     ok('plans: duo and crossed paths are free', !(await fails(() => as(F, `select set_crossed_paths(true)`))))
 
-    // ----- calls: vip only, starting and accepting -----
+    // ----- calls: only the caller needs the feature (vip or staff); any callee may pick up -----
     const mv = (await su(`select ensure_match($1,$2,'swipe') id`, [V, V2])).rows[0].id
     const mvp = (await su(`select ensure_match($1,$2,'swipe') id`, [V, M3])).rows[0].id
-    for (const [u, m] of [[V, mv], [V2, mv], [V, mvp], [M3, mvp], [P, mp], [M2, mp]]) {
+    const msf = (await su(`select ensure_match($1,$2,'swipe') id`, [S, F])).rows[0].id
+    for (const [u, m] of [[V, mv], [V2, mv], [V, mvp], [M3, mvp], [P, mp], [M2, mp], [S, msf], [F, msf]]) {
       await as(u, `select accept_calls_notice()`); await as(u, `select set_call_permission($1, true)`, [m])
     }
     ok('plans: plus cannot start a call', gate(await err(() => as(P, `select start_call($1, 'audio')`, [mp])), 'calls'))
-    ok('plans: vip cannot ring someone without calls (hint partner)', gate(await err(() => as(V, `select start_call($1, 'audio')`, [mvp])), 'calls', 'partner'))
     const call = (await as(V, `select start_call($1, 'video') id`, [mv])).rows[0].id
     ok('plans: vip to vip call rings and is answered', !!call && (await as(V2, `select answer_call($1) s`, [call])).rows[0].s === 'active')
     await as(V, `select end_call($1)`, [call])
-    await db.exec(`select set_config('request.jwt.claim.sub', '', false)`)
-    const ring = (await su(`insert into calls (match_id, caller_id, callee_id, kind) values ($1, $2, $3, 'audio') returning id`, [mvp, V, M3])).rows[0].id
-    ok('plans: free cannot accept a call', gate(await err(() => as(M3, `select answer_call($1)`, [ring])), 'calls') &&
+    const toFree = (await as(V, `select start_call($1, 'audio') id`, [mvp])).rows[0].id
+    ok('plans: a free callee accepts a vip\'s call', !!toFree && (await as(M3, `select answer_call($1) s`, [toFree])).rows[0].s === 'active')
+    await as(V, `select end_call($1)`, [toFree])
+    ok('plans: a free caller cannot start a call (hint feature)', gate(await err(() => as(M3, `select start_call($1, 'audio')`, [mvp])), 'calls'))
+    const staffCall = (await as(S, `select start_call($1, 'audio') id`, [msf])).rows[0].id
+    ok('plans: staff without a grant can call, a free callee accepts', !!staffCall && (await as(F, `select answer_call($1) s`, [staffCall])).rows[0].s === 'active')
+    await as(S, `select end_call($1)`, [staffCall])
+    const ring = (await as(V, `select start_call($1, 'audio') id`, [mvp])).rows[0].id
+    await su(`update plan_grants set revoked_at = now() where user_id=$1 and revoked_at is null`, [V])
+    ok('plans: caller downgraded while ringing: accept refused (hint partner)', gate(await err(() => as(M3, `select answer_call($1)`, [ring])), 'calls', 'partner') &&
        (await su(`select status from calls where id=$1`, [ring])).rows[0].status === 'ringing')
+    await su(`update plan_grants set revoked_at = null where user_id=$1`, [V])
     await su(`update calls set status = 'ended', ended_at = now() where id=$1`, [ring])
 
     // ----- incognito: plus+, counts as off without the feature -----
@@ -3786,9 +3797,16 @@ export async function run(db) {
     for (let i = 0; i < 5; i++) await crush(V)
     ok('plans: vip gets five', gate(await err(() => crush(V)), 'crush_links_per_30d', 'limit'))
 
-    // ----- VIP badge: vip only -----
-    ok('plans: VIP badge only for vip', JSON.stringify((await as(M1, `select vip_ids($1) id`, [[F, P, V]])).rows.map((r) => r.id)) === JSON.stringify([V]) &&
-       (await as(P, `select my_vip() v`)).rows[0].v.is_vip === false && (await as(V, `select my_vip() v`)).rows[0].v.is_vip === true)
+    // ----- VIP badge: an active vip grant only (staff get no crown without one) -----
+    const crowns = async () => (await as(M1, `select vip_ids($1) id`, [[F, P, V, S]])).rows.map((r) => r.id).sort().join()
+    const crowned = async (u) => (await as(u, `select my_vip() v`)).rows[0].v.is_vip
+    ok('plans: VIP badge only for vip', (await crowns()) === [V].join() &&
+       (await crowned(P)) === false && (await crowned(V)) === true && (await crowned(F)) === false)
+    ok('plans: staff without a grant has no crown', (await crowned(S)) === false && (await as(S, `select my_vip() v`)).rows[0].v.plan === 'free' &&
+       (await su(`select is_vip($1) v`, [S])).rows[0].v === false && (await access(S)).features.calls.on === true)
+    const sGrant = await grant(S, 'vip', 30)
+    ok('plans: staff with a vip grant has the crown', !!sGrant && (await crowns()) === [V, S].sort().join() && (await crowned(S)) === true)
+    await su(`delete from plan_grants where user_id=$1`, [S])
 
     // ----- Blind Dating: regular dates per day, events unlimited, vip priority in events -----
     await su(`delete from random_chat_queue`)

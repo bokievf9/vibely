@@ -30,11 +30,17 @@ export function PromoSettingsRow({ initial }: { initial: VipStatus }) {
   const [outcome, setOutcome] = useState<PromoOutcome | null>(null)
   const [busy, startBusy] = useTransition()
 
-  const status = initial.isVip && initial.vipUntil
-    ? fmt(t.vipUntil, { date: formatDay(initial.vipUntil, locale) })
-    : initial.pending > 0
-      ? t.pendingHint
-      : t.rowHint
+  const status =
+    initial.plan !== 'free' && initial.planUntil
+      ? fmt(dict.plans.rowUntil, {
+          plan: dict.plans.names[initial.plan],
+          date: formatDay(initial.planUntil, locale),
+        })
+      : initial.plan !== 'free'
+        ? dict.plans.names[initial.plan]
+        : initial.pending > 0
+          ? t.pendingHint
+          : t.rowHint
   const boost = initial.boostUntil
     ? fmt(t.boostUntil, { date: formatDay(initial.boostUntil, locale) })
     : null
@@ -100,7 +106,7 @@ export function PromoSettingsRow({ initial }: { initial: VipStatus }) {
               maxLength={40}
               aria-invalid={error ? true : undefined}
               aria-describedby="promo-code-msg"
-              className="font-mono uppercase tracking-[0.08em]"
+              className="font-mono tracking-[0.08em] uppercase"
             />
           </Field>
           <Button type="submit" fullWidth loading={busy} disabled={code.trim().length < 3}>

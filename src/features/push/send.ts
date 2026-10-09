@@ -6,8 +6,7 @@ import { getPushEnv } from '@/lib/env.server'
 import { DEFAULT_LOCALE, fmt, hasLocale, localePath, type Locale } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
 import type { Dictionary } from '@/i18n/dictionaries/en'
-import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
-import { userCanSeeLikes } from '@/features/promo/queries'
+import { userHasFeature } from '@/features/plans/queries'
 import type { NotificationType } from './prefs'
 import type { PushPayload } from './types'
 
@@ -189,9 +188,11 @@ export function notifyNewLike(userId: string, likerId: string) {
       .select('*')
       .eq('id', likerId)
       .maybeSingle()
-    if (!liker?.discoverable || liker.is_incognito === true) return
-    // A VIP with the see_likes perk (promo codes) gets the list even when the flag is off.
-    const visible = LIKES_VISIBLE_FREE || (await userCanSeeLikes(userId))
+    if (!liker?.discoverable) return
+    // Incognito counts only while the liker's plan includes it (20261009000280).
+    if (liker.is_incognito === true && (await userHasFeature(likerId, 'incognito'))) return
+    // "Who liked you" is a Plus feature: free users get a push without the link to the list.
+    const visible = await userHasFeature(userId, 'who_liked_you')
     await sendToUser(userId, 'likes', (dict, locale) => ({
       title: dict.likes.pushTitle,
       body: visible ? dict.likes.pushBody : dict.likes.pushBodyLocked,

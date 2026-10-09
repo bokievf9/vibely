@@ -7,6 +7,8 @@ export const callsMs: typeof callsEn = {
   allow: 'Benarkan panggilan dalam sembang ini',
   allowHint:
     'Anda boleh membuat panggilan hanya apabila kedua-dua pihak membenarkannya. Anda boleh mematikannya bila-bila masa.',
+  acceptOnly:
+    'Anda boleh menerima panggilan dalam sembang ini. Membuat panggilan ialah sebahagian daripada VIP.',
   waitingPartner: 'Menunggu {name} membenarkan panggilan',
   bothAllowed: 'Panggilan dihidupkan dalam sembang ini',
   noticeTitle: 'Panggilan dirakam',

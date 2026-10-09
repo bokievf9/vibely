@@ -14,7 +14,6 @@ import {
   PromptCards,
 } from '@/features/profile/components/about-details'
 import { cn } from '@/lib/utils'
-import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { recordProfileVisit } from '@/features/vip-perks/actions'
 import { NoteBubble } from '@/features/vip-perks/components/note-bubble'
 import type { Candidate } from '../schemas'
@@ -125,11 +124,6 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
                 .join(' · ')}
             </span>
           </motion.p>
-        )}
-        {candidate.plan && (
-          <motion.div layout="position" className="flex min-w-0">
-            <PlanBadge tag={candidate.plan} label={dict.plans.tags[candidate.plan]} tone="dark" />
-          </motion.div>
         )}
         <AnimatePresence initial={false} mode="popLayout">
           {!open && badges.length > 0 && (

@@ -46,7 +46,6 @@ export const likesRu: LikesDictionary = {
   pass: 'Пропустить',
   view: 'Открыть: {name}',
   lockedTitle: 'Вы нравитесь людям: {count}',
-  lockedHint: 'Продолжайте свайпать: если лайкнете в ответ, будет мэтч.',
   pushTitle: 'Кто-то лайкнул вас в Vibely 💘',
   pushBody: 'Откройте Vibely, чтобы узнать кто.',
   pushBodyLocked: 'Продолжайте свайпать, возможно, это мэтч!',

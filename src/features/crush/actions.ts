@@ -6,10 +6,15 @@ import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { notifyCrushMatch } from '@/features/push/send'
+import { upgradeFromError, type Upgrade } from '@/features/plans/errors'
 
 const photoSchema = z.object({ path: z.string(), width: z.number(), height: z.number() }).nullable()
 
-export type CrushInviteResult = { code: string } | { error: 'limit' | 'unavailable' | 'generic' }
+export type CrushInviteResult =
+  | { code: string }
+  | { error: 'limit' | 'unavailable' | 'generic' }
+  // VP402: the crush links of the viewer's plan for 30 days are used (20261009000280).
+  | { error: 'plan'; upgrade: Upgrade }
 
 // A single-use invite link with the crush flag (migration 20261009000250). The inviter shares
 // it themselves: no contact details of the invitee ever reach the server.
@@ -18,6 +23,8 @@ export async function createCrushInvite(): Promise<CrushInviteResult> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_referral_invite', { p_crush: true })
   if (error) {
+    const upgrade = upgradeFromError(error)
+    if (upgrade) return { error: 'plan', upgrade }
     if (error.message.includes('crush_limit') || error.message.includes('invite_limit')) {
       return { error: 'limit' }
     }

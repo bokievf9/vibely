@@ -8,6 +8,7 @@ import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { toggleLike } from '../actions'
 import { formatCount } from './format-count'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 // Optimistic like; rolls back if the server refuses. Liking pops the heart (spring, so a fast
 // double tap retargets instead of restarting) and gives a light haptic on Android.
@@ -21,6 +22,7 @@ export function LikeButton({
   count: number
 }) {
   const { dict, locale } = useI18n()
+  const upgradeOr = useUpgradeHandler()
   const [state, setState] = useState({ liked, count })
   const [, startTransition] = useTransition()
   const heart = useRef<SVGSVGElement>(null)
@@ -42,7 +44,10 @@ export function LikeButton({
     }
     startTransition(async () => {
       const result = await toggleLike(postId)
-      if (!result.ok) setState(prev)
+      if (!result.ok) {
+        setState(prev)
+        upgradeOr(result)
+      }
     })
   }
 

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
-import { asPlanTag } from '@/features/plans/tags'
+import { asPlanTag } from '@/features/statuses/presets'
 import type { Json } from '@/types/database.types'
 import type { LiveStatus, OwnStatus, StatusesState } from './types'
 

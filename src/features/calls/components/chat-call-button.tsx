@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { cn } from '@/lib/utils'
+import { useAccess } from '@/features/plans/components/access-provider'
 import { acceptCallsNotice, loadCallSettings, setCallsAllowed } from '../settings-actions'
 import type { CallKind, CallSettings } from '../types'
 import { CallsSheet } from './calls-sheet'
@@ -14,7 +15,9 @@ import { onCallPermission, requestCall } from './call-signal'
 type Props = { matchId: string; partnerName: string; initial: CallSettings }
 
 // Phone icon in the chat header. Looks disabled until both participants allowed calls; tapping it
-// always opens the sheet with the permission switch and the call buttons.
+// always opens the sheet with the permission switch. Only people with the calls feature (VIP or
+// staff) get the call buttons; everyone else can still allow calls and accept them
+// (20261009000280: only the caller needs the feature).
 export function ChatCallButton({ matchId, partnerName, initial }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
@@ -24,6 +27,8 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
   const both = settings.meAllowed && settings.partnerAllowed
+  const { has } = useAccess()
+  const canCall = has('calls')
 
   const refresh = useCallback(async () => {
     const result = await loadCallSettings(matchId)
@@ -83,6 +88,7 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
         step={step}
         settings={settings}
         partnerName={partnerName}
+        canCall={canCall}
         pending={pending}
         error={errorText(error)}
         onClose={() => setOpen(false)}

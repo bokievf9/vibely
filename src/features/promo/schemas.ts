@@ -20,42 +20,42 @@ export const promoCodeSchema = z
 
 export const redeemSchema = z.object({ code: promoCodeSchema })
 
-// What redeem_promo() returns (jsonb). `error` rows are turned into ErrorKeys below.
+// What redeem_promo() returns (jsonb). Since 20261009000280 codes grant a plan ({plan, days});
+// older databases and old codes use {vip_days} (= VIP). `error` rows become ErrorKeys below.
+const plan = z.enum(['plus', 'vip']).nullable().optional()
 export const redeemResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('error'), error: z.string() }),
   z.object({
     status: z.literal('pending'),
     code: z.string(),
     benefits: z.object({
+      plan,
+      days: z.number().optional(),
       vip_days: z.number().optional(),
       boost_hours: z.number().optional(),
-      see_likes: z.boolean().optional(),
-      queue_priority: z.boolean().optional(),
     }),
   }),
   z.object({
     status: z.literal('granted'),
     code: z.string(),
-    vip_days: z.number(),
+    plan,
+    days: z.number().optional(),
+    vip_days: z.number().optional(),
+    plan_until: z.string().nullable().optional(),
+    vip_until: z.string().nullable().optional(),
     boost_hours: z.number(),
-    vip_until: z.string().nullable(),
     boost_until: z.string().nullable(),
-    perks: z.object({
-      see_likes: z.boolean().optional(),
-      queue_priority: z.boolean().optional(),
-    }),
   }),
 ])
 
 export type PromoOutcome = {
   status: 'granted' | 'pending'
   code: string
-  vipDays: number
+  plan: 'plus' | 'vip' | null
+  days: number
   boostHours: number
-  seeLikes: boolean
-  queuePriority: boolean
   // Set when granted (Malaysia time is applied when shown).
-  vipUntil: string | null
+  planUntil: string | null
   boostUntil: string | null
 }
 
@@ -74,25 +74,24 @@ export const promoErrorKey = (code: string): ErrorKey => ERROR_KEYS[code] ?? 'ge
 export function outcomeFromResult(r: z.infer<typeof redeemResultSchema>): PromoOutcome | ErrorKey {
   if (r.status === 'error') return promoErrorKey(r.error)
   if (r.status === 'pending') {
+    const b = r.benefits
     return {
       status: 'pending',
       code: r.code,
-      vipDays: r.benefits.vip_days ?? 0,
-      boostHours: r.benefits.boost_hours ?? 0,
-      seeLikes: r.benefits.see_likes ?? false,
-      queuePriority: r.benefits.queue_priority ?? false,
-      vipUntil: null,
+      plan: b.plan ?? (b.vip_days ? 'vip' : null),
+      days: b.days ?? b.vip_days ?? 0,
+      boostHours: b.boost_hours ?? 0,
+      planUntil: null,
       boostUntil: null,
     }
   }
   return {
     status: 'granted',
     code: r.code,
-    vipDays: r.vip_days,
+    plan: r.plan ?? (r.vip_days ? 'vip' : null),
+    days: r.days ?? r.vip_days ?? 0,
     boostHours: r.boost_hours,
-    seeLikes: r.perks.see_likes ?? false,
-    queuePriority: r.perks.queue_priority ?? false,
-    vipUntil: r.vip_until,
+    planUntil: r.plan_until ?? r.vip_until ?? null,
     boostUntil: r.boost_until,
   }
 }

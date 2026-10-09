@@ -1,4 +1,4 @@
-import type { CrossedDictionary, PlansDictionary } from './en'
+import type { CrossedDictionary, PresetsDictionary } from './en'
 
 export const crossedRu: CrossedDictionary = {
   title: 'Вы пересекались',
@@ -56,19 +56,11 @@ export const crossedRu: CrossedDictionary = {
   notNow: 'Не сейчас',
 }
 
-export const plansRu: PlansDictionary = {
-  title: 'Ваши планы',
-  pick: 'Какие планы?',
-  hint: 'Выберите один план. Он виден в вашем профиле 24 часа.',
-  set: 'Указать план',
-  change: 'Сменить план',
-  clear: 'Убрать план',
-  active: 'План: {plan}',
-  until: 'Виден до {time}',
-  open: 'Ваши планы',
-  filter: 'Сначала похожие планы',
-  filterHint: 'Люди с таким же планом показываются первыми, в пределах выбранного расстояния.',
-  filterNoPlan: 'Сначала укажите свой план.',
+// Status quick picks (the preset tags of 20261009000271) and the Discover sort by them.
+export const presetsRu: PresetsDictionary = {
+  filter: 'Сначала похожие статусы',
+  filterHint:
+    'Люди со статусом из того же быстрого выбора, что и у вас, показываются первыми, в пределах выбранного расстояния.',
   tags: {
     coffee: 'Выпить кофе',
     football: 'Иду на футбол',

@@ -12,8 +12,9 @@
 --   * Limits apply to NEW actions only: nothing already sent, posted or liked is removed after a
 --     downgrade. Incognito stays stored but counts as off while the user's plan lacks it.
 --   * One stable SQLSTATE for every gate: VP402, detail = feature key, hint = 'feature' (the plan
---     does not include it), 'limit' (the quota of the period is used up) or 'partner' (the other
---     person's plan does not include it, calls only). The app maps it to <UpgradeCard>.
+--     does not include it), 'limit' (the quota of the period is used up) or 'partner' (calls only:
+--     the caller lost the feature while the call was ringing; says nothing about the callee).
+--     The app maps it to <UpgradeCard>.
 --   * Quota windows are rolling: day = 24 hours, week = 7 days, month = 30 days.
 --
 -- The 24-hour "Plans" (intents, 20261009000200) are removed: statuses replace them. user_plans,
@@ -101,7 +102,7 @@ insert into public.features (key, name_ru, min_plan, note, sort) values
   ('chat_photos',          'Фото в чате',                        'plus', null, 30),
   ('voice_messages',       'Голосовые сообщения',                'plus', null, 40),
   ('video_messages',       'Видеосообщения',                     'plus', null, 50),
-  ('calls',                'Аудио- и видеозвонки',               'vip',  'Звонить и принимать звонки', 60),
+  ('calls',                'Аудио- и видеозвонки',               'vip',  'Нужно только звонящему', 60),
   ('feed_post',            'Посты в ленте',                      'plus', null, 70),
   ('feed_comment',         'Комментарии в ленте',                'plus', null, 80),
   ('feed_like',            'Лайки постов в ленте',               'free', null, 90),
@@ -645,8 +646,9 @@ create trigger comments_plan_gate before insert on public.comments
 create trigger post_likes_plan_gate before insert on public.post_likes
   for each row execute function public.feed_plan_gate();
 
--- Calls: the caller needs the feature to ring (and the callee must be able to pick up: hint
--- 'partner'), the callee needs it to answer.
+-- Calls (owner decision 2026-10-09): only the caller needs the feature. The callee may pick up
+-- whatever their own plan, as long as the caller still has 'calls' at that moment (hint 'partner'
+-- only when the caller was downgraded while ringing; it reveals nothing about the callee).
 create function public.calls_plan_gate()
 returns trigger
 language plpgsql
@@ -659,12 +661,11 @@ begin
   if tg_op = 'INSERT' then
     if new.caller_id = me then
       perform public.assert_feature(me, 'calls');
-      if not public.has_feature(new.callee_id, 'calls') then
-        perform public.raise_plan_required('calls', 'partner');
-      end if;
     end if;
   elsif new.status = 'active' and old.status = 'ringing' and new.callee_id = me then
-    perform public.assert_feature(me, 'calls');
+    if not public.has_feature(new.caller_id, 'calls') then
+      perform public.raise_plan_required('calls', 'partner');
+    end if;
   end if;
   return new;
 end;
@@ -739,7 +740,25 @@ select p.id, 'vip', 'legacy', now(), p.vip_until, 'profiles.vip_until'
 from public.profiles p
 where p.vip_until > now();
 
--- Same signatures as 20261009000230.
+-- The VIP crown (owner decision 2026-10-09): only an actual active VIP grant shows it, and only
+-- while the vip_badge feature is switched on. Staff keep every feature (has_feature) but get no
+-- crown unless they also hold a VIP grant.
+create function public.has_vip_badge(p_user uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p_user is not null
+    and public.plan_of(p_user) = 'vip'
+    and coalesce((select f.enabled from public.features f where f.key = 'vip_badge'), false);
+$$;
+
+revoke execute on function public.has_vip_badge(uuid) from public, anon, authenticated;
+grant execute on function public.has_vip_badge(uuid) to service_role;
+
+-- Same signatures as 20261009000230. is_vip = a real VIP grant (no staff rule).
 create or replace function public.is_vip(p_user uuid)
 returns boolean
 language sql
@@ -747,7 +766,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select public.current_plan(p_user) = 'vip';
+  select public.plan_of(p_user) = 'vip';
 $$;
 
 -- Old perk names map to features: see_likes = who_liked_you, queue_priority = event_priority.
@@ -772,9 +791,9 @@ security definer
 set search_path = ''
 as $$
   select jsonb_build_object(
-    'is_vip', public.has_feature(p.id, 'vip_badge'),
-    'vip_until', case when public.current_plan(p.id) = 'vip' then public.plan_until(p.id) end,
-    'plan', public.current_plan(p.id),
+    'is_vip', public.has_vip_badge(p.id),
+    'vip_until', case when public.plan_of(p.id) = 'vip' then public.plan_until(p.id) end,
+    'plan', public.plan_of(p.id),
     'plan_until', public.plan_until(p.id),
     'boost_until', case when p.vip_boost_until > now() then p.vip_boost_until end,
     'perks', jsonb_build_object(
@@ -786,7 +805,7 @@ as $$
   where p.id = (select auth.uid());
 $$;
 
--- Badge on cards: people whose plan shows the VIP badge.
+-- Badge on cards: people with an active VIP grant (staff without one get no crown).
 create or replace function public.vip_ids(p_ids uuid[])
 returns setof uuid
 language sql
@@ -797,7 +816,7 @@ as $$
   select p.id
   from public.profiles p
   where p.id = any (p_ids[1:200])
-    and public.has_feature(p.id, 'vip_badge')
+    and public.has_vip_badge(p.id)
     and (p.id = (select auth.uid()) or public.can_view_profile(p.id));
 $$;
 

@@ -5,7 +5,6 @@ import { signPhotoPaths } from '@/features/profile/queries'
 import { getVipIds } from '@/features/promo/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import type { Candidate } from '@/features/swipe/schemas'
-import { getPlansFor } from '@/features/plans/queries'
 import { getIncomingNotes } from '@/features/vip-perks/queries'
 import type { IncomingNote } from '@/features/vip-perks/types'
 
@@ -25,9 +24,8 @@ export async function getIncomingLikes(): Promise<Candidate[]> {
   if (error) return []
 
   const photosById = new Map(data.map((c) => [c.id, storedPhotos.catch([]).parse(c.photos)]))
-  const [urls, plans, vips, notes] = await Promise.all([
+  const [urls, vips, notes] = await Promise.all([
     signPhotoPaths([...photosById.values()].flat().map((p) => p.path)),
-    getPlansFor(data.map((c) => c.id)),
     getVipIds(data.map((c) => c.id)),
     getIncomingNotes(data.map((c) => c.id)),
   ])
@@ -48,7 +46,6 @@ export async function getIncomingLikes(): Promise<Candidate[]> {
     }),
     about: aboutFromRow(c),
     prompts: parsePrompts(c.prompts),
-    plan: plans.get(c.id) ?? null,
     note: notes.get(c.id) ?? null,
   }))
 }

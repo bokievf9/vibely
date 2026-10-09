@@ -7,7 +7,9 @@ import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import { daysAgo } from '@/i18n/format'
 import type { ProfileVisitors } from '../types'
-import { PerkUpsell } from './perk-upsell'
+import { Button } from '@/components/ui/button'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
+import { useAccess } from '@/features/plans/components/access-provider'
 
 const PLACEHOLDERS = 6
 
@@ -15,6 +17,7 @@ const PLACEHOLDERS = 6
 // count, blurred placeholder avatars (no real photos ever reach a non-VIP browser) and the upsell.
 export function VisitorsList({ data }: { data: ProfileVisitors }) {
   const { dict } = useI18n()
+  const { showUpgrade } = useAccess()
   const t = dict.vipPerks.visitors
   const countText = data.count === 1 ? t.countOne : fmt(t.countMany, { count: data.count })
 
@@ -42,7 +45,14 @@ export function VisitorsList({ data }: { data: ProfileVisitors }) {
           </div>
           <p className="text-[17px] font-semibold tracking-[-0.01em]">{countText}</p>
         </div>
-        <PerkUpsell feature="profile_visitors" title={t.lockedTitle} text={t.lockedText} />
+        {/* Same card and sheet as every other plan gate (plans, 20261009000280). */}
+        <UpgradeCard feature="profile_visitors" compact text={t.lockedText} />
+        <Button
+          fullWidth
+          onClick={() => showUpgrade({ feature: 'profile_visitors', reason: 'feature' })}
+        >
+          {t.lockedTitle}
+        </Button>
         <p className="text-muted px-1 text-center text-sm">{t.incognitoHint}</p>
       </div>
     )

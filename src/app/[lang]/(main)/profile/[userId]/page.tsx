@@ -11,13 +11,12 @@ import { AboutDetails, PromptCards } from '@/features/profile/components/about-d
 import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { PublicProfileSkeleton } from '@/features/profile/components/profile-skeleton'
 import { getPublicProfile } from '@/features/profile/public-profile'
-import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { SafetyMenu } from '@/features/safety/components/safety-menu'
 import { ProfileLikeButton } from '@/features/username/components/profile-like-button'
 import { localePath } from '@/i18n/config'
 import { ProfileNote } from '@/features/vip-perks/components/profile-note'
 import { VisitRecorder } from '@/features/vip-perks/components/visit-recorder'
-import { getPerkAccess, getSentNote } from '@/features/vip-perks/queries'
+import { getSentNote } from '@/features/vip-perks/queries'
 import { getDictionary, getLocale } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -62,9 +61,7 @@ async function ProfileView({
         : '/search'
   // "Like with a note" (VIP): only before a match and when the viewer did not pass.
   const canNote = !profile.matchId && profile.swiped !== 'pass'
-  const [perks, sentNote] = canNote
-    ? await Promise.all([getPerkAccess(), getSentNote(profile.id)])
-    : [null, null]
+  const sentNote = canNote ? await getSentNote(profile.id) : null
 
   return (
     <article className="flex flex-col">
@@ -116,11 +113,6 @@ async function ProfileView({
         </div>
       </div>
       <div className="flex flex-col gap-4 px-4 pt-5 pb-8">
-        {profile.plan && (
-          <div className="flex px-1">
-            <PlanBadge tag={profile.plan} label={dict.plans.tags[profile.plan]} />
-          </div>
-        )}
         {profile.bio && (
           <p className="text-body px-1 [overflow-wrap:anywhere] whitespace-pre-wrap text-white/90">
             {profile.bio}
@@ -151,13 +143,10 @@ async function ProfileView({
           profile.swiped !== 'pass' && (
             <>
               <ProfileLikeButton userId={profile.id} liked={profile.swiped === 'like'} />
-              {(sentNote || perks) && (
-                <ProfileNote
-                  userId={profile.id}
-                  sent={sentNote}
-                  access={perks && { on: perks.noteOn, left: perks.notesLeft }}
-                />
-              )}
+              {/* Reads the viewer's plan (useAccess): its own boundary, the page never waits. */}
+              <Suspense fallback={null}>
+                <ProfileNote userId={profile.id} sent={sentNote} />
+              </Suspense>
             </>
           )
         )}

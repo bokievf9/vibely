@@ -13,6 +13,8 @@ type Props = {
   step: 'settings' | 'notice'
   settings: CallSettings
   partnerName: string
+  // Starting a call needs the calls feature; without it the sheet only has the switch.
+  canCall: boolean
   pending: boolean
   error?: string
   onClose: () => void
@@ -89,14 +91,18 @@ export function CallsSheet(props: Props) {
           {t.noticeText}
         </p>
         {props.error && <p className="text-danger text-sm">{props.error}</p>}
-        <div className="flex gap-3">
-          <Button fullWidth disabled={!both} onClick={() => props.onCall('audio')}>
-            <Phone className="size-5" /> {t.audio}
-          </Button>
-          <Button fullWidth disabled={!both} onClick={() => props.onCall('video')}>
-            <Video className="size-5" /> {t.video}
-          </Button>
-        </div>
+        {props.canCall ? (
+          <div className="flex gap-3">
+            <Button fullWidth disabled={!both} onClick={() => props.onCall('audio')}>
+              <Phone className="size-5" /> {t.audio}
+            </Button>
+            <Button fullWidth disabled={!both} onClick={() => props.onCall('video')}>
+              <Video className="size-5" /> {t.video}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted text-sm">{t.acceptOnly}</p>
+        )}
       </div>
     </Modal>
   )

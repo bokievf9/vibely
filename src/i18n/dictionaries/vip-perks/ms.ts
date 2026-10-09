@@ -2,7 +2,6 @@ import type { vipPerksEn, vipPerksErrorsEn } from './en'
 
 export const vipPerksMs: typeof vipPerksEn = {
   vip: 'VIP',
-  upsellCta: 'Dapatkan VIP',
   receipts: {
     setting: 'Hantar resit baca',
     hint: 'Apabila dimatikan, tiada sesiapa melihat bila anda membaca mesej mereka, dan anda juga tidak melihat bila mereka membaca mesej anda.',
@@ -44,13 +43,10 @@ export const vipPerksMs: typeof vipPerksEn = {
     report: 'Laporkan nota',
     reportNote:
       'Moderator akan melihat nota ini. Ia hilang daripada senarai suka anda serta-merta.',
-    upsellTitle: 'Mesej sebelum padanan',
-    upsellText: 'Dengan VIP anda boleh menghantar satu nota sehari bersama suka anda.',
   },
 }
 
 export const vipPerksErrorsMs: typeof vipPerksErrorsEn = {
-  perkRequired: 'Ini ciri VIP.',
   noteLimitReached: 'Anda sudah menggunakan nota hari ini. Cuba lagi esok.',
   noteAlreadySent: 'Anda sudah menghantar nota kepada orang ini.',
   noteUnavailable: 'Anda tidak lagi boleh menghantar nota kepada orang ini.',

@@ -15,7 +15,8 @@ import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
 import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
-import { crossedRu, plansRu } from './nearby/ru'
+import { crossedRu, presetsRu } from './nearby/ru'
+import { planErrorsRu, plansRu } from './plans/ru'
 import { statusErrorsRu, statusesRu } from './statuses/ru'
 import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from './matchmaker/ru'
 import { eventErrorsRu, eventsRu } from './events/ru'
@@ -53,6 +54,7 @@ export const ru: Dictionary = {
     ...matchmakerErrorsRu,
     ...eventErrorsRu,
     ...promoErrorsRu,
+    ...planErrorsRu,
     ...vipPerksErrorsRu,
     ...duoErrorsRu,
     ...conversationErrorsRu,
@@ -410,6 +412,7 @@ export const ru: Dictionary = {
   reports: reportsRu,
   sanctions: sanctionsRu,
   crossed: crossedRu,
+  presets: presetsRu,
   plans: plansRu,
   statuses: statusesRu,
   matchmaker: matchmakerRu,

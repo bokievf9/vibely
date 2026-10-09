@@ -13,11 +13,14 @@ import { Composer } from './composer'
 import { ContentMenu } from './content-menu'
 import { PostCard } from './post-card'
 import { Immersive } from '@/components/layout/immersive'
+import { useAccess } from '@/features/plans/components/access-provider'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
 
 // A post and its comments. Immersive: the tab bar steps aside and the comment bar is pinned to
 // the bottom edge (above the home indicator), like a chat.
 export function PostThread({ post, comments }: { post: FeedPost; comments: FeedComment[] }) {
   const { dict, locale } = useI18n()
+  const canComment = useAccess().has('feed_comment')
   const router = useLocaleRouter()
 
   // After my own comment lands (router.refresh), bring it into view above the bar.
@@ -89,15 +92,19 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
         </section>
       </div>
       <div className="bg-background/95 border-border sticky bottom-0 z-20 border-t px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <Composer
-          variant="bar"
-          placeholder={dict.feed.commentPlaceholder}
-          submitLabel={dict.common.send}
-          maxLength={500}
-          hint={post.isMine ? dict.feed.opHint : undefined}
-          onSubmit={(body, asMe) => createComment(post.id, body, asMe)}
-          onDone={router.refresh}
-        />
+        {canComment ? (
+          <Composer
+            variant="bar"
+            placeholder={dict.feed.commentPlaceholder}
+            submitLabel={dict.common.send}
+            maxLength={500}
+            hint={post.isMine ? dict.feed.opHint : undefined}
+            onSubmit={(body, asMe) => createComment(post.id, body, asMe)}
+            onDone={router.refresh}
+          />
+        ) : (
+          <UpgradeCard feature="feed_comment" compact text={dict.plans.feedCommentLocked} />
+        )}
       </div>
     </div>
   )

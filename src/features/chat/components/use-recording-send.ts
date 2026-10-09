@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { getBrowserClient } from '@/lib/supabase/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 import { sendMessage } from '../actions'
 import { MIN_RECORDING_MS, storedFormat, type RecordKind } from '../media'
 import { CHAT_MEDIA_BUCKET, type ChatMessage } from '../types'
@@ -15,6 +16,7 @@ const MAX_BYTES = 15 * 1024 * 1024
 // participants only), then insert the message (counts toward the rate limit).
 export function useRecordingSend(matchId: string, onSent: (m: ChatMessage) => void) {
   const [sending, setSending] = useState(false)
+  const upgradeOr = useUpgradeHandler()
 
   const send = async (
     kind: RecordKind,
@@ -52,7 +54,7 @@ export function useRecordingSend(matchId: string, onSent: (m: ChatMessage) => vo
                 durationMs,
               },
       })
-      if (!result.ok) return result.error
+      if (!result.ok) return upgradeOr(result) ? null : result.error
       onSent(result.data)
       return null
     } catch {

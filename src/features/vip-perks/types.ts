@@ -2,14 +2,6 @@
 
 export const NOTE_MAX = 200
 
-export type PerkAccess = {
-  readReceipts: boolean
-  profileVisitors: boolean
-  // "Like with a note" (message_before_match) and how many are left in the rolling day.
-  noteOn: boolean
-  notesLeft: number | null
-}
-
 export type Visitor = {
   id: string
   name: string

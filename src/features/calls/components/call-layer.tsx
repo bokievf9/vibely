@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 import { answerCall, endCall, getRingingCall, startCall } from '../actions'
 import { RING_TIMEOUT_MS, type CallEvent, type CallSession, type IncomingCall } from '../types'
 import { CallScreen } from './call-screen'
@@ -18,6 +19,7 @@ const NOTICE_MS = 3000
 export function CallLayer({ viewerId }: { viewerId: string }) {
   const { dict } = useI18n()
   const errorText = useErrorText()
+  const upgradeOr = useUpgradeHandler()
   const reduce = useReducedMotion()
   const [incoming, setIncoming] = useState<IncomingCall | null>(null)
   const [session, setSession] = useState<CallSession | null>(null)
@@ -91,12 +93,12 @@ export function CallLayer({ viewerId }: { viewerId: string }) {
         if (busy.current) return
         startTransition(async () => {
           const result = await startCall({ matchId, kind })
-          if (!result.ok) return showError(result.error)
+          if (!result.ok) return upgradeOr(result) ? undefined : showError(result.error)
           setAnswered(false)
           setSession(result.data)
         })
       }),
-    [showError],
+    [showError, upgradeOr],
   )
 
   // Nobody picked up in 30 s: hang up (recorded as missed for the callee).
@@ -120,6 +122,7 @@ export function CallLayer({ viewerId }: { viewerId: string }) {
     startTransition(async () => {
       const result = await answerCall(call.callId)
       setIncoming(null)
+      // The callee never sees an upgrade: only the caller needs the calls feature.
       if (!result.ok) return showError(result.error)
       setAnswered(true)
       setSession(result.data)

@@ -6,6 +6,7 @@ import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import type { CrossedPerson } from './types'
+import { planFail } from '@/features/plans/errors'
 
 const photoSchema = z.object({ path: z.string(), width: z.number(), height: z.number() }).nullable()
 
@@ -67,7 +68,7 @@ export async function setCrossedPaths(enabled: boolean): Promise<UserResult<bool
   if (!(await getViewer())) return fail('unauthorized')
   const supabase = await createClient()
   const { error } = await supabase.rpc('set_crossed_paths', { p_enabled: value.data })
-  if (error) return fail(error.code === '42501' ? 'unauthorized' : 'generic')
+  if (error) return planFail(error) ?? fail(error.code === '42501' ? 'unauthorized' : 'generic')
   return ok(value.data)
 }
 

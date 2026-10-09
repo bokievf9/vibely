@@ -12,18 +12,19 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
-import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { swipe } from '@/features/swipe/actions'
 import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
 import { NoteBubble } from '@/features/vip-perks/components/note-bubble'
 import { LikeSheet } from './like-sheet'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 // "Who liked you": a photo grid; tapping opens the full card with Pass / Like back.
 // Like back goes through the normal swipe() action, so the DB trigger creates the match at once.
 export function LikesGrid({ initial }: { initial: Candidate[] }) {
   const { dict } = useI18n()
   const errorText = useErrorText()
+  const upgradeOr = useUpgradeHandler()
   const [people, setPeople] = useState(initial)
   const [open, setOpen] = useState<Candidate | null>(null)
   const [busy, setBusy] = useState(false)
@@ -34,7 +35,7 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
     setBusy(true)
     const result = await swipe({ targetId: person.id, direction })
     setBusy(false)
-    if (!result.ok) return setError(result.error)
+    if (!result.ok) return upgradeOr(result) ? undefined : setError(result.error)
     setError(undefined)
     setPeople((list) => list.filter((p) => p.id !== person.id))
     setOpen(null)
@@ -61,14 +62,6 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                   className="bg-surface-raised relative block aspect-[3/4] w-full overflow-hidden rounded-[1.375rem] text-left shadow-[0_2px_4px_rgb(0_0_0/0.3),0_18px_36px_-20px_rgb(0_0_0/0.9)] transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   <GridPhoto person={person} eager={i < 4} />
-                  {person.plan && (
-                    <PlanBadge
-                      tag={person.plan}
-                      label={dict.plans.tags[person.plan]}
-                      tone="dark"
-                      className="absolute top-2 left-2 max-w-[calc(100%-1rem)]"
-                    />
-                  )}
                   {person.note && (
                     <NoteBubble
                       note={person.note}

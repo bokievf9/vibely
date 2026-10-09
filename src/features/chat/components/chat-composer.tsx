@@ -2,9 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Check, CircleUserRound, ImagePlus, SendHorizontal } from 'lucide-react'
+import { Check, CircleUserRound, ImagePlus, Mic, SendHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useErrorText, useI18n } from '@/i18n/client'
+import { useAccess } from '@/features/plans/components/access-provider'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { editMessage } from '../message-actions'
 import type { RecordKind } from '../media'
@@ -46,6 +47,11 @@ const MAX_INPUT_PX = 6 * 24 + 20 + 2
 export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
+  // Photos, voice and video messages need Plus (20261009000280): a locked button opens the sheet.
+  const { has, showUpgrade } = useAccess()
+  const canPhoto = has('chat_photos')
+  const canVoice = has('voice_messages')
+  const canVideo = has('video_messages')
   const [draft, setDraft] = useState('')
   // The edit text belongs to the message being edited; the normal draft is kept meanwhile.
   const [edit, setEdit] = useState<{ id: string; text: string } | null>(null)
@@ -155,14 +161,24 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
             <IconButton
               label={dict.chats.sendPhoto}
               disabled={sending}
-              onClick={() => fileRef.current?.click()}
+              locked={!canPhoto}
+              onClick={() =>
+                canPhoto
+                  ? fileRef.current?.click()
+                  : showUpgrade({ feature: 'chat_photos', reason: 'feature' })
+              }
             >
               <ImagePlus className="size-[1.375rem]" />
             </IconButton>
             <IconButton
               label={dict.media.recordVideo}
               disabled={sending}
-              onClick={() => setVideoOpen(true)}
+              locked={!canVideo}
+              onClick={() =>
+                canVideo
+                  ? setVideoOpen(true)
+                  : showUpgrade({ feature: 'video_messages', reason: 'feature' })
+              }
             >
               <CircleUserRound className="size-[1.375rem]" />
             </IconButton>
@@ -201,7 +217,16 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
           style={{ maxHeight: MAX_INPUT_PX }}
           className="bg-surface-raised border-border placeholder:text-muted focus:border-accent/50 [field-sizing:content] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto overscroll-contain rounded-[1.375rem] border px-4 py-2.5 leading-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] transition-[border-color] duration-150 outline-none"
         />
-        {!editing && !canSend ? (
+        {!editing && !canSend && !canVoice ? (
+          <IconButton
+            label={dict.plans.features.voice_messages}
+            disabled={sending}
+            locked
+            onClick={() => showUpgrade({ feature: 'voice_messages', reason: 'feature' })}
+          >
+            <Mic className="size-6" />
+          </IconButton>
+        ) : !editing && !canSend ? (
           <VoiceRecorder
             disabled={sending}
             onActiveChange={setVoiceActive}
@@ -239,18 +264,21 @@ export function ChatComposer({ matchId, mode, quoteAuthor, aside, prefill, ...on
 type IconButtonProps = {
   label: string
   disabled: boolean
+  // Not in the viewer's plan: dimmed, opens the upgrade sheet.
+  locked?: boolean
   onClick: () => void
   children: ReactNode
 }
 
-function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
+function IconButton({ label, disabled, locked = false, onClick, children }: IconButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="text-foreground/70 active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50"
+      data-locked={locked || undefined}
+      className="text-foreground/70 active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90 disabled:opacity-50 data-[locked]:opacity-45"
     >
       {children}
     </button>

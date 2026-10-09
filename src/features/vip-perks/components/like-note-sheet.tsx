@@ -11,24 +11,21 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { isRisky } from '@/features/safety/risk'
 import { sendLikeNote, type NoteResult } from '../actions'
+import { useAccess, useUpgradeHandler } from '@/features/plans/components/access-provider'
 import { NOTE_MAX } from '../types'
-import { PerkUpsell } from './perk-upsell'
-
-// Who may write a note: on = the plan has message_before_match, left = notes left today (null:
-// unlimited, staff). Null on a database without plans: the button is not shown at all.
-export type NoteAccess = { on: boolean; left: number | null }
 
 type Props = {
   open: boolean
   onClose: () => void
   targetId: string
-  access: NoteAccess
   // The like and the note are stored: the caller removes the card / shows the match.
   onSent: (result: NoteResult) => void
 }
 
 // "Like with a note": a small sheet with the note (200 characters), sent together with the like.
-export function LikeNoteSheet({ open, onClose, targetId, access, onSent }: Props) {
+// Opened only when the viewer has message_before_match (callers open the upgrade sheet otherwise);
+// a VP402 from the server (plan changed meanwhile) closes it and opens the upgrade sheet.
+export function LikeNoteSheet({ open, onClose, targetId, onSent }: Props) {
   const { dict } = useI18n()
   const t = dict.vipPerks.note
   const errorText = useErrorText()
@@ -37,13 +34,20 @@ export function LikeNoteSheet({ open, onClose, targetId, access, onSent }: Props
   const [done, setDone] = useState<NoteResult | null>(null)
   const [pending, startTransition] = useTransition()
   const length = body.trim().length
-  const outOfNotes = access.left !== null && access.left <= 0
+  const { remaining, recordUse } = useAccess()
+  const upgradeOr = useUpgradeHandler()
+  const left = remaining('message_before_match')
+  const outOfNotes = left !== null && left <= 0
 
   const send = () =>
     startTransition(async () => {
       const result = await sendLikeNote({ targetId, body })
-      if (!result.ok) return setError(result.error)
+      if (!result.ok) {
+        if (upgradeOr(result)) return onClose()
+        return setError(result.error)
+      }
       setError(undefined)
+      recordUse('message_before_match')
       setDone(result.data)
       // A match goes straight to the match screen; otherwise the sheet confirms first.
       if (result.data.matchId) onSent(result.data)
@@ -56,9 +60,7 @@ export function LikeNoteSheet({ open, onClose, targetId, access, onSent }: Props
 
   return (
     <Modal open={open} onClose={close} title={t.title}>
-      {!access.on ? (
-        <PerkUpsell feature="message_before_match" title={t.upsellTitle} text={t.upsellText} />
-      ) : done ? (
+      {done ? (
         <div className="flex flex-col items-center gap-4 text-center">
           <CheckCircle2 className="size-14 text-emerald-400" aria-hidden />
           <p className="font-semibold">{t.sentTitle}</p>

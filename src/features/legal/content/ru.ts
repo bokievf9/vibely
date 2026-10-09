@@ -5,6 +5,7 @@ import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
+import { plansLegal } from './plans'
 import { vipPerksLegal } from './vip-perks'
 import type { LegalContent } from './types'
 
@@ -65,9 +66,9 @@ export const ru: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ru.privacy,
       // --- end calls ---
-      // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
+      // --- crossed paths (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ru.privacy,
-      // --- end crossed paths & plans ---
+      // --- end crossed paths ---
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.ru.privacy,
       // --- end secret crush ---
@@ -83,6 +84,9 @@ export const ru: LegalContent = {
       // --- live statuses (src/features/legal/content/statuses.ts) ---
       statusesLegal.ru.privacy,
       // --- end live statuses ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.ru.privacy,
+      // --- end Plus and VIP plans ---
       // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
       vipPerksLegal.ru.privacy,
       // --- end read receipts, profile visits, notes ---
@@ -211,6 +215,9 @@ export const ru: LegalContent = {
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.ru.terms,
       // --- end duo dating ---
+      // --- Plus and VIP plans (src/features/legal/content/plans.ts) ---
+      plansLegal.ru.terms,
+      // --- end Plus and VIP plans ---
       {
         heading: '6. Модерация',
         paragraphs: [
@@ -230,7 +237,7 @@ export const ru: LegalContent = {
         heading: '8. Сервис',
         paragraphs: [
           'Vibely предоставляется «как есть». Мы стараемся, чтобы сервис был доступен и безопасен, но можем менять, приостанавливать или отключать функции. Мы не обещаем, что вы найдёте пару.',
-          'Промокоды и VIP: мы можем раздавать промокоды (например, на мероприятиях или через партнёров), которые на ограниченный срок открывают VIP-возможности: значок VIP, показ первым в Discover, просмотр тех, кто вас лайкнул, или приоритет в блайнд-дейте. Некоторые коды ограничены по количеству, действуют до определённой даты, предназначены для определённой группы (например, для пола, подтверждённого проверкой селфи) или требуют одобренного селфи. Бонусы личные, не передаются и не обмениваются на деньги; мы можем отозвать их и заблокировать код, если им делятся, перепродают или используют для нарушения этих Условий.',
+          'Промокоды и VIP: мы можем раздавать промокоды (например, на мероприятиях или через партнёров), которые на ограниченный срок открывают тариф Plus или VIP (см. раздел 5e). Некоторые коды ограничены по количеству, действуют до определённой даты, предназначены для определённой группы (например, для пола, подтверждённого проверкой селфи) или требуют одобренного селфи. Бонусы личные, не передаются и не обмениваются на деньги; мы можем отозвать их и заблокировать код, если им делятся, перепродают или используют для нарушения этих Условий.',
         ],
       },
       {

@@ -4,8 +4,8 @@ export const crushEn = {
   inviteOption: 'I have a crush on this person',
   inviteOptionHint:
     'They get a private one-time link. Once they join and are verified, they see that you have a crush on them and can answer yes or no. You only hear about it if they say yes.',
-  inviteLimit: 'Up to 3 crush links every 30 days. Each link works once.',
-  inviteLimitReached: 'You have used your 3 crush links for this month.',
+  inviteLimit: 'Each link works once.',
+  inviteLimitReached: 'You have used your crush links for now.',
   inviteFailed: 'Could not create the link. Try again.',
   shareCrush: 'Share crush link',
   crushMessage:

@@ -31,6 +31,7 @@ import { SessionHeader } from './session-header'
 import { StartScreen } from './start-screen'
 import { useBlindChannel, useOwnBlindSignals } from './use-blind-channel'
 import { WaitingRoom } from './waiting-room'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 type Stage = 'start' | 'waiting' | 'chat'
 type Props = {
@@ -158,12 +159,14 @@ export function BlindDate({
 
   useEffect(() => () => clearTimeout(typingTimer.current), [])
 
+  const upgradeOr = useUpgradeHandler()
   const join = async (f: JoinFilters, ev: string | null) => {
     setFilters(f)
     setEventId(ev)
     const result = await joinBlind(f, ev ?? undefined)
     if (!result.ok) {
       setStage('start')
+      if (upgradeOr(result)) return setError(undefined)
       if (result.error === 'eventNotLive') {
         setNightOver(true)
         return setError(undefined)

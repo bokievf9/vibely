@@ -12,11 +12,7 @@ export const statusesMs: StatusesDictionary = {
   emojiLabel: 'Pilih emoji',
   quickPicks: 'Pilihan pantas',
   quickPicksHint:
-    'Pilihan pantas juga menjadi rancangan anda selama 24 jam: ia dipaparkan pada kad anda di Teroka.',
-  planLinked: 'Juga rancangan anda selama 24 jam: {plan}',
-  planUnlink: 'Status sahaja',
-  currentPlan: 'Rancangan anda: {plan}',
-  clearPlan: 'Padam rancangan',
+    'Orang dengan pilihan pantas yang sama dipaparkan dahulu apabila anda menghidupkan Status serupa di Teroka.',
   post: 'Kongsi',
   update: 'Kemas kini',
   clear: 'Padam status',

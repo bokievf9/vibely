@@ -10,8 +10,9 @@ import { FormError } from '@/components/ui/field'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
+import { cn } from '@/lib/utils'
 import { loadCandidates, swipe, type SwipeResult } from '../actions'
-import { LikeNoteSheet, type NoteAccess } from '@/features/vip-perks/components/like-note-sheet'
+import { LikeNoteSheet } from '@/features/vip-perks/components/like-note-sheet'
 import { setNewPeopleAlert } from '../deck-end-actions'
 import type { Candidate, SwipeFilters } from '../schemas'
 import { DeckEnd } from './deck-end'
@@ -21,6 +22,7 @@ import { MatchModal, type MatchInfo } from './match-modal'
 import { SwipeCard, type SwipeCardHandle } from './swipe-card'
 import type { Direction } from './swipe-physics'
 import { useSwipeFilters } from './use-swipe-filters'
+import { useAccess, useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 const REFILL_AT = 3
 
@@ -33,18 +35,15 @@ type Props = {
   // Optional strip above the deck (e.g. "You crossed paths"), rendered by the server.
   aboveDeck?: ReactNode
   // Plans exist on this database: the filter sheet offers "Similar plans first".
-  plansAvailable?: boolean
+  similarAvailable?: boolean
   // Above the deck: the Blind Dating Night countdown (server-rendered, null when there is none).
   banner?: ReactNode
-  // "Like with a note" (20261009000290). Null: plans are not on this database, no button.
-  noteAccess?: NoteAccess | null
 }
 
-// Pass is the quieter, smaller action; like is the big gradient one (Fitts: the likely tap is larger).
-const passButton =
+// Pass and "Like with a note" are the quieter, smaller actions on either side; like is the big
+// gradient one in the middle (Fitts: the likely tap is larger).
+const sideButton =
   'size-[3.75rem] rounded-full border border-border bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_10px_24px_-12px_rgb(0_0_0/0.9)] active:scale-[0.9] active:bg-fill'
-const noteButton =
-  'size-[3.25rem] rounded-full border border-border bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_10px_24px_-12px_rgb(0_0_0/0.9)] active:scale-[0.9] active:bg-fill'
 const likeButton =
   'size-[4.75rem] rounded-full active:scale-[0.9] shadow-[inset_0_1px_0_rgb(255_255_255/0.3),inset_0_-2px_0_rgb(0_0_0/0.12),0_14px_32px_-10px_rgb(255_77_125/0.7)]'
 
@@ -53,12 +52,14 @@ export function SwipeDeck({
   headerLeading,
   headerActions,
   aboveDeck,
-  plansAvailable,
+  similarAvailable,
   banner,
-  noteAccess,
 }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
+  const upgradeOr = useUpgradeHandler()
+  // "Like with a note" (message_before_match, VIP): without it the button opens the upgrade sheet.
+  const { has, showUpgrade } = useAccess()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
   const [cards, setCards] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,7 +68,6 @@ export function SwipeDeck({
   const [match, setMatch] = useState<MatchInfo | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [noting, setNoting] = useState<Candidate | null>(null)
-  const [access, setAccess] = useState(noteAccess ?? null)
   // The like already went out with a note: the card leaves without a second swipe() call.
   const noted = useRef(new Map<string, SwipeResult>())
   // The last card is still flying out: keep the stage mounted until it has left the screen.
@@ -140,7 +140,15 @@ export function SwipeDeck({
     const result = viaNote
       ? { ok: true as const, data: viaNote }
       : await swipe({ targetId: top.id, direction: dir })
-    if (!result.ok) return setError(result.error)
+    if (!result.ok) {
+      // Daily like limit (VP402): the card comes back on top, the sheet says what Plus gives.
+      if (upgradeOr(result)) {
+        decided.current.delete(top.id)
+        setCards((c) => [top, ...c.filter((x) => x.id !== top.id)])
+        return
+      }
+      return setError(result.error)
+    }
     if (!result.data.matchId) return
     trackOnce('first_match')
     setMatch({ id: result.data.matchId, name: top.name, photo: top.photos[0]?.url ?? null })
@@ -206,11 +214,12 @@ export function SwipeDeck({
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex items-center justify-center gap-7 pt-1">
+            {/* Like stays in the centre: equal columns on both sides of it. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-7 pt-1">
               <Button
                 variant="secondary"
                 size="icon"
-                className={passButton}
+                className={cn(sideButton, 'justify-self-end')}
                 aria-label={dict.swipe.pass}
                 disabled={!top}
                 onClick={() => press('pass')}
@@ -226,18 +235,22 @@ export function SwipeDeck({
               >
                 <Heart className="size-9 fill-current drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" />
               </Button>
-              {access && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={noteButton}
-                  aria-label={dict.vipPerks.note.button}
-                  disabled={!top}
-                  onClick={() => top && setNoting(top)}
-                >
-                  <MessageSquareHeart className="text-accent size-6" strokeWidth={2.25} />
-                </Button>
-              )}
+              <Button
+                variant="secondary"
+                size="icon"
+                className={cn(sideButton, 'justify-self-start')}
+                aria-label={dict.vipPerks.note.button}
+                disabled={!top}
+                onClick={() => {
+                  if (!top) return
+                  if (!has('message_before_match')) {
+                    return showUpgrade({ feature: 'message_before_match', reason: 'feature' })
+                  }
+                  setNoting(top)
+                }}
+              >
+                <MessageSquareHeart className="text-accent size-6" strokeWidth={2.25} />
+              </Button>
             </div>
           </>
         )}
@@ -248,19 +261,17 @@ export function SwipeDeck({
           value={filters}
           onClose={() => setFiltersOpen(false)}
           onApply={changeFilters}
-          plansAvailable={plansAvailable}
+          similarAvailable={similarAvailable}
         />
       )}
-      {noting && access && (
+      {noting && (
         <LikeNoteSheet
           key={noting.id}
           open
           targetId={noting.id}
-          access={access}
           onClose={() => setNoting(null)}
           onSent={(result) => {
             noted.current.set(noting.id, { matchId: result.matchId })
-            setAccess((a) => (a && a.left !== null ? { ...a, left: Math.max(0, a.left - 1) } : a))
             setNoting(null)
             // The noted card leaves like a liked one (decide() skips the second like).
             if (cards[0]?.id === noting.id) press('like')

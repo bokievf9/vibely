@@ -7,6 +7,7 @@ import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { getViewer } from '@/features/auth/session'
 import { notifyNewLike, notifyNewMatch } from '@/features/push/send'
+import { planFail } from '@/features/plans/errors'
 import { NOTE_MAX } from './types'
 
 // Settings → Privacy. Off: nobody sees when the viewer read their messages, and the viewer sees
@@ -37,9 +38,10 @@ const noteSchema = z.object({
 
 export type NoteResult = { matchId: string | null; held: boolean }
 
-// VP402 (plans): hint 'limit' = today's note is used, otherwise the plan lacks the perk.
+// VP402 with hint 'limit' = today's note is used (a plain error: VIP already is the top plan);
+// any other VP402 becomes an upgrade (planFail) before this is reached.
 function noteError(error: { code?: string; hint?: string | null }): ErrorKey {
-  if (error.code === 'VP402') return error.hint === 'limit' ? 'noteLimitReached' : 'perkRequired'
+  if (error.code === 'VP402') return error.hint === 'limit' ? 'noteLimitReached' : 'planRequired'
   if (error.code === '23505') return 'noteAlreadySent'
   if (error.code === '22023') return 'noteUnavailable'
   if (error.code === '42501') return 'unauthorized'
@@ -65,7 +67,7 @@ export async function sendLikeNote(
     p_target: parsed.data.targetId,
     p_body: sanitizeText(parsed.data.body),
   })
-  if (error) return fail(noteError(error))
+  if (error) return (error.hint !== 'limit' && planFail(error)) || fail(noteError(error))
   const result = resultSchema.safeParse(data)
   if (!result.success) return fail('generic')
   const matchId = result.data.match_id

@@ -6,7 +6,6 @@ import { Avatar } from '@/components/ui/avatar'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
-import type { OwnPlan } from '@/features/plans/tags'
 import { clearStatus, loadStatuses } from '../actions'
 import { SEEN_KEY, orderStatuses, parseSeen, serializeSeen } from '../format'
 import type { LiveStatus, StatusesState } from '../types'
@@ -77,8 +76,6 @@ function markHintSeen() {
 
 type Props = {
   initial: State
-  // undefined: plans not available (migration 20261009000200 missing).
-  plan: OwnPlan | null | undefined
   className?: string
   // Discover: smaller bubbles (52px) and the explanatory sentence only until it has been seen once,
   // so the deck below keeps its room on a phone.
@@ -88,11 +85,10 @@ type Props = {
 // "Like stories" at the top of Discover and Feed: your own bubble first ("+" to share your vibe),
 // then live statuses of compatible people nearby. Unseen ones have the gradient ring; the seen
 // state lives in this browser only (localStorage).
-export function StatusCarousel({ initial, plan: initialPlan, className, compact = false }: Props) {
+export function StatusCarousel({ initial, className, compact = false }: Props) {
   const { dict } = useI18n()
   const t = dict.statuses
   const [state, setState] = useState(initial)
-  const [plan, setPlan] = useState(initialPlan ?? null)
   const seen = useSyncExternalStore(subscribeSeen, getSeen, () => EMPTY)
   // Server snapshot "seen": the sentence never flashes on later visits.
   const hintSeen = useSyncExternalStore(noSubscribe, readHintSeen, () => true)
@@ -184,10 +180,8 @@ export function StatusCarousel({ initial, plan: initialPlan, className, compact 
         key={own?.id ?? 'new'}
         open={sheet}
         own={own}
-        plan={plan}
         onClose={() => setSheet(false)}
         onStatus={(next) => setState((s) => ({ ...s, own: next }))}
-        onPlan={setPlan}
       />
 
       {ownOpen && own && (

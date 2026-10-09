@@ -7,7 +7,7 @@ import { getViewer } from '@/features/auth/session'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { aboutFromRow, parsePrompts } from '@/features/profile/about-schemas'
 import { notifyNewLike, notifyNewMatch } from '@/features/push/send'
-import { asPlanTag } from '@/features/plans/tags'
+import { planFail } from '@/features/plans/errors'
 import { getVipIds } from '@/features/promo/queries'
 import { getIncomingNotes } from '@/features/vip-perks/queries'
 import { filtersSchema, swipeSchema, type Candidate, type SwipeFilters } from './schemas'
@@ -29,7 +29,8 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
     'get_swipe_candidates',
     parsed.data.similarPlans ? { ...args, p_similar_plans: true } : args,
   )
-  // PGRST202: the database predates p_similar_plans (migration 20261009000200): plain order.
+  // "Similar statuses" (p_similar_plans, the name kept from the removed 24 h plans). PGRST202:
+  // the database predates the parameter (migration 20261009000200): plain order.
   if (error?.code === 'PGRST202' && parsed.data.similarPlans) {
     ;({ data, error } = await supabase.rpc('get_swipe_candidates', args))
   }
@@ -58,8 +59,6 @@ export async function loadCandidates(filters: SwipeFilters): Promise<UserResult<
       about: aboutFromRow(c),
       prompts: parsePrompts(c.prompts),
       secondChance: c.second_chance,
-      // Absent before the migration: no badge.
-      plan: asPlanTag(c.plan),
       vip: vips.has(c.id),
       note: notes.get(c.id) ?? null,
     })),
@@ -77,8 +76,10 @@ export async function swipe(input: z.input<typeof swipeSchema>): Promise<UserRes
   const { targetId, direction } = parsed.data
   const supabase = await createClient()
   const { error } = await supabase.from('swipes').insert({ swiped_id: targetId, direction })
-  // 23505: already swiped (double tap, second device). Treat as success.
-  if (error && error.code !== '23505') return fail(rateLimitedOr(error.code, 'generic'))
+  // 23505: already swiped (double tap, second device). Treat as success. VP402: the daily like
+  // limit of the viewer's plan (likes_per_day).
+  if (error && error.code !== '23505')
+    return planFail(error) ?? fail(rateLimitedOr(error.code, 'generic'))
 
   await supabase.rpc('touch_last_active')
   if (direction === 'pass') return ok({ matchId: null })

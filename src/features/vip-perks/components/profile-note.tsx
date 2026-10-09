@@ -4,24 +4,19 @@ import { useState } from 'react'
 import { MessageSquareHeart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n, useLocaleRouter } from '@/i18n/client'
+import { useAccess } from '@/features/plans/components/access-provider'
 import type { SentNote } from '../types'
-import { LikeNoteSheet, type NoteAccess } from './like-note-sheet'
+import { LikeNoteSheet } from './like-note-sheet'
 
 // Profile view (search, crossed paths, "Who viewed you"): "Like with a note" under the Like
 // button, or the note the viewer already sent to this person.
-export function ProfileNote({
-  userId,
-  sent,
-  access,
-}: {
-  userId: string
-  sent: SentNote | null
-  access: NoteAccess | null
-}) {
+export function ProfileNote({ userId, sent }: { userId: string; sent: SentNote | null }) {
   const { dict } = useI18n()
   const t = dict.vipPerks.note
   const router = useLocaleRouter()
   const [open, setOpen] = useState(false)
+  // Without message_before_match (VIP) the button opens the same upgrade sheet as other gates.
+  const { has, showUpgrade } = useAccess()
 
   if (sent) {
     return (
@@ -35,10 +30,17 @@ export function ProfileNote({
       </div>
     )
   }
-  if (!access) return null
   return (
     <>
-      <Button variant="secondary" fullWidth onClick={() => setOpen(true)}>
+      <Button
+        variant="secondary"
+        fullWidth
+        onClick={() =>
+          has('message_before_match')
+            ? setOpen(true)
+            : showUpgrade({ feature: 'message_before_match', reason: 'feature' })
+        }
+      >
         <MessageSquareHeart className="text-accent size-5" aria-hidden />
         {t.button}
       </Button>
@@ -46,7 +48,6 @@ export function ProfileNote({
         <LikeNoteSheet
           open
           targetId={userId}
-          access={access}
           onClose={() => setOpen(false)}
           onSent={(result) => {
             setOpen(false)
