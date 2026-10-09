@@ -8,6 +8,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      plan_grants: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          granted_by: string | null
+          id: string
+          note: string | null
+          plan: Database['public']['Enums']['plan_level']
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          plan: Database['public']['Enums']['plan_level']
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source: string
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          plan?: Database['public']['Enums']['plan_level']
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      features: {
+        Row: {
+          enabled: boolean
+          key: string
+          min_plan: Database['public']['Enums']['plan_level']
+          name_ru: string
+          note: string | null
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          min_plan?: Database['public']['Enums']['plan_level']
+          name_ru: string
+          note?: string | null
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          min_plan?: Database['public']['Enums']['plan_level']
+          name_ru?: string
+          note?: string | null
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plan_limits: {
+        Row: {
+          feature_key: string
+          limit_value: number | null
+          period: string | null
+          plan: Database['public']['Enums']['plan_level']
+          updated_at: string
+        }
+        Insert: {
+          feature_key: string
+          limit_value?: number | null
+          period?: string | null
+          plan: Database['public']['Enums']['plan_level']
+          updated_at?: string
+        }
+        Update: {
+          feature_key?: string
+          limit_value?: number | null
+          period?: string | null
+          plan?: Database['public']['Enums']['plan_level']
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admins: {
         Row: {
           added_by: string | null
@@ -472,35 +568,6 @@ export type Database = {
             foreignKeyName: 'group_messages_sender_id_fkey'
             columns: ['sender_id']
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      user_plans: {
-        Row: {
-          created_at: string
-          expires_at: string
-          tag: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          tag: string
-          user_id?: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          tag?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'user_plans_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -2732,6 +2799,42 @@ export type Database = {
       }
     }
     Functions: {
+      my_access: { Args: never; Returns: Json }
+      activate_boost: { Args: never; Returns: string }
+      admin_plan_matrix: { Args: { p_admin: string }; Returns: Json }
+      admin_plan_stats: { Args: { p_admin: string }; Returns: Json }
+      admin_user_plan: { Args: { p_admin: string; p_user: string }; Returns: Json }
+      admin_set_feature: {
+        Args: {
+          p_admin: string
+          p_enabled: boolean
+          p_key: string
+          p_min_plan: Database['public']['Enums']['plan_level']
+          p_note?: string | null
+        }
+        Returns: undefined
+      }
+      admin_set_limit: {
+        Args: {
+          p_admin: string
+          p_key: string
+          p_period: string | null
+          p_plan: Database['public']['Enums']['plan_level']
+          p_value: number | null
+        }
+        Returns: undefined
+      }
+      admin_grant_plan: {
+        Args: {
+          p_admin: string
+          p_days: number | null
+          p_note?: string | null
+          p_plan: Database['public']['Enums']['plan_level']
+          p_user: string
+        }
+        Returns: string
+      }
+      admin_revoke_grant: { Args: { p_admin: string; p_id: string }; Returns: undefined }
       create_referral: { Args: { p_b: string; p_c: string; p_note?: string | null }; Returns: Json }
       decide_referral: { Args: { p_id: string; p_interested: boolean }; Returns: Json }
       get_referral_card: { Args: { p_id: string }; Returns: Json }
@@ -3357,7 +3460,6 @@ export type Database = {
         Returns: undefined
       }
       generate_username: { Args: { p_name: string }; Returns: string }
-      clear_plan: { Args: never; Returns: undefined }
       get_crossed_paths: {
         Args: never
         Returns: {
@@ -3375,7 +3477,6 @@ export type Database = {
       ping_location: { Args: { p_lat: number; p_lng: number }; Returns: boolean }
       purge_referral_invites: { Args: never; Returns: undefined }
       set_crossed_paths: { Args: { p_enabled: boolean }; Returns: boolean }
-      set_plan: { Args: { p_tag: string }; Returns: string }
       event_push_due: {
         Args: never
         Returns: {
@@ -3584,7 +3685,6 @@ export type Database = {
           languages: Database['public']['Enums']['spoken_language'][]
           pets: Database['public']['Enums']['pets_status']
           photos: Json
-          plan: string | null
           prompts: Json
           relationship_goal: Database['public']['Enums']['relationship_goal']
           religion: Database['public']['Enums']['religion']
@@ -3955,6 +4055,7 @@ export type Database = {
       habit_frequency: 'never' | 'sometimes' | 'often'
       match_source: 'swipe' | 'randomizer' | 'matchmaker'
       pets_status: 'none' | 'cat' | 'dog' | 'both' | 'other'
+      plan_level: 'free' | 'plus' | 'vip'
       random_session_status: 'active' | 'ended'
       relationship_goal: 'serious' | 'long_term_open' | 'casual' | 'friends' | 'not_sure'
       religion:
@@ -4125,6 +4226,7 @@ export const Constants = {
       habit_frequency: ['never', 'sometimes', 'often'],
       match_source: ['swipe', 'randomizer', 'matchmaker'],
       pets_status: ['none', 'cat', 'dog', 'both', 'other'],
+      plan_level: ['free', 'plus', 'vip'],
       random_session_status: ['active', 'ended'],
       relationship_goal: ['serious', 'long_term_open', 'casual', 'friends', 'not_sure'],
       religion: [
