@@ -20,16 +20,19 @@ type Props = {
   pending: boolean
   error?: string
   onStart: (f: JoinFilters) => void
+  /** The Blind Dating Night card (countdown or live), first thing on the screen. */
+  banner?: ReactNode
 }
 
 // What a blind date is, then who to meet (gender, age, optional shared interests).
-export function StartScreen({ tags, initial, pending, error, onStart }: Props) {
+export function StartScreen({ tags, initial, pending, error, onStart, banner }: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
   const [f, setF] = useState(initial)
 
   return (
     <div className="flex flex-col gap-6 pb-6">
+      {banner}
       <section className="bg-surface border-border relative overflow-hidden rounded-3xl border p-5">
         <div
           aria-hidden

@@ -25,7 +25,21 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     .maybeSingle()
   if (!data) return DEFAULT_NOTIFICATION_PREFS
   const { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls } = data
-  return { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls }
+  // Column added by 20261009000210: missing until the migration is applied, which means "on".
+  const events = 'events' in data ? (data.events ?? true) : true
+  // Absent before migration 20261009000250: on.
+  const crush = 'crush' in data ? (data.crush ?? true) : true
+  return {
+    new_matches,
+    messages,
+    likes,
+    feed_replies,
+    random_reveal,
+    new_people,
+    calls,
+    events,
+    crush,
+  }
 }
 
 export type BlockedUser = {

@@ -15,6 +15,7 @@ import { groupedRowClassName } from '@/components/ui/grouped'
 import { OwnProfileSkeleton } from '@/features/profile/components/profile-skeleton'
 import { ownCandidate } from '@/features/profile/own-card'
 import { getOwnPhotos, getOwnProfile, getTags } from '@/features/profile/queries'
+import { getVipStatus } from '@/features/promo/queries'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 
@@ -45,13 +46,18 @@ export default async function ProfilePage() {
 async function OwnProfile() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [photos, profile, tags, plan] = await Promise.all([
+  const [photos, profile, tags, plan, vip] = await Promise.all([
     getOwnPhotos(viewer.id),
     getOwnProfile(viewer.id),
     getTags(),
     getOwnPlan(viewer.id),
+    getVipStatus(),
   ])
-  const card = profile && { ...ownCandidate(viewer.id, profile, photos, tags), plan: plan?.tag }
+  const card = profile && {
+    ...ownCandidate(viewer.id, profile, photos, tags),
+    plan: plan?.tag,
+    vip: vip?.isVip,
+  }
 
   return (
     <div className="flex flex-col gap-7 px-4 pb-8">
@@ -62,6 +68,7 @@ async function OwnProfile() {
           age={card?.age ?? null}
           city={profile?.city ?? ''}
           verified={viewer.profile.verificationStatus === 'approved'}
+          vip={vip?.isVip ?? false}
           mainPhoto={photos[0] ?? null}
           t={dict.avatar}
         />

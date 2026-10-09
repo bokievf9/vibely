@@ -31,6 +31,8 @@ type Props = {
   aboveDeck?: ReactNode
   // Plans exist on this database: the filter sheet offers "Similar plans first".
   plansAvailable?: boolean
+  // Above the deck: the Blind Dating Night countdown (server-rendered, null when there is none).
+  banner?: ReactNode
 }
 
 // Pass is the quieter, smaller action; like is the big gradient one (Fitts: the likely tap is larger).
@@ -39,7 +41,13 @@ const passButton =
 const likeButton =
   'size-[4.75rem] rounded-full active:scale-[0.9] shadow-[inset_0_1px_0_rgb(255_255_255/0.3),inset_0_-2px_0_rgb(0_0_0/0.12),0_14px_32px_-10px_rgb(255_77_125/0.7)]'
 
-export function SwipeDeck({ defaultFilters, headerActions, aboveDeck, plansAvailable }: Props) {
+export function SwipeDeck({
+  defaultFilters,
+  headerActions,
+  aboveDeck,
+  plansAvailable,
+  banner,
+}: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
@@ -149,6 +157,7 @@ export function SwipeDeck({ defaultFilters, headerActions, aboveDeck, plansAvail
         </button>
       </PageHeader>
       <section className="flex flex-1 flex-col gap-4 px-3 pt-1 pb-3">
+        {banner}
         {aboveDeck}
         <FormError message={errorText(error)} />
         {!top && !settling && loading && <DeckSkeleton />}

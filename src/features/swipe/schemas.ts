@@ -40,4 +40,6 @@ export type Candidate = {
   secondChance: boolean
   // Active 24-hour plan (optional: not every source knows it).
   plan?: PlanTag | null
+  // VIP right now (promo codes, 20261009000230): a small crown next to the name.
+  vip?: boolean
 }

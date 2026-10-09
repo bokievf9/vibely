@@ -28,6 +28,7 @@
   --danger-strong: #cf3b40;
   --warning: #f2b54b;
   --verified: #4f9df7;
+  --vip: #d9b45a;
 
   /* Shell geometry. Sticky children of a page header use top-[var(--header-h)]. */
   --header-h: calc(3.25rem + env(safe-area-inset-top, 0px));
@@ -52,6 +53,7 @@
   --color-danger-strong: var(--danger-strong);
   --color-warning: var(--warning);
   --color-verified: var(--verified);
+  --color-vip: var(--vip);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
 }
 
