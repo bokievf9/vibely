@@ -52,7 +52,11 @@ export async function createReferral(input: {
   if (error) return fail(referralError(error.code))
   const created = createdSchema.safeParse(data)
   if (!created.success) return fail('generic')
-  notifyReferral(parsed.data.partnerId, viewer.profile?.displayName ?? 'Vibely', created.data.match_id)
+  notifyReferral(
+    parsed.data.partnerId,
+    viewer.profile?.displayName ?? 'Vibely',
+    created.data.match_id,
+  )
   return ok({ id: created.data.id })
 }
 

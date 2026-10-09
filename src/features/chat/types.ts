@@ -62,14 +62,7 @@ export type Partner = {
   photo: { url: string; width: number; height: number } | null
 }
 
-export type PreviewKind =
-  | 'text'
-  | 'photo'
-  | 'voice'
-  | 'video'
-  | 'expired'
-  | 'deleted'
-  | 'referral'
+export type PreviewKind = 'text' | 'photo' | 'voice' | 'video' | 'expired' | 'deleted' | 'referral'
 
 export type ChatPreview = {
   matchId: string

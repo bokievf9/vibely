@@ -27,7 +27,11 @@ type PreviewRow = {
   kind?: string | null
 }
 
-const MEDIA_PREVIEW: Record<string, PreviewKind> = { image: 'photo', voice: 'voice', video: 'video' }
+const MEDIA_PREVIEW: Record<string, PreviewKind> = {
+  image: 'photo',
+  voice: 'voice',
+  video: 'video',
+}
 
 // What the chat list says about the last message. A row with neither text nor media that is not
 // deleted or expired is a referral card (also on a database without the `kind` column yet).

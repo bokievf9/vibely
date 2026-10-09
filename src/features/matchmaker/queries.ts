@@ -14,11 +14,16 @@ const PERSON = 'id, display_name, username, profile_photos(storage_path, width, 
 
 // The caller's matches other than `excludeId` (the chat partner they are introducing): the
 // candidates of the picker. RLS hides matches with banned or blocked people.
-export async function getIntroducible(viewerId: string, excludeId: string): Promise<Introducible[]> {
+export async function getIntroducible(
+  viewerId: string,
+  excludeId: string,
+): Promise<Introducible[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('matches')
-    .select(`id, a:profiles!matches_user_a_fkey(${PERSON}), b:profiles!matches_user_b_fkey(${PERSON})`)
+    .select(
+      `id, a:profiles!matches_user_a_fkey(${PERSON}), b:profiles!matches_user_b_fkey(${PERSON})`,
+    )
     .order('created_at', { ascending: false })
   const people = (data ?? [])
     .map((m) => (m.a?.id === viewerId ? m.b : m.a))

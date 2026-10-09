@@ -161,7 +161,7 @@ export function MessageList({
             <li
               key={m.id}
               id={`msg-${m.id}`}
-              className="mt-3 flex w-full flex-col scroll-mt-[calc(var(--header-h)+1rem)]"
+              className="mt-3 flex w-full scroll-mt-[calc(var(--header-h)+1rem)] flex-col"
             >
               {m.kind === 'referral' ? (
                 <ReferralCard

@@ -1,8 +1,4 @@
-import type {
-  IncognitoDictionary,
-  MatchmakerDictionary,
-  MatchmakerErrorsDictionary,
-} from './en'
+import type { IncognitoDictionary, MatchmakerDictionary, MatchmakerErrorsDictionary } from './en'
 
 export const matchmakerRu: MatchmakerDictionary = {
   preview: 'Знакомство',

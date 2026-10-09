@@ -74,12 +74,7 @@ export function ReferralCard({ referralId, partnerId, partnerName, at }: Props) 
       {card && <Body card={card} partnerId={partnerId} partnerName={partnerName} />}
       {card && canDecide(card) && (
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            className="flex-1"
-            loading={pending}
-            onClick={() => decide(card, true)}
-          >
+          <Button size="sm" className="flex-1" loading={pending} onClick={() => decide(card, true)}>
             {t.interested}
           </Button>
           <Button
@@ -131,7 +126,12 @@ function Body({
     <>
       {person && (
         <div className="flex items-center gap-3">
-          <Avatar photo={person.photo} alt={person.name} size={56} className="ring-1 ring-white/10" />
+          <Avatar
+            photo={person.photo}
+            alt={person.name}
+            size={56}
+            className="ring-1 ring-white/10"
+          />
           <span className="flex min-w-0 flex-col">
             <span className="text-headline truncate">
               {person.name}, {person.age}
