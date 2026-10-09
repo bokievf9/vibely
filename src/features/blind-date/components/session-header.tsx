@@ -15,6 +15,8 @@ import { AliasAvatar } from './alias-avatar'
 type Props = {
   session: BlindSession
   pending: boolean
+  /** Replaces the subtitle (the night's title during a Blind Dating Night). */
+  hint?: string
   onConnect: () => void
   onPass: () => Promise<void>
   onBlock: () => Promise<void>
@@ -22,17 +24,19 @@ type Props = {
 
 // Who you are talking to (alias + abstract avatar), report/block, and the Connect / Pass bar that
 // stays reachable under the header for the whole conversation.
-export function SessionHeader({ session, pending, onConnect, onPass, onBlock }: Props) {
+export function SessionHeader({ session, pending, hint: hintOverride, onConnect, onPass, onBlock }: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
   const [dialog, setDialog] = useState<'menu' | 'pass' | 'block' | 'report' | null>(null)
   const [busy, startBusy] = useTransition()
   const active = session.state === 'active'
-  const hint = session.commonTags.length
-    ? fmt(t.commonTags, {
-        tags: session.commonTags.map((tag) => dict.tags[tag] ?? tag).join(', '),
-      })
-    : t.anonymousHint
+  const hint =
+    hintOverride ??
+    (session.commonTags.length
+      ? fmt(t.commonTags, {
+          tags: session.commonTags.map((tag) => dict.tags[tag] ?? tag).join(', '),
+        })
+      : t.anonymousHint)
 
   return (
     <>

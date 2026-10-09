@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { SearchX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
+import { EventLobbyBanner } from '@/features/events/components/event-lobby'
+import type { CurrentEvent } from '@/features/events/types'
 import { getBlindSession, leaveBlind, pingBlind } from '../actions'
 import type { BlindSession } from '../types'
 import { AliasAvatar } from './alias-avatar'
@@ -14,12 +16,19 @@ const PING_MS = 20_000
 const POLL_MS = 8_000
 const TIMEOUT_MS = 30_000
 
-type Props = { userId: string; onPaired: (s: BlindSession) => void; onCancel: () => void }
+type Props = {
+  userId: string
+  // The live Blind Dating Night this search belongs to (lobby mode), or null.
+  event: CurrentEvent | null
+  onPaired: (s: BlindSession) => void
+  onCancel: () => void
+}
 
 // Keeps the user "present" in the queue and waits for a partner: a broadcast signal,
 // with polling as a fallback if the socket drops. After 30 seconds it suggests widening the
-// preferences; the user stays in the queue until they leave.
-export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
+// preferences; the user stays in the queue until they leave. In a night the preferences are
+// already relaxed, so the timeout only offers to keep waiting or to leave.
+export function WaitingRoom({ userId, event, onPaired, onCancel }: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
   const [round, setRound] = useState(0)
@@ -51,6 +60,12 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
     onCancel()
   }
 
+  const keepWaiting = () => {
+    setTimedOut(false)
+    setRound((r) => r + 1)
+    void pingBlind()
+  }
+
   if (timedOut) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-5 py-16 text-center">
@@ -59,24 +74,29 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
           <h2 className="text-xl font-semibold" role="status">
             {t.timeoutTitle}
           </h2>
-          <p className="text-muted">{t.timeoutHint}</p>
+          <p className="text-muted">{event ? dict.events.waitingHint : t.timeoutHint}</p>
         </div>
-        <SearchingNow className="justify-center" />
+        {event ? <EventLobbyBanner event={event} className="w-full" /> : <SearchingNow className="justify-center" />}
         <div className="flex w-full max-w-xs flex-col gap-2">
-          <Button fullWidth onClick={leave}>
-            {t.widenFilters}
-          </Button>
-          <Button
-            fullWidth
-            variant="secondary"
-            onClick={() => {
-              setTimedOut(false)
-              setRound((r) => r + 1)
-              void pingBlind()
-            }}
-          >
-            {t.keepWaiting}
-          </Button>
+          {event ? (
+            <>
+              <Button fullWidth onClick={keepWaiting}>
+                {t.keepWaiting}
+              </Button>
+              <Button fullWidth variant="secondary" onClick={leave}>
+                {dict.events.leave}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button fullWidth onClick={leave}>
+                {t.widenFilters}
+              </Button>
+              <Button fullWidth variant="secondary" onClick={keepWaiting}>
+                {t.keepWaiting}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     )
@@ -94,11 +114,15 @@ export function WaitingRoom({ userId, onPaired, onCancel }: Props) {
         <h2 className="text-xl font-semibold" role="status">
           {t.searching}
         </h2>
-        <p className="text-muted text-pretty">{t.searchingHint}</p>
+        <p className="text-muted text-pretty">{event ? dict.events.waitingHint : t.searchingHint}</p>
       </div>
-      <SearchingNow className="justify-center" />
+      {event ? (
+        <EventLobbyBanner event={event} className="w-full" />
+      ) : (
+        <SearchingNow className="justify-center" />
+      )}
       <Button variant="secondary" onClick={leave}>
-        {t.cancel}
+        {event ? dict.events.leave : t.cancel}
       </Button>
     </div>
   )

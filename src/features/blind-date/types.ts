@@ -29,6 +29,8 @@ export type BlindSession = {
   commonTags: string[]
   partner: RevealedPartner | null
   matchId: string | null
+  // The Blind Dating Night this date happened in (20261009000210), or null.
+  eventId: string | null
 }
 
 export type BlindMessage = { id: string; body: string; mine: boolean; createdAt: string }
