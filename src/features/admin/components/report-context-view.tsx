@@ -147,6 +147,28 @@ export function ReportContextView({ context }: { context: ReportContext | null }
           </p>
         </div>
       )
+    case 'like_note':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <p className="text-muted text-sm">
+            Записка к лайку (VIP, до мэтча) · отправлена {formatDate(context.sentAt)}
+          </p>
+          <blockquote className="border-border rounded-xl border-l-4 bg-black/20 px-3 py-2 break-words whitespace-pre-wrap">
+            {context.body}
+          </blockquote>
+          <p className="text-muted text-xs">
+            {context.state === 'reported'
+              ? 'Скрыта от получателя после жалобы.'
+              : context.state === 'delivered'
+                ? 'Стала первым сообщением в чате после мэтча.'
+                : context.state === 'held'
+                  ? 'Задержана автоматической проверкой.'
+                  : 'Видна получателю.'}{' '}
+            Открытие текста фиксируется в журнале.
+          </p>
+        </div>
+      )
     case 'random_session':
       return (
         <div className="flex flex-col gap-2">

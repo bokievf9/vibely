@@ -143,6 +143,7 @@ export const TARGET_SHORT = {
   group_message: 'g',
   group_member: 'n',
   status: 't',
+  like_note: 'l',
 } as const
 export type ReportTargetType = keyof typeof TARGET_SHORT
 const SHORT_TARGET = Object.fromEntries(
