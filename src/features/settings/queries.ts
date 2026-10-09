@@ -25,7 +25,9 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     .maybeSingle()
   if (!data) return DEFAULT_NOTIFICATION_PREFS
   const { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls } = data
-  return { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls }
+  // Absent before migration 20261009000250: on.
+  const crush = data.crush ?? true
+  return { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls, crush }
 }
 
 export type BlockedUser = {

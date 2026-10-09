@@ -35,9 +35,10 @@ export const usernameRu: UsernameDictionary = {
   results: 'Результаты поиска',
   openProfile: 'Открыть профиль: {name}',
   backToSearch: 'Назад к поиску',
-  like: 'Лайк',
-  liked: 'Лайк отправлен',
-  likedHint: 'Если вы тоже понравитесь, будет мэтч и откроется чат.',
+  like: 'Тайный лайк',
+  liked: 'Тайный лайк отправлен',
+  likeHint: 'Этот человек узнает о нём, только если лайкнет вас в ответ.',
+  likedHint: 'Этот человек узнает о нём, только если лайкнет вас в ответ. Тогда будет мэтч и откроется чат.',
 }
 
 export const usernameErrorsRu: typeof usernameErrorsEn = {

@@ -140,6 +140,18 @@ export function notifyBlindMatch(userId: string, matchId: string | null) {
   )
 }
 
+// Secret crush (invite link): the invitee said yes, so it is a match. Sent to the inviter.
+export function notifyCrushMatch(inviterId: string, inviteeName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(inviterId, 'crush', (dict, locale) => ({
+      title: dict.crush.pushTitle,
+      body: fmt(dict.crush.pushBody, { name: inviteeName }),
+      url: chatUrl(locale, matchId),
+      tag: `match-${matchId}`,
+    })),
+  )
+}
+
 // A one-way like. Never the liker's name or photo: only that someone did. Skipped when the liker
 // is paused, because the recipient could not find them in "Who liked you" anyway.
 // One notification at a time (same tag): a burst of likes doesn't flood the lock screen.

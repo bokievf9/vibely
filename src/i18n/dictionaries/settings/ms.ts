@@ -13,6 +13,7 @@ export const settingsMs: SettingsDictionary = {
     random_reveal: 'Padanan temu janji buta',
     new_people: 'Orang baharu berdekatan',
     calls: 'Panggilan masuk',
+    crush: 'Orang yang anda sukai membalas',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',

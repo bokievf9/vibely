@@ -36,9 +36,10 @@ export const usernameMs: UsernameDictionary = {
   results: 'Hasil carian',
   openProfile: 'Buka profil {name}',
   backToSearch: 'Kembali ke carian',
-  like: 'Suka',
-  liked: 'Disukai',
-  likedHint: 'Jika dia juga suka anda, ia padanan dan sembang akan dibuka.',
+  like: 'Suka secara rahsia',
+  liked: 'Suka rahsia dihantar',
+  likeHint: 'Dia hanya akan tahu jika dia juga suka anda.',
+  likedHint: 'Dia hanya akan tahu jika dia juga suka anda. Kemudian ia padanan dan sembang akan dibuka.',
 }
 
 export const usernameErrorsMs: typeof usernameErrorsEn = {
