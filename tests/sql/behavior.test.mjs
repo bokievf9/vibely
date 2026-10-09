@@ -2827,6 +2827,81 @@ export async function run(db) {
     await su(`delete from random_chat_queue`)
   })()
   // ===== end feed conversations =====
+  // ===== Blind Dating Nights x feed conversations (20261009000210 + 20261009000220) =====
+  // 220 redefines get_blind_session, blind_decide, randomizer_join and event_requeue after 210:
+  // both behaviours must survive (event pool + re-queue after a Pass, and kind / context / reveal
+  // lock), and post / prompt conversations never enter an event pool.
+  await (async () => {
+    const U = (i) => `cb000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    const M = U(1), W = U(2), P = U(3), ADM = U(4)
+    for (const [i, u] of [M, W, P, ADM].entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601499900' + String(i).padStart(2, '0')])
+    for (const [u, name, g, w, bd] of [[M, 'Cb Hakim', 'male', '{female}', '1996-05-05'], [W, 'Cb Intan', 'female', '{male}', '1997-05-05'],
+      [P, 'Cb Poster', 'female', '{male}', '1995-05-05'], [ADM, 'Cb Admin', 'male', '{female}', '1990-05-05']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,$2,$3,$4,'Ipoh','SRID=4326;POINT(101.08 4.6)')`, [name, bd, g, w])
+    await su(`update profiles set verification_status='approved' where id::text like 'cb000000-%'`)
+    await su(`insert into admins (user_id, role) values ($1, 'admin')`, [ADM])
+    await su(`delete from random_chat_queue`)
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const at = async (expr) => (await su(`select ${expr} t`)).rows[0].t
+    const join = async (u, ev, genders) => (await as(u, `select randomizer_join($1, 18, 99, '{}', $2) s`, [genders, ev])).rows[0].s
+    const queue = async () => (await su(`select user_id, event_id from random_chat_queue order by user_id`)).rows
+    const bs = async (u, sid) => (await as(u, `select * from get_blind_session($1)`, [sid])).rows[0]
+    const decide = async (u, sid, c) => (await as(u, `select blind_decide($1, $2) r`, [sid, c])).rows[0].r
+
+    // A live night
+    const ev = (await svc(`select admin_upsert_event($1, null, 'Combo Night', 'Malam Kombo', 'Комбо', null, $2, $3, null, 'scheduled') id`,
+      [ADM, await at(`now() + interval '5 minutes'`), await at(`now() + interval '90 minutes'`)])).rows[0].id
+    await su(`update scheduled_events set starts_at = now() - interval '1 minute' where id=$1`, [ev])
+    await svc(`select event_tick()`)
+
+    // M has an open private reply on P's post (kind 'post', active the whole time)
+    const post = (await as(P, `select create_post('Combo: anyone in Ipoh tonight?') id`)).rows[0].id
+    const postSid = (await as(M, `select start_post_conversation($1, 'me!') r`, [post])).rows[0].r.session_id
+    ok('combo: a private reply never enters a queue', (await queue()).length === 0)
+
+    // Event path with an open post conversation: M waits in the event pool, W pairs with him
+    ok('combo: event join is not hijacked by an open post conversation', (await join(M, ev, '{female}')) === null &&
+       JSON.stringify(await queue()) === JSON.stringify([{ user_id: M, event_id: ev }]))
+    const es = await join(W, ev, '{male}')
+    const row = es && (await su(`select kind, event_id, user_a, user_b from random_chat_sessions where id=$1`, [es])).rows[0]
+    ok('combo: event session is kind blind with the event id', row?.kind === 'blind' && row.event_id === ev && row.user_a === M && row.user_b === W, JSON.stringify(row))
+    const cur = (await as(M, `select * from get_blind_session()`)).rows[0]
+    ok('combo: get_blind_session() returns the event date (not the post conversation) with event_id and kind',
+       cur?.id === es && cur.event_id === ev && cur.kind === 'blind' && cur.context === null && cur.my_messages === 0 && cur.revealed_from_start === false, JSON.stringify(cur))
+    const pv = await bs(M, postSid)
+    ok('combo: get_blind_session(post) returns kind, context and no event', pv.kind === 'post' && pv.event_id === null && pv.context?.body === 'Combo: anyone in Ipoh tonight?' && pv.my_messages === 1, JSON.stringify(pv))
+
+    // Pass during the live night re-queues both, even though M still has an open post conversation
+    await as(M, `select randomizer_send($1, 'hey')`, [es])
+    ok('combo: event pass', (await decide(W, es, false)).state === 'passed')
+    const q = await queue()
+    ok('combo: pass re-queues both into the event pool with 220 applied', q.length === 2 && q.every((r) => r.event_id === ev) &&
+       q.map((r) => r.user_id).sort().join() === [M, W].sort().join(), JSON.stringify(q))
+    ok('combo: post conversation untouched by the event pass', (await bs(M, postSid)).state === 'active')
+
+    // Reveal lock on the post conversation still holds; Pass there never re-queues anyone
+    ok('combo: post reveal lock (P0423) still enforced', (await fails(() => decide(M, postSid, true)))?.includes('Reveal locked'))
+    await su(`delete from random_chat_queue`)
+    ok('combo: post pass does not queue anyone', (await decide(P, postSid, false)).state === 'passed' && (await queue()).length === 0)
+    ok('combo: a post / prompt session can never carry an event id',
+       !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, post_id, started_by, event_id) values ($1, $2, 'post', $3, $2, $4)`, [P, W, post, ev]))))
+
+    // Non-event path unchanged: normal pool, kind blind, no event, a pass does not re-queue
+    ok('combo: non-event join waits in the normal pool', (await join(M, null, '{female}')) === null &&
+       JSON.stringify(await queue()) === JSON.stringify([{ user_id: M, event_id: null }]))
+    const ns = await join(W, null, '{male}')
+    const nrow = ns && (await su(`select kind, event_id from random_chat_sessions where id=$1`, [ns])).rows[0]
+    ok('combo: non-event session is kind blind without event', nrow?.kind === 'blind' && nrow.event_id === null, JSON.stringify(nrow))
+    ok('combo: get_blind_session for a normal date', (await bs(W, ns)).event_id === null && (await bs(W, ns)).kind === 'blind')
+    ok('combo: normal pass does not re-queue', (await decide(M, ns, false)).state === 'passed' && (await queue()).length === 0)
+    ok('combo: one randomizer_join (5 args) with the kind filter and event pool',
+       (await su(`select count(*)::int c, max(pronargs)::int n, bool_and(pg_get_functiondef(oid) like '%kind = ''blind''%' and pg_get_functiondef(oid) like '%event_id is not distinct from p_event_id%') k
+                  from pg_proc where proname = 'randomizer_join' and pronamespace = 'public'::regnamespace`)).rows.every((r) => r.c === 1 && r.n === 5 && r.k))
+    ok('combo: event_requeue ignores post / prompt conversations', (await su(`select pg_get_functiondef('public.event_requeue'::regproc) d`)).rows[0].d.includes("s.kind = 'blind'"))
+    await svc(`select admin_cancel_event($1, $2, 'test over')`, [ADM, ev])
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end Blind Dating Nights x feed conversations =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail
