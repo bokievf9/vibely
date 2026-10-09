@@ -3109,6 +3109,253 @@ export async function run(db) {
   })()
   // ===== end matchmaker & incognito =====
 
+  // ===== duo dating (20261009000260, 20261009000261) =====
+  await (async () => {
+    const ids = Array.from({ length: 12 }, (_, i) => `de000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, E, F, G, H, I, J, K, ADM] = ids
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601577700' + String(i).padStart(2, '0')])
+    // A, B: men who like women (team X). C, D: women who like men (team Y). E: woman, F: woman aged
+    // 50 (team Z, F outside X's age range). G: woman, H: man who likes women (team W: H fits nobody
+    // in X). I, J: women (team V, far away). K: a woman for blocks. ADM: moderator.
+    const people = [
+      [A, 'male', '{female}', '1996-04-04', 101.671, 3.13], [B, 'male', '{female}', '1998-04-04', 101.672, 3.13],
+      [C, 'female', '{male}', '1997-04-04', 101.673, 3.13], [D, 'female', '{male}', '1999-04-04', 101.674, 3.13],
+      [E, 'female', '{male}', '1997-04-04', 101.675, 3.13], [F, 'female', '{male}', '1976-04-04', 101.676, 3.13],
+      [G, 'female', '{male}', '1997-04-04', 101.677, 3.13], [H, 'male', '{female}', '1997-04-04', 101.678, 3.13],
+      [I, 'female', '{male}', '1997-04-04', 103.76, 1.46], [J, 'female', '{male}', '1997-04-04', 103.77, 1.46],
+      [K, 'female', '{male}', '1997-04-04', 101.679, 3.13], [ADM, 'male', '{female}', '1990-01-01', 101.68, 3.13],
+    ]
+    for (const [i, [u, g, want, bd, lon, lat]] of people.entries()) {
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location, username)
+         values ($1,$2,$3,$4,'Kuala Lumpur','SRID=4326;POINT(${lon} ${lat})',$5)`, ['Duo' + i, bd, g, want, 'duo_user_' + i])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
+    for (const u of ids) await su(`insert into profile_photos (profile_id, storage_path, width, height, position) values ($1, $2, 720, 960, 0)`, [u, `${u}/p.webp`])
+    await su(`insert into admins (user_id, role) values ($1, 'moderator')`, [ADM])
+    const rpc = async (u, fn, args = []) => (await as(u, `select ${fn}(${args.map((_, i) => '$' + (i + 1)).join(',')}) r`, args)).rows[0]?.r
+    const err = (u, fn, args = []) => fails(() => rpc(u, fn, args))
+    const myDuo = (u) => rpc(u, 'get_my_duo')
+    const deck = async (u) => (await rpc(u, 'get_duo_candidates')).map((c) => c.team_id)
+    const teamOf = async (u) => (await su(`select duo_active_team($1) t`, [u])).rows[0].t
+    const logs = async (action, target) => (await su(`select count(*)::int c from moderation_actions where action=$1 and target_id=$2`, [action, target])).rows[0].c
+
+    // --- team lifecycle
+    ok('duo: no team at first', (await myDuo(A)).team === null && (await myDuo(A)).invites.length === 0)
+    const inv = await rpc(A, 'duo_invite', [B])
+    ok('duo: invite by user returns team and code', /^[a-z0-9]{8}$/.test(inv.code) && !!inv.team_id, JSON.stringify(inv))
+    ok('duo: inviter sees pending team', (await myDuo(A)).team?.status === 'pending' && (await myDuo(A)).team?.partner?.id === B)
+    ok('duo: invitee sees the invite', (await myDuo(B)).invites[0]?.team_id === inv.team_id && (await myDuo(B)).invites[0]?.from?.display_name === 'Duo0')
+    ok('duo: invitee got a realtime signal', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='duo'`, ['inbox:' + B])).rows[0].c === 1)
+    ok('duo: cannot invite yourself', !!(await err(A, 'duo_invite', [A])))
+    ok('duo: only the invitee can accept', (await err(C, 'duo_accept', [inv.team_id]))?.includes('Invite not found'))
+    ok('duo: wrong code rejected', !!(await err(C, 'duo_accept', [null, 'zzzzzzzz'])))
+    await rpc(B, 'duo_accept', [inv.team_id])
+    ok('duo: accepted team is active for both', (await teamOf(A)) === inv.team_id && (await teamOf(B)) === inv.team_id)
+    ok('duo: one active duo per user', (await err(A, 'duo_invite', [C]))?.includes('already have a duo') && (await err(B, 'duo_accept', [inv.team_id]))?.includes('already have a duo'))
+    ok('duo: cannot invite someone who has a duo', (await err(C, 'duo_invite', [A]))?.includes('already has a duo'))
+    ok('duo: teams table closed to clients', !!(await fails(() => as(A, `select * from duo_teams`))) && !!(await fails(() => as(A, `select * from duo_likes`))))
+    // invite link
+    const link = await rpc(C, 'duo_invite')
+    ok('duo: open invite link has no invitee', (await myDuo(C)).team?.partner === null && (await myDuo(D)).invites.length === 0)
+    ok('duo: link accepted by code', (await rpc(D, 'duo_accept', [null, link.code.toUpperCase()])) === link.team_id && (await teamOf(D)) === link.team_id)
+    ok('duo: a used link cannot be accepted again', !!(await err(E, 'duo_accept', [null, link.code])))
+    // accept cancels own pending invite; decline
+    await rpc(E, 'duo_invite')
+    const gi = await rpc(G, 'duo_invite', [E])
+    await rpc(E, 'duo_decline', [gi.team_id])
+    ok('duo: declined invite gone', (await su(`select status, dissolve_reason r from duo_teams where id=$1`, [gi.team_id])).rows[0].r === 'declined' && (await myDuo(G)).team === null)
+    const ef = await rpc(E, 'duo_invite', [F])
+    await rpc(F, 'duo_accept', [ef.team_id])
+    const gh = await rpc(G, 'duo_invite', [H]); await rpc(H, 'duo_accept', [gh.team_id])
+    const ij = await rpc(I, 'duo_invite', [J]); await rpc(J, 'duo_accept', [ij.team_id])
+    const X = inv.team_id, Y = link.team_id, Z = ef.team_id, Wt = gh.team_id, V = ij.team_id
+    // profile
+    ok('duo: bio saved', (await rpc(A, 'duo_set_profile', ['Two friends who love hiking', 18, 30, 50])) === 'ok' && (await myDuo(B)).team?.bio === 'Two friends who love hiking' && (await myDuo(B)).team?.max_age === 30)
+    ok('duo: bio over 120 characters rejected', !!(await err(B, 'duo_set_profile', ['x'.repeat(121)])))
+    ok('duo: suspicious bio held', (await rpc(C, 'duo_set_profile', ['DM us on whatsapp 0123456789'])) === 'held' && (await myDuo(D)).team?.bio_status === 'held')
+    ok('duo: profile needs an active duo', !!(await err(K, 'duo_set_profile', ['hi'])))
+
+    // --- deck: both-way compatibility and exclusions (X: men 18-30 who like women)
+    ok('duo: deck shows compatible duos only', JSON.stringify((await deck(A)).sort()) === JSON.stringify([Y].sort()), JSON.stringify(await deck(A)))
+    ok('duo: Z excluded (F is 50, outside X age range)', !(await deck(B)).includes(Z) && !(await deck(E)).includes(X))
+    ok('duo: W excluded (H fits nobody in X)', !(await deck(A)).includes(Wt) && !(await deck(G)).includes(X))
+    ok('duo: V excluded (leaders too far apart)', !(await deck(A)).includes(V))
+    await su(`update duo_teams set max_km = 300 where id in ($1, $2)`, [X, V])
+    ok('duo: distance uses both teams limits', (await deck(A)).includes(V))
+    await su(`update duo_teams set max_km = 50 where id in ($1, $2)`, [X, V])
+    ok('duo: held bio hidden from others', (await rpc(A, 'get_duo_candidates')).find((c) => c.team_id === Y)?.bio === null)
+    await rpc(C, 'duo_set_profile', ['Coffee and hikes'])
+    const card = (await rpc(A, 'get_duo_candidates')).find((c) => c.team_id === Y)
+    ok('duo: card carries both members, bio and distance', card?.bio === 'Coffee and hikes' && card?.members?.length === 2 && card.members[0].id === C && card.members[1].display_name === 'Duo3' && typeof card.distance_km === 'number' && !!card.members[0].photo?.path, JSON.stringify(card))
+    ok('duo: own team never shown', !(await deck(A)).includes(X))
+    for (const [label, sql] of [
+      ['paused member', `update profiles set discoverable=false where id=$1`],
+      ['incognito member', `update profiles set is_incognito=true where id=$1`],
+      ['shadow-banned member', `update profiles set shadow_banned=true where id=$1`],
+    ]) {
+      await su(sql, [D])
+      ok(`duo: ${label} hides the duo`, !(await deck(A)).includes(Y))
+      await su(`update profiles set discoverable=true, is_incognito=false, shadow_banned=false where id=$1`, [D])
+    }
+    ok('duo: deck restored', (await deck(A)).includes(Y))
+    await as(K, `insert into blocks (blocked_id) values ($1)`, [ADM])
+    ok('duo: cannot invite someone who blocked you', !!(await err(ADM, 'duo_invite', [K])))
+    await su(`delete from blocks where blocker_id=$1`, [K])
+    await as(C, `insert into blocks (blocked_id) values ($1)`, [B])
+    ok('duo: block between any members excludes the duo', !(await deck(A)).includes(Y) && !(await deck(D)).includes(X))
+    await su(`delete from blocks where blocker_id=$1`, [C])
+    ok('duo: no duo means an empty deck', (await deck(K)).length === 0)
+
+    // --- likes: team decision, partner inbox, undo window, mutual => match + group
+    const d1 = await rpc(A, 'duo_decide', [Y, true])
+    ok('duo: like is not a match yet', d1.matched === false && d1.group_id === null, JSON.stringify(d1))
+    const inbox = await rpc(B, 'get_duo_inbox')
+    ok('duo: partner sees who liked', inbox.length === 1 && inbox[0].by.display_name === 'Duo0' && inbox[0].mine === false && inbox[0].can_undo === true && inbox[0].team.members.length === 2, JSON.stringify(inbox))
+    ok('duo: partner got a realtime signal', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='duo' and payload->>'kind'='like'`, ['inbox:' + B])).rows[0].c === 1)
+    ok('duo: liked duo leaves the deck', !(await deck(B)).includes(Y))
+    ok('duo: deciding twice is idempotent', (await rpc(B, 'duo_decide', [Y, false])).decided === 'like')
+    ok('duo: partner can undo within 1 hour', (await rpc(B, 'duo_undo_like', [Y])) === true && (await deck(A)).includes(Y) && (await rpc(A, 'get_duo_inbox')).length === 0)
+    await rpc(B, 'duo_decide', [Y, true])
+    await su(`update duo_likes set created_at = now() - interval '61 minutes' where team_id=$1 and target_team_id=$2`, [X, Y])
+    ok('duo: undo refused after 1 hour', (await rpc(A, 'duo_undo_like', [Y])) === false && (await rpc(A, 'get_duo_inbox'))[0]?.can_undo === false)
+    ok('duo: pass needs no compatibility', (await rpc(E, 'duo_decide', [X, false])).matched === false)
+    ok('duo: cannot like an incompatible duo', (await err(G, 'duo_decide', [X, true]))?.includes('not available'))
+    ok('duo: cannot like your own duo', !!(await err(A, 'duo_decide', [X, true])))
+    const d2 = await rpc(D, 'duo_decide', [X, true])
+    ok('duo: mutual like => duo match + group', d2.matched === true && d2.just_matched === true && !!d2.group_id, JSON.stringify(d2))
+    const G1 = d2.group_id
+    ok('duo: match row', (await su(`select count(*)::int c from duo_matches where group_id=$1 and team_a=least($2::uuid,$3::uuid)`, [G1, X, Y])).rows[0].c === 1)
+    ok('duo: group has 4 members', (await su(`select count(*)::int c from group_members where group_id=$1 and left_at is null`, [G1])).rows[0].c === 4)
+    ok('duo: all four signalled', (await su(`select count(*)::int c from realtime.messages where event='duo' and payload->>'kind'='match' and payload->>'group_id'=$1`, [G1])).rows[0].c === 4)
+    ok('duo: matched duo leaves both decks and inbox shows matched', !(await deck(C)).includes(X) && (await rpc(A, 'get_duo_inbox'))[0]?.matched === true && (await rpc(A, 'get_duo_inbox'))[0]?.group_id === G1)
+    ok('duo: undo impossible once matched', (await rpc(C, 'duo_undo_like', [X])) === false)
+    ok('duo: deciding on a matched duo returns the match', (await rpc(A, 'duo_decide', [Y, true])).group_id === G1)
+
+    // --- group chat
+    const room = await rpc(A, 'get_group_chat', [G1])
+    ok('group: member sees the room with 4 members', room?.members?.length === 4 && room.members.every((m) => m.member_id && m.left === false), JSON.stringify(room))
+    ok('group: non-member sees nothing', (await rpc(E, 'get_group_chat', [G1])) === null && (await as(E, `select count(*)::int c from group_messages where group_id=$1`, [G1])).rows[0].c === 0 && (await as(E, `select count(*)::int c from group_members where group_id=$1`, [G1])).rows[0].c === 0)
+    ok('group: system "matched" message', (await as(C, `select system_event e from group_messages where group_id=$1`, [G1])).rows[0]?.e === 'matched')
+    const m1 = (await as(A, `insert into group_messages (group_id, body) values ($1, 'hello both') returning id`, [G1])).rows[0].id
+    ok('group: member sends text', (await as(D, `select body from group_messages where id=$1`, [m1])).rows[0]?.body === 'hello both')
+    ok('group: non-member cannot send', !!(await fails(() => as(E, `insert into group_messages (group_id, body) values ($1, 'x')`, [G1]))))
+    ok('group: clients cannot send system messages', !!(await fails(() => as(A, `insert into group_messages (group_id, kind, system_event) values ($1, 'system', 'left')`, [G1]))))
+    ok('group: photo needs an uploaded file', !!(await fails(() => as(A, `insert into group_messages (group_id, kind, media_path, image_width, image_height) values ($1, 'image', $2, 10, 10)`, [G1, `${G1}/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.webp`]))))
+    const ph = `${G1}/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.webp`
+    ok('storage: non-member cannot upload to the group folder', !!(await fails(() => as(E, `insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [ph]))))
+    await as(B, `insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [ph])
+    const m2 = (await as(B, `insert into group_messages (group_id, kind, media_path, image_width, image_height) values ($1, 'image', $2, 640, 480) returning id`, [G1, ph])).rows[0].id
+    ok('group: photo message stored', !!m2 && (await as(C, `select count(*)::int c from storage.objects where name=$1`, [ph])).rows[0].c === 1)
+    ok('storage: non-member cannot read group photos', (await as(E, `select count(*)::int c from storage.objects where name=$1`, [ph])).rows[0].c === 0)
+    ok('group: messages flagged for risk', await (async () => { await as(C, `insert into group_messages (group_id, body) values ($1, 'add me on whatsapp')`, [G1]); return (await su(`select count(*)::int c from message_flags where source='group' and conversation_id=$1 and sender_id=$2`, [G1, C])).rows[0].c === 1 })())
+    const t = 'group:' + G1
+    await su(`insert into realtime.messages (topic, event, payload) values ($1, 'probe', '{}')`, [t])
+    ok('realtime: member may join group:<id>', (await as(D, `select count(*)::int c from realtime.messages where topic=$1`, [t], t)).rows[0].c === 1)
+    ok('realtime: non-member cannot join group:<id>', (await as(E, `select count(*)::int c from realtime.messages where topic=$1`, [t], t)).rows[0].c === 0)
+    ok('realtime: client cannot write to group:<id>', !!(await fails(() => as(D, `insert into realtime.messages (topic, event, payload) values ($1,'message','{}')`, [t], t))))
+    const tt = 'group-typing:' + G1
+    ok('realtime: member may write typing', !(await fails(() => as(D, `insert into realtime.messages (topic, event, payload) values ($1,'typing','{}')`, [tt], tt))))
+    ok('realtime: non-member cannot write typing', !!(await fails(() => as(E, `insert into realtime.messages (topic, event, payload) values ($1,'typing','{}')`, [tt], tt))))
+    // unread + list
+    const list = await rpc(D, 'get_group_chats')
+    ok('group: chats list with members, last message and unread', list.length === 1 && list[0].group_id === G1 && list[0].members.length === 4 && list[0].unread === 3 && list[0].last_message?.sender_id === C, JSON.stringify(list))
+    ok('group: unread count RPC', (await rpc(D, 'group_unread_count')) === 3 && (await rpc(C, 'group_unread_count')) === 2)
+    await rpc(D, 'group_mark_read', [G1])
+    ok('group: mark read', (await rpc(D, 'group_unread_count')) === 0)
+    // mute
+    await svc(`select admin_set_mute($1,$2,24,'spam')`, [ADM, A])
+    ok('group: muted member cannot send', (await fails(() => as(A, `insert into group_messages (group_id, body) values ($1, 'x')`, [G1])))?.includes('muted'))
+    await svc(`select admin_set_mute($1,$2,0)`, [ADM, A])
+    ok('group: unmuted member sends again', !(await fails(() => as(A, `insert into group_messages (group_id, body) values ($1, 'back')`, [G1]))))
+
+    // --- reports
+    const rep = async (u, type, id) => { await as(u, `insert into reports (target_type, target_id, reason) values ($1, $2, 'harassment: rude')`, [type, id]); return (await su(`select id from reports where target_type=$1 and target_id=$2 and reporter_id=$3`, [type, id, u])).rows[0].id }
+    const r1 = await rep(C, 'group_message', m1)
+    ok('report: group message subject is the sender', (await su(`select subject_id s from reports where id=$1`, [r1])).rows[0].s === A)
+    ok('report: own message cannot be reported', !!(await fails(() => rep(A, 'group_message', m1))))
+    ok('report: non-member cannot report a group message', !!(await fails(() => rep(E, 'group_message', m1))))
+    ok('report: system messages cannot be reported', !!(await fails(async () => rep(C, 'group_message', (await su(`select id from group_messages where group_id=$1 and kind='system' limit 1`, [G1])).rows[0].id))))
+    const memberB = room.members.find((m) => m.id === B).member_id
+    const r2 = await rep(D, 'group_member', memberB)
+    ok('report: group member subject is that user', (await su(`select subject_id s from reports where id=$1`, [r2])).rows[0].s === B)
+    ok('report: non-member cannot report a group member', !!(await fails(() => rep(E, 'group_member', memberB))))
+    ok('report: queue lists group cases', (await svc(`select target_type::text t from admin_report_queue($1) where target_id in ($2, $3) order by t`, [ADM, m1, memberB])).rows.map((r) => r.t).join() === 'group_member,group_message')
+    // evidence
+    const tr = (type, id, reporter, adm = ADM) => svc(`select admin_open_group_transcript($1,$2,$3,$4) r`, [adm, type, id, reporter]).then((r) => r.rows[0].r)
+    const ev = await tr('group_message', m1, C)
+    ok('evidence: group transcript around the reported message', ev.group_id === G1 && ev.members.length === 4 && ev.messages.some((m) => m.id === m1 && m.reported) && ev.messages.some((m) => m.id === m2 && m.has_media) && ev.messages.some((m) => m.system_event === 'matched'), JSON.stringify(ev).slice(0, 300))
+    ok('evidence: transcript access logged', (await logs('evidence.transcript_open', m1)) === 1)
+    ok('evidence: member report shows the latest messages', (await tr('group_member', memberB, D)).messages.length >= 4)
+    ok('evidence: only the reporter of an open report', (await fails(() => tr('group_message', m1, D)))?.includes('open report'))
+    ok('evidence: non-admin refused', !!(await fails(() => tr('group_message', m1, C, A))))
+    ok('evidence: media path logged', (await svc(`select admin_open_group_media($1,'group_message',$2,$3,$4) p`, [ADM, m1, C, m2])).rows[0].p === ph && (await logs('evidence.media_open', m2)) === 1)
+    ok('evidence: 1:1 transcript viewer refuses group reports', !!(await fails(() => svc(`select admin_open_group_transcript($1,'message',$2,$3)`, [ADM, m1, C]))))
+    ok('evidence: clients cannot open transcripts', !!(await fails(() => as(ADM, `select admin_open_group_transcript($1,'group_message',$2,$3)`, [ADM, m1, C]))))
+    // held bio moderation
+    await rpc(G, 'duo_set_profile', ['send money to my account'])
+    const held = (await svc(`select admin_held_duo_bios($1) r`, [ADM])).rows[0].r
+    ok('admin: held bios listed', held.some((h) => h.team_id === Wt && h.members.length === 2), JSON.stringify(held))
+    await svc(`select admin_review_duo_bio($1,$2,false,'scam')`, [ADM, Wt])
+    ok('admin: rejected bio removed and logged', (await myDuo(G)).team?.bio === null && (await myDuo(G)).team?.bio_status === 'ok' && (await logs('duo_bio.reject', Wt)) === 1)
+
+    // --- leave, block, ban
+    ok('group: leave', (await rpc(A, 'group_leave', [G1])) === true && (await rpc(A, 'get_group_chat', [G1])) === null)
+    ok('group: others continue with a system message', (await as(B, `select about_user u from group_messages where group_id=$1 and system_event='left'`, [G1])).rows[0]?.u === A && (await rpc(B, 'get_group_chat', [G1])).members.find((m) => m.id === A).left === true)
+    ok('group: left member cannot send or read', !!(await fails(() => as(A, `insert into group_messages (group_id, body) values ($1, 'x')`, [G1]))) && (await as(A, `select count(*)::int c from group_messages where group_id=$1`, [G1])).rows[0].c === 0)
+    ok('realtime: left member loses the topic', (await as(A, `select count(*)::int c from realtime.messages where topic=$1`, [t], t)).rows[0].c === 0)
+    ok('group: leaving twice is a no-op', (await rpc(A, 'group_leave', [G1])) === false)
+    await as(D, `insert into blocks (blocked_id) values ($1)`, [B])
+    ok('block: blocker leaves the shared group, others see "left"', (await rpc(D, 'get_group_chat', [G1])) === null && (await as(B, `select count(*)::int c from group_messages where group_id=$1 and system_event='left' and about_user=$2`, [G1, D])).rows[0].c === 1)
+    ok('block: blocked member still in the group', (await rpc(B, 'get_group_chat', [G1]))?.members.find((m) => m.id === B).left === false)
+    ok('block: duos stay, future matches prevented', (await teamOf(D)) === Y && (await deck(C)).every((id) => id !== X))
+    await su(`delete from blocks where blocker_id=$1`, [D])
+    // ban
+    await svc(`select admin_ban_user($1,$2,'spam',7)`, [ADM, C])
+    ok('ban: removed from the group with a system message', (await as(B, `select count(*)::int c from group_messages where group_id=$1 and system_event='removed' and about_user=$2`, [G1, C])).rows[0].c === 1)
+    ok('ban: duo dissolved', (await su(`select status, dissolve_reason r from duo_teams where id=$1`, [Y])).rows[0].r === 'ban' && (await teamOf(D)) === null)
+    ok('ban: partner sees no team', (await myDuo(D)).team === null)
+    await svc(`select admin_unban_user($1,$2)`, [(await su(`update admins set role='admin' where user_id=$1 returning user_id`, [ADM])).rows[0].user_id, C])
+    ok('group: last member leaving deletes the group', (await rpc(B, 'group_leave', [G1])) === true && (await su(`select count(*)::int c from group_chats where id=$1`, [G1])).rows[0].c === 0 && (await su(`select group_id g from duo_matches where team_a=least($1::uuid,$2::uuid)`, [X, Y])).rows[0].g === null)
+    // partner block dissolves the duo
+    await as(A, `insert into blocks (blocked_id) values ($1)`, [B])
+    ok('block: blocking the duo partner dissolves the duo', (await su(`select dissolve_reason r from duo_teams where id=$1`, [X])).rows[0].r === 'block')
+    await su(`delete from blocks where blocker_id=$1`, [A])
+    ok('duo: leave dissolves for both', (await rpc(I, 'duo_leave')) === true && (await teamOf(J)) === null && (await myDuo(J)).team === null)
+
+    // --- retention
+    await su(`update group_messages set created_at = now() - interval '91 days' where id=$1`, [m2]).catch(() => null)
+    const G2 = await (async () => {
+      // A fresh match for retention: X2 (A, B) and Y2 (C, D).
+      const x2 = await rpc(A, 'duo_invite', [B]); await rpc(B, 'duo_accept', [x2.team_id])
+      const y2 = await rpc(C, 'duo_invite', [D]); await rpc(D, 'duo_accept', [y2.team_id])
+      await rpc(A, 'duo_decide', [y2.team_id, true])
+      return (await rpc(C, 'duo_decide', [x2.team_id, true])).group_id
+    })()
+    const ph2 = `${G2}/cccccccc-cccc-4ccc-8ccc-cccccccccccc.webp`
+    await as(A, `insert into storage.objects (bucket_id, name) values ('chat-media', $1)`, [ph2])
+    const m3 = (await as(A, `insert into group_messages (group_id, kind, media_path, image_width, image_height) values ($1, 'image', $2, 10, 10) returning id`, [G2, ph2])).rows[0].id
+    ok('retention: group photo is not an orphan', !(await su(`select retention_orphan_chat_media() p`)).rows.some((r) => r.p === ph2) && await (async () => { await su(`update storage.objects set created_at = now() - interval '2 days' where name=$1`, [ph2]); return !(await su(`select retention_orphan_chat_media() p`)).rows.some((r) => r.p === ph2) })())
+    // The earlier group reports (subjects A and B) still hold everything of A and B: close them.
+    await su(`update reports set resolved_at = now() where id in ($1, $2)`, [r1, r2])
+    ok('retention: fresh photo not due', (await su(`select count(*)::int c from retention_group_media()`)).rows[0].c === 0)
+    await su(`update group_messages set created_at = now() - interval '91 days' where id=$1`, [m3])
+    ok('retention: old photo due', (await su(`select message_id from retention_group_media()`)).rows.map((r) => r.message_id).join() === m3)
+    const r3 = await rep(C, 'group_message', m3)
+    ok('retention: kept under an open report', (await su(`select count(*)::int c from retention_group_media()`)).rows[0].c === 0)
+    await su(`update reports set resolved_at = now() where id=$1`, [r3])
+    ok('retention: file still there => not marked', (await su(`select retention_mark_group_media_expired($1) n`, [[m3]])).rows[0].n === 0)
+    await su(`delete from storage.objects where name=$1`, [ph2])
+    ok('retention: expired placeholder', (await su(`select retention_mark_group_media_expired($1) n`, [[m3]])).rows[0].n === 1 && (await as(B, `select media_path p, media_expired_at e from group_messages where id=$1`, [m3])).rows[0].p === null)
+    ok('retention: text stays while the group exists', (await as(B, `select count(*)::int c from group_messages where group_id=$1`, [G2])).rows[0].c >= 2)
+    await su(`update duo_teams set dissolved_at = now() - interval '91 days' where id=$1`, [Wt])
+    await su(`update duo_teams set dissolved_at = now() - interval '91 days' where id=$1`, [V])
+    const purged = (await su(`select purge_old_duo_data() n`)).rows[0].n
+    ok('retention: old dissolved teams purged', purged >= 1 && (await su(`select count(*)::int c from duo_teams where id=$1`, [V])).rows[0].c === 0 && (await su(`select count(*)::int c from duo_teams where id=$1`, [Wt])).rows[0].c === 1)
+    ok('retention: no anon access', (await su(`select has_function_privilege('anon', 'public.get_duo_candidates(int)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_old_duo_data()', 'execute') v`)).rows[0].v === false)
+  })()
+  // ===== end duo dating =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }

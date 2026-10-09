@@ -16,6 +16,7 @@ export const settingsMs: SettingsDictionary = {
     matchmaker: 'Perkenalan oleh kawan',
     events: 'Malam Temu Janji Buta',
     crush: 'Orang yang anda sukai membalas',
+    duo: 'Temu janji duo',
     post_replies: 'Balasan peribadi pada hantaran anda',
     daily_prompt: 'Soalan hari ini',
   },

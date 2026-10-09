@@ -2,6 +2,7 @@ import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
+import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
@@ -71,6 +72,9 @@ export const en: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.en.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.en.privacy,
+      // --- end duo dating ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -193,6 +197,9 @@ export const en: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.en.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.en.terms,
+      // --- end duo dating ---
       {
         heading: '6. Moderation',
         paragraphs: [

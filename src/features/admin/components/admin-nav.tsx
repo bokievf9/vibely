@@ -17,6 +17,7 @@ import {
   Ticket,
   UserCog,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -38,6 +39,7 @@ const LINKS: NavLink[] = [
   { href: '/admin/log', label: 'Журнал', icon: History },
   { href: '/admin/telegram', label: 'Telegram', icon: Send },
   { href: '/admin/events', label: 'Вечера', icon: CalendarHeart },
+  { href: '/admin/duo', label: 'Дуо', icon: UsersRound },
   { href: '/admin/blocklist', label: 'Блок-лист', icon: PhoneOff, min: 'admin' },
   { href: '/admin/promo', label: 'Промокоды', icon: Ticket, min: 'admin' },
   { href: '/admin/team', label: 'Команда', icon: UserCog, min: 'owner' },

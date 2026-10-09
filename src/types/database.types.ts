@@ -182,6 +182,301 @@ export type Database = {
           },
         ]
       }
+      duo_teams: {
+        Row: {
+          accepted_at: string | null
+          bio: string | null
+          bio_status: string
+          created_at: string
+          dissolve_reason: string | null
+          dissolved_at: string | null
+          id: string
+          invite_code: string | null
+          max_age: number
+          max_km: number
+          min_age: number
+          status: string
+          user_a: string
+          user_b: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          bio?: string | null
+          bio_status?: string
+          created_at?: string
+          dissolve_reason?: string | null
+          dissolved_at?: string | null
+          id?: string
+          invite_code?: string | null
+          max_age?: number
+          max_km?: number
+          min_age?: number
+          status?: string
+          user_a: string
+          user_b?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          bio?: string | null
+          bio_status?: string
+          created_at?: string
+          dissolve_reason?: string | null
+          dissolved_at?: string | null
+          id?: string
+          invite_code?: string | null
+          max_age?: number
+          max_km?: number
+          min_age?: number
+          status?: string
+          user_a?: string
+          user_b?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_teams_user_a_fkey'
+            columns: ['user_a']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_teams_user_b_fkey'
+            columns: ['user_b']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      duo_likes: {
+        Row: {
+          created_at: string
+          direction: Database['public']['Enums']['swipe_direction']
+          target_team_id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: Database['public']['Enums']['swipe_direction']
+          target_team_id: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: Database['public']['Enums']['swipe_direction']
+          target_team_id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_likes_team_id_fkey'
+            columns: ['team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_likes_target_team_id_fkey'
+            columns: ['target_team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_likes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      duo_matches: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          team_a: string
+          team_b: string
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          team_a: string
+          team_b: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          team_a?: string
+          team_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_matches_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_matches_team_a_fkey'
+            columns: ['team_a']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_matches_team_b_fkey'
+            columns: ['team_b']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      group_chats: {
+        Row: {
+          created_at: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          left_at: string | null
+          left_reason: string | null
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          left_reason?: string | null
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          left_reason?: string | null
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'group_members_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_members_team_id_fkey'
+            columns: ['team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_members_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          about_user: string | null
+          body: string | null
+          created_at: string
+          group_id: string
+          id: string
+          image_height: number | null
+          image_width: number | null
+          kind: string
+          media_expired_at: string | null
+          media_path: string | null
+          sender_id: string | null
+          system_event: string | null
+        }
+        Insert: {
+          about_user?: string | null
+          body?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          image_height?: number | null
+          image_width?: number | null
+          kind?: string
+          media_expired_at?: string | null
+          media_path?: string | null
+          sender_id?: string | null
+          system_event?: string | null
+        }
+        Update: {
+          about_user?: string | null
+          body?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          image_height?: number | null
+          image_width?: number | null
+          kind?: string
+          media_expired_at?: string | null
+          media_path?: string | null
+          sender_id?: string | null
+          system_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'group_messages_about_user_fkey'
+            columns: ['about_user']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_messages_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_messages_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       user_plans: {
         Row: {
           created_at: string
@@ -926,6 +1221,7 @@ export type Database = {
       notification_prefs: {
         Row: {
           calls: boolean
+          duo: boolean
           events: boolean
           crush: boolean
           daily_prompt: boolean
@@ -942,6 +1238,7 @@ export type Database = {
         }
         Insert: {
           calls?: boolean
+          duo?: boolean
           events?: boolean
           crush?: boolean
           daily_prompt?: boolean
@@ -958,6 +1255,7 @@ export type Database = {
         }
         Update: {
           calls?: boolean
+          duo?: boolean
           events?: boolean
           crush?: boolean
           daily_prompt?: boolean
@@ -3482,6 +3780,56 @@ export type Database = {
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
       touch_last_active: { Args: never; Returns: undefined }
       under_evidence_hold: { Args: { p_user: string }; Returns: boolean }
+      admin_held_duo_bios: { Args: { p_admin: string; p_limit?: number }; Returns: Json }
+      admin_open_group_media: {
+        Args: {
+          p_admin: string
+          p_message: string
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: string
+      }
+      admin_open_group_transcript: {
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: Json
+      }
+      admin_review_duo_bio: {
+        Args: { p_admin: string; p_approve: boolean; p_reason?: string; p_team: string }
+        Returns: undefined
+      }
+      duo_accept: { Args: { p_code?: string; p_team?: string }; Returns: string }
+      duo_decide: { Args: { p_like: boolean; p_team: string }; Returns: Json }
+      duo_decline: { Args: { p_team: string }; Returns: boolean }
+      duo_invite: { Args: { p_user?: string }; Returns: Json }
+      duo_leave: { Args: never; Returns: boolean }
+      duo_set_profile: {
+        Args: { p_bio: string; p_max_age?: number; p_max_km?: number; p_min_age?: number }
+        Returns: string
+      }
+      duo_undo_like: { Args: { p_team: string }; Returns: boolean }
+      get_duo_candidates: { Args: { p_limit?: number }; Returns: Json }
+      get_duo_inbox: { Args: never; Returns: Json }
+      get_group_chat: { Args: { p_group: string }; Returns: Json }
+      get_group_chats: { Args: never; Returns: Json }
+      get_my_duo: { Args: never; Returns: Json }
+      group_leave: { Args: { p_group: string }; Returns: boolean }
+      group_mark_read: { Args: { p_group: string }; Returns: undefined }
+      group_unread_count: { Args: never; Returns: number }
+      is_group_member: { Args: { g: string }; Returns: boolean }
+      purge_old_duo_data: { Args: never; Returns: number }
+      retention_group_media: {
+        Args: { p_limit?: number }
+        Returns: { message_id: string; path: string }[]
+      }
+      retention_mark_group_media_expired: { Args: { p_ids: string[] }; Returns: number }
       unread_message_count: { Args: never; Returns: number }
       username_base: { Args: { p_name: string }; Returns: string }
       username_error: { Args: { u: string }; Returns: string }
@@ -3512,7 +3860,7 @@ export type Database = {
         | 'other'
         | 'none'
         | 'prefer_not_to_say'
-      report_target: 'user' | 'post' | 'comment' | 'random_session' | 'message' | 'photo' | 'call'
+      report_target: 'user' | 'post' | 'comment' | 'random_session' | 'message' | 'photo' | 'call' | 'group_message' | 'group_member'
       spoken_language:
         | 'malay'
         | 'english'
@@ -3673,7 +4021,17 @@ export const Constants = {
         'none',
         'prefer_not_to_say',
       ],
-      report_target: ['user', 'post', 'comment', 'random_session', 'message', 'photo', 'call'],
+      report_target: [
+        'user',
+        'post',
+        'comment',
+        'random_session',
+        'message',
+        'photo',
+        'call',
+        'group_message',
+        'group_member',
+      ],
       spoken_language: [
         'malay',
         'english',

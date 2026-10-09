@@ -17,6 +17,8 @@ export const REPORT_TARGETS = [
   'post',
   'comment',
   'random_session',
+  'group_message',
+  'group_member',
 ] as const satisfies readonly ReportTarget[]
 
 export const REASON_CODES = REPORT_REASONS

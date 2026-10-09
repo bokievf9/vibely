@@ -13,6 +13,7 @@ export const NOTIFICATION_TYPES = [
   'matchmaker',
   'events',
   'crush',
+  'duo',
   'post_replies',
   'daily_prompt',
 ] as const
@@ -33,6 +34,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   matchmaker: true,
   events: true,
   crush: true,
+  duo: true,
   post_replies: true,
   daily_prompt: true,
 }

@@ -20,6 +20,7 @@ import { incognitoMs, matchmakerMs, matchmakerErrorsMs } from './matchmaker/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
 import { crushMs } from './crush/ms'
 import { promoMs, promoErrorsMs } from './promo/ms'
+import { duoMs, duoErrorsMs } from './duo/ms'
 import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 
 export const ms: Dictionary = {
@@ -47,6 +48,7 @@ export const ms: Dictionary = {
     ...matchmakerErrorsMs,
     ...eventErrorsMs,
     ...promoErrorsMs,
+    ...duoErrorsMs,
     ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
@@ -412,5 +414,6 @@ export const ms: Dictionary = {
   events: eventsMs,
   crush: crushMs,
   promo: promoMs,
+  duo: duoMs,
   conversations: conversationsMs,
 }

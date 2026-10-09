@@ -16,6 +16,7 @@ import { PushToggle } from '@/features/push/components/push-toggle'
 import { BlockedUsers } from '@/features/settings/components/blocked-users'
 import { IncognitoToggle } from '@/features/settings/components/incognito-toggle'
 import { NotificationPrefsRows } from '@/features/settings/components/notification-prefs'
+import { duoAvailable } from '@/features/duo/queries'
 import { PauseToggle } from '@/features/settings/components/pause-toggle'
 import { PromoSettingsRow } from '@/features/promo/components/promo-settings'
 import { getVipStatus } from '@/features/promo/queries'
@@ -54,7 +55,7 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito] =
+  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito, duo] =
     await Promise.all([
       getPrivacySettings(viewer.id),
       getNotificationPrefs(viewer.id),
@@ -65,6 +66,8 @@ async function Settings() {
       // Null until the promo migration (20261009000230) is applied: the row is hidden then.
       getVipStatus(),
       getIncognito(viewer.id),
+      // False until the Duo Dating migration (20261009000261): its switch is hidden then.
+      duoAvailable(),
     ])
 
   return (
@@ -82,7 +85,7 @@ async function Settings() {
       </SettingsSection>
       <SettingsSection title={dict.settings.notifications}>
         <PushToggle />
-        <NotificationPrefsRows initial={prefs} />
+        <NotificationPrefsRows initial={prefs} hidden={duo ? [] : ['duo']} />
       </SettingsSection>
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />

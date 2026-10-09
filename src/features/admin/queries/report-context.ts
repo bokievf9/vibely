@@ -8,6 +8,8 @@ import { signUrls } from './storage'
 type Target = {
   targetType: Enums<'report_target'>
   targetId: string
+  // reports.subject_id: the reported person (group reports: target_id is not a user id).
+  subjectId?: string | null
   reasons: { reporterId: string }[]
 }
 type Person = { id: string; name: string }
@@ -33,6 +35,9 @@ export type ReportContext =
     }
   | { kind: 'photo'; offender: Person; url: string | null; width: number; height: number }
   | { kind: 'call'; offender: Person; call: ReportCall | null; calls: ReportCall[] }
+  // Duo Dating group chats: text only in the logged group transcript viewer (evidence-actions).
+  | { kind: 'group_message'; offender: Person; image: boolean; sentAt: string }
+  | { kind: 'group_member'; offender: Person; leftAt: string | null; leftReason: string | null }
 
 const ids = (targets: Target[], type: Target['targetType']) =>
   targets.filter((t) => t.targetType === type).map((t) => t.targetId)
@@ -45,35 +50,58 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     name: p?.display_name ?? '—',
   })
 
-  const [users, posts, comments, sessions, messages, archived, photos, callRows] =
-    await Promise.all([
-      db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
-      db
-        .from('posts')
-        .select('id, body, is_hidden, author_id, profiles(display_name)')
-        .in('id', ids(targets, 'post')),
-      db
-        .from('comments')
-        .select('id, body, is_hidden, post_id, author_id, profiles(display_name)')
-        .in('id', ids(targets, 'comment')),
-      db
-        .from('random_chat_sessions')
-        .select('id, user_a, user_b')
-        .in('id', ids(targets, 'random_session')),
-      db
-        .from('messages')
-        .select('id, sender_id, media_kind, created_at, deleted_at')
-        .in('id', ids(targets, 'message')),
-      db
-        .from('message_deletions')
-        .select('message_id, sender_id, media_kind, sent_at')
-        .in('message_id', ids(targets, 'message')),
-      db
-        .from('profile_photos')
-        .select('id, profile_id, storage_path, width, height, profiles(display_name)')
-        .in('id', ids(targets, 'photo')),
-      getCallsByIds(ids(targets, 'call')),
-    ])
+  const [
+    users,
+    posts,
+    comments,
+    sessions,
+    messages,
+    archived,
+    photos,
+    callRows,
+    groupMessages,
+    groupMembers,
+  ] = await Promise.all([
+    db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
+    db
+      .from('posts')
+      .select('id, body, is_hidden, author_id, profiles(display_name)')
+      .in('id', ids(targets, 'post')),
+    db
+      .from('comments')
+      .select('id, body, is_hidden, post_id, author_id, profiles(display_name)')
+      .in('id', ids(targets, 'comment')),
+    db
+      .from('random_chat_sessions')
+      .select('id, user_a, user_b')
+      .in('id', ids(targets, 'random_session')),
+    db
+      .from('messages')
+      .select('id, sender_id, media_kind, created_at, deleted_at')
+      .in('id', ids(targets, 'message')),
+    db
+      .from('message_deletions')
+      .select('message_id, sender_id, media_kind, sent_at')
+      .in('message_id', ids(targets, 'message')),
+    db
+      .from('profile_photos')
+      .select('id, profile_id, storage_path, width, height, profiles(display_name)')
+      .in('id', ids(targets, 'photo')),
+    getCallsByIds(ids(targets, 'call')),
+    // Metadata only (no body): the text is read in the logged transcript viewer.
+    ids(targets, 'group_message').length
+      ? db
+          .from('group_messages')
+          .select('id, sender_id, kind, created_at')
+          .in('id', ids(targets, 'group_message'))
+      : { data: [] },
+    ids(targets, 'group_member').length
+      ? db
+          .from('group_members')
+          .select('id, user_id, left_at, left_reason')
+          .in('id', ids(targets, 'group_member'))
+      : { data: [] },
+  ])
 
   // Calls between the reported user and the reporters (recordings: see call-recordings.ts).
   const userCalls = await Promise.all(
@@ -114,6 +142,18 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
   messages.data?.forEach((m) => subjectIds.add(m.sender_id))
   archived.data?.forEach((m) => subjectIds.add(m.sender_id))
   callRows.forEach((c) => c.parties.forEach((p) => subjectIds.add(p)))
+  // Group reports: the reported person is reports.subject_id (fallback: sender or member).
+  const subjectOf = (type: Target['targetType'], id: string) =>
+    targets.find((t) => t.targetType === type && t.targetId === id)?.subjectId ?? null
+  const groupSubjects = new Map<string, string>()
+  groupMessages.data?.forEach((m) => {
+    const subject = subjectOf('group_message', m.id) ?? m.sender_id
+    if (subject) groupSubjects.set(`group_message:${m.id}`, subject)
+  })
+  groupMembers.data?.forEach((m) =>
+    groupSubjects.set(`group_member:${m.id}`, subjectOf('group_member', m.id) ?? m.user_id),
+  )
+  groupSubjects.forEach((id) => subjectIds.add(id))
   const { data: subjectProfiles } = subjectIds.size
     ? await db
         .from('profiles')
@@ -168,6 +208,27 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       calls: (await getCallsBetween(offenderId, reporters)).filter((c) => c.id !== id),
     })
   }
+
+  groupMessages.data?.forEach((m) => {
+    const subject = groupSubjects.get(`group_message:${m.id}`)
+    if (!subject) return
+    out.set(`group_message:${m.id}`, {
+      kind: 'group_message',
+      offender: nameOf(subject),
+      image: m.kind === 'image',
+      sentAt: m.created_at,
+    })
+  })
+  groupMembers.data?.forEach((m) => {
+    const subject = groupSubjects.get(`group_member:${m.id}`)
+    if (!subject) return
+    out.set(`group_member:${m.id}`, {
+      kind: 'group_member',
+      offender: nameOf(subject),
+      leftAt: m.left_at,
+      leftReason: m.left_reason,
+    })
+  })
 
   for (const s of sessions.data ?? []) {
     const target = targets.find((t) => t.targetId === s.id)

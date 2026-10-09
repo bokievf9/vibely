@@ -19,6 +19,7 @@ import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from './matchmaker/en'
 import { eventErrorsEn, eventsEn } from './events/en'
 import { crushEn } from './crush/en'
 import { promoEn, promoErrorsEn } from './promo/en'
+import { duoEn, duoErrorsEn } from './duo/en'
 import { conversationErrorsEn, conversationsEn } from './conversations/en'
 
 export const en = {
@@ -46,6 +47,7 @@ export const en = {
     ...matchmakerErrorsEn,
     ...eventErrorsEn,
     ...promoErrorsEn,
+    ...duoErrorsEn,
     ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
@@ -405,6 +407,7 @@ export const en = {
   events: eventsEn,
   crush: crushEn,
   promo: promoEn,
+  duo: duoEn,
   conversations: conversationsEn,
 }
 

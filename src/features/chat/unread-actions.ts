@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 
-export type UnreadSummary = { userId: string; count: number }
+// groups: Duo group chats exist on this database (their messages count too).
+export type UnreadSummary = { userId: string; count: number; groups: boolean }
 
 const countSchema = z.number().int().nonnegative()
 
@@ -15,8 +16,17 @@ export async function getUnreadSummary(): Promise<UserResult<UnreadSummary>> {
   const { data: claims } = await supabase.auth.getClaims()
   const userId = z.uuid().safeParse(claims?.claims.sub)
   if (!userId.success) return fail('unauthorized')
-  const { data, error } = await supabase.rpc('unread_message_count')
+  const [{ data, error }, group] = await Promise.all([
+    supabase.rpc('unread_message_count'),
+    // Duo group chats (20261009000261); absent before the migration: 0.
+    supabase.rpc('group_unread_count'),
+  ])
   const count = countSchema.safeParse(data)
   if (error || !count.success) return fail('generic')
-  return ok({ userId: userId.data, count: count.data })
+  const groupCount = countSchema.safeParse(group.data)
+  return ok({
+    userId: userId.data,
+    count: count.data + (groupCount.success ? groupCount.data : 0),
+    groups: !group.error,
+  })
 }

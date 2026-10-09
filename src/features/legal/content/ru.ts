@@ -2,6 +2,7 @@ import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
+import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
@@ -74,6 +75,9 @@ export const ru: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ru.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ru.privacy,
+      // --- end duo dating ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [
@@ -196,6 +200,9 @@ export const ru: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ru.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ru.terms,
+      // --- end duo dating ---
       {
         heading: '6. Модерация',
         paragraphs: [

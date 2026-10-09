@@ -29,6 +29,8 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
   const events = 'events' in data ? (data.events ?? true) : true
   // Absent before migration 20261009000250: on.
   const crush = 'crush' in data ? (data.crush ?? true) : true
+  // Absent before migration 20261009000261: on.
+  const duo = 'duo' in data ? (data.duo ?? true) : true
   return {
     new_matches,
     messages,
@@ -39,6 +41,7 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     calls,
     events,
     crush,
+    duo,
     // Columns from 20261009000220: absent (undefined) until that migration is applied = on.
     post_replies: data.post_replies ?? true,
     daily_prompt: data.daily_prompt ?? true,

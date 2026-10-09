@@ -15,6 +15,7 @@ export const settingsEn = {
     matchmaker: 'Introductions by friends',
     events: 'Blind Dating Nights',
     crush: 'Your crush likes you back',
+    duo: 'Duo dating',
     post_replies: 'Private replies to your posts',
     daily_prompt: 'Question of the day',
   },

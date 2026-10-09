@@ -12,6 +12,7 @@ import {
   Newspaper,
   Sparkles,
   UserPlus,
+  UsersRound,
   VenetianMask,
   type LucideIcon,
 } from 'lucide-react'
@@ -35,17 +36,25 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   matchmaker: Handshake,
   events: CalendarHeart,
   crush: HeartHandshake,
+  duo: UsersRound,
   post_replies: MessageSquareLock,
   daily_prompt: Lightbulb,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).
-export function NotificationPrefsRows({ initial }: { initial: NotificationPrefs }) {
+export function NotificationPrefsRows({
+  initial,
+  hidden = [],
+}: {
+  initial: NotificationPrefs
+  // Types whose feature is not on this database yet (their column would not save).
+  hidden?: NotificationType[]
+}) {
   const { dict } = useI18n()
   return (
     <>
       <p className="text-muted px-4 pt-3 text-sm">{dict.settings.notifyTypesHint}</p>
-      {NOTIFICATION_TYPES.map((type) => (
+      {NOTIFICATION_TYPES.filter((type) => !hidden.includes(type)).map((type) => (
         <SwitchRow
           key={type}
           icon={ICONS[type]}

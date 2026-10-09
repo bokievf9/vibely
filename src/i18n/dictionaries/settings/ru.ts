@@ -16,6 +16,7 @@ export const settingsRu: SettingsDictionary = {
     matchmaker: 'Знакомства через друзей',
     events: 'Вечера свиданий вслепую',
     crush: 'Взаимная симпатия по приглашению',
+    duo: 'Дуо-знакомства',
     post_replies: 'Личные ответы на ваши посты',
     daily_prompt: 'Вопрос дня',
   },

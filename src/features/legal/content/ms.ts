@@ -2,6 +2,7 @@ import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
+import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
@@ -74,6 +75,9 @@ export const ms: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ms.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.privacy,
+      // --- end duo dating ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -196,6 +200,9 @@ export const ms: LegalContent = {
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ms.privacy,
       // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.terms,
+      // --- end duo dating ---
       {
         heading: '6. Moderasi',
         paragraphs: [

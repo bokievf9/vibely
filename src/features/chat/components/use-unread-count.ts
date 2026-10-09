@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBrowserClient } from '@/lib/supabase/client'
 import { getUnreadSummary } from '../unread-actions'
 import { onUnreadChanged } from '../unread-signal'
+import { emitDuoSignal } from '@/features/duo/signal'
 
 const DEBOUNCE_MS = 400
 
@@ -13,6 +14,7 @@ const DEBOUNCE_MS = 400
 export function useUnreadCount() {
   const [count, setCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
+  const [groups, setGroups] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const refresh = useCallback(() => {
@@ -22,6 +24,7 @@ export function useUnreadCount() {
       if (!result.ok) return
       setCount(result.data.count)
       setUserId(result.data.userId)
+      setGroups(result.data.groups)
     }, DEBOUNCE_MS)
   }, [])
 
@@ -40,19 +43,33 @@ export function useUnreadCount() {
   useEffect(() => {
     if (!userId) return
     const client = getBrowserClient()
-    const channel = client
+    let channel = client
       .channel(`inbox:${userId}`, { config: { private: true } })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refresh)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, refresh)
+    // Duo group chats (only where the table exists): new group messages, RLS-limited to members.
+    if (groups) {
+      channel = channel.on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages' },
+        refresh,
+      )
+    }
+    channel = channel
+      // Duo invites, partner likes and duo matches (broadcast by the duo RPCs).
+      .on('broadcast', { event: 'duo' }, ({ payload }) => {
+        emitDuoSignal(payload)
+        refresh()
+      })
       // postgres_changes attaches a few seconds after SUBSCRIBED: resync once it is ready.
       .on('system', {}, (payload: { extension?: string; status?: string }) => {
         if (payload.extension === 'postgres_changes' && payload.status === 'ok') refresh()
       })
-      .subscribe()
+    channel.subscribe()
     return () => {
       void client.removeChannel(channel)
     }
-  }, [userId, refresh])
+  }, [userId, groups, refresh])
 
   return { count, refresh }
 }
