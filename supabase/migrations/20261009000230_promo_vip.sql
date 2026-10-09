@@ -361,17 +361,17 @@ grant execute on function public.my_vip() to authenticated;
 grant execute on function public.vip_ids(uuid[]) to authenticated;
 
 -- ---------------------------------------------------------------------------------------------
--- Boost: copied from 20261008000090 (pool from 20261009000151). The only change is the first
--- ORDER BY key: an active vip_boost_until comes first.
---
--- NOTE for the merge with migration 20261009000200 (plan-based sorting, other branch): this file
--- runs after it, so this definition must be re-based on that one and keep both order keys.
+-- Boost: get_swipe_candidates copied from 20261009000200 (plans; pool from 20261009000151, columns
+-- from 20261008000090). The only change is the first ORDER BY key: an active vip_boost_until
+-- comes first, then the "Similar plans" key, then the usual order. Same signature, so the app's
+-- PGRST202 fallback for p_similar_plans keeps working.
 create or replace function public.get_swipe_candidates(
-  p_genders public.gender[],
-  p_min_age int default 18,
-  p_max_age int default 99,
-  p_max_km  int default 50,
-  p_limit   int default 20
+  p_genders       public.gender[],
+  p_min_age       int default 18,
+  p_max_age       int default 99,
+  p_max_km        int default 50,
+  p_limit         int default 20,
+  p_similar_plans boolean default false
 )
 returns table (
   id                uuid,
@@ -393,7 +393,8 @@ returns table (
   pets              public.pets_status,
   children          public.children_plan,
   prompts           jsonb,
-  second_chance     boolean
+  second_chance     boolean,
+  plan              text
 )
 language plpgsql
 stable
@@ -402,6 +403,7 @@ set search_path = ''
 as $$
 declare
   me public.profiles;
+  my_plan text;
 begin
   select * into me from public.profiles where profiles.id = (select auth.uid());
   if me.id is null or not public.is_verified() then
@@ -412,6 +414,10 @@ begin
   p_max_age := least(99, greatest(p_min_age, p_max_age));
   p_max_km  := least(500, greatest(1, p_max_km));
   p_limit   := least(50, greatest(1, p_limit));
+  if coalesce(p_similar_plans, false) then
+    select up.tag into my_plan from public.user_plans up
+    where up.user_id = me.id and up.expires_at > now();
+  end if;
 
   return query
   select
@@ -451,13 +457,15 @@ begin
        from public.profile_prompts pp where pp.profile_id = p.id),
       '[]'::jsonb
     ),
-    c.second_chance
+    c.second_chance,
+    pl.tag
   from public.swipe_candidate_pool(me.id, p_genders, p_min_age, p_max_age, p_max_km) c
   join public.profiles p on p.id = c.id
-  order by
-    coalesce(p.vip_boost_until > now(), false) desc, -- VIP boost (20261009000230)
-    c.second_chance,
-    p.last_active_at desc
+  left join public.user_plans pl on pl.user_id = p.id and pl.expires_at > now()
+  order by coalesce(p.vip_boost_until > now(), false) desc, -- VIP boost (20261009000230)
+           (my_plan is not null and pl.tag is not distinct from my_plan) desc,
+           c.second_chance,
+           p.last_active_at desc
   limit p_limit;
 end;
 $$;

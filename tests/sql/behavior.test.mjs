@@ -2232,6 +2232,19 @@ export async function run(db) {
     await su(`update profiles set vip_boost_until = now() - interval '1 minute' where id=$1`, [F3])
     ok('promo: expired boost drops back', (await as(M2, `select id from get_swipe_candidates('{female}', 18, 40, 50, 20)`)).rows.map((r) => r.id)[0] !== F3)
     ok('promo: candidate columns unchanged', !('vip' in ((await as(M2, `select * from get_swipe_candidates('{female}', 18, 40, 50, 1)`)).rows[0] ?? {})))
+    ok('promo: one get_swipe_candidates overload (the 20261009000200 signature)',
+       (await su(`select count(*)::int c from pg_proc where proname='get_swipe_candidates' and pronamespace='public'::regnamespace`)).rows[0].c === 1 &&
+       (await su(`select pg_get_function_identity_arguments(oid) a from pg_proc where proname='get_swipe_candidates' and pronamespace='public'::regnamespace`)).rows[0].a.includes('p_similar_plans'))
+    // boost first, then "Similar plans", then the usual order; the plan column still comes through
+    await su(`update profiles set vip_boost_until = now() + interval '1 hour', last_active_at = now() - interval '5 days' where id=$1`, [F3])
+    await as(M2, `select set_plan('gym')`)
+    await as(F1, `select set_plan('gym')`)
+    await su(`update profiles set last_active_at = now() - interval '2 days' where id=$1`, [F1])
+    const planDeck = (await as(M2, `select id, plan from get_swipe_candidates('{female}', 18, 40, 50, 20, true)`)).rows
+    ok('promo: boost outranks similar plans, which outrank activity', planDeck[0]?.id === F3 && planDeck[1]?.id === F1 && planDeck[1]?.plan === 'gym', JSON.stringify(planDeck))
+    await as(M2, `select clear_plan()`)
+    await as(F1, `select clear_plan()`)
+    await su(`update profiles set vip_boost_until = null where id=$1`, [F3])
   })()
   // ===== end promo codes / VIP =====
 
