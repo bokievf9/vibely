@@ -269,8 +269,6 @@ max_frequency = "60s"
 [auth.sms.test_otp]
 60123456781 = "123456"
 60123456782 = "123456"
-# Regular tester account (no admin role): +60 11-0000 0000. Admins sign in with a password.
-601100000000 = "000000"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
