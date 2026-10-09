@@ -73,7 +73,7 @@ export function DuoDiscover({ initial, me, openInbox = false, headerActions }: P
 
   return (
     <>
-      <PageHeader title={dict.swipe.title}>
+      <PageHeader title={dict.swipe.title} leading={<DiscoverModeToggle mode="duo" />}>
         {headerActions}
         {active && (
           <>
@@ -101,7 +101,6 @@ export function DuoDiscover({ initial, me, openInbox = false, headerActions }: P
         )}
       </PageHeader>
       <section className="flex flex-1 flex-col gap-4 px-3 pt-1 pb-3">
-        <DiscoverModeToggle mode="duo" />
         {active ? (
           <DuoDeck
             key={active.id}

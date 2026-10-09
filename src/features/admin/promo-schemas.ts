@@ -1,18 +1,20 @@
 import { z } from 'zod'
 
 // Promo codes (/admin/promo). The database re-checks every rule (admin_upsert_promo).
+// Benefits since 20261009000280: a plan (Plus or VIP) for N days and/or boost hours.
+export const PROMO_PLANS = ['plus', 'vip'] as const
+
 export const promoBenefitsSchema = z
   .object({
-    vipDays: z.int().min(0).max(3650),
+    plan: z.enum(PROMO_PLANS).nullable(),
+    days: z.int().min(0).max(3650),
     boostHours: z.int().min(0).max(8760),
-    seeLikes: z.boolean(),
-    queuePriority: z.boolean(),
   })
-  .refine((b) => b.vipDays > 0 || b.boostHours > 0, {
-    error: 'Укажите хотя бы один бонус (VIP-дни или часы буста)',
+  .refine((b) => b.plan === null || b.days > 0, {
+    error: 'Для плана укажите срок в днях (от 1)',
   })
-  .refine((b) => !(b.seeLikes || b.queuePriority) || b.vipDays > 0, {
-    error: '«Кто лайкнул» и приоритет действуют только вместе с VIP-днями',
+  .refine((b) => b.plan !== null || b.boostHours > 0, {
+    error: 'Укажите хотя бы один бонус (план или часы буста)',
   })
 
 export type PromoBenefits = z.infer<typeof promoBenefitsSchema>

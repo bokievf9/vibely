@@ -5,6 +5,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { AdminNav } from '@/features/admin/components/admin-nav'
 import { getAdmin } from '@/features/admin/guard'
 import { ROLE_LABELS } from '@/features/admin/roles'
+import { VersionWatcher } from '@/features/pwa/components/version-watcher'
 import { geistSans } from '../fonts'
 import '../globals.css'
 
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: LayoutProps<'/admin'>) {
             <AdminGate>{children}</AdminGate>
           </Suspense>
         </div>
+        <VersionWatcher />
       </body>
     </html>
   )

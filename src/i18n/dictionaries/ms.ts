@@ -15,7 +15,8 @@ import { flowsMs } from './flowsui/ms'
 import { reportsMs } from './reports/ms'
 import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
-import { crossedMs, plansMs } from './nearby/ms'
+import { crossedMs, presetsMs } from './nearby/ms'
+import { planErrorsMs, plansMs } from './plans/ms'
 import { statusErrorsMs, statusesMs } from './statuses/ms'
 import { incognitoMs, matchmakerMs, matchmakerErrorsMs } from './matchmaker/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
@@ -50,6 +51,7 @@ export const ms: Dictionary = {
     ...matchmakerErrorsMs,
     ...eventErrorsMs,
     ...promoErrorsMs,
+    ...planErrorsMs,
     ...duoErrorsMs,
     ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
@@ -410,6 +412,7 @@ export const ms: Dictionary = {
   reports: reportsMs,
   sanctions: sanctionsMs,
   crossed: crossedMs,
+  presets: presetsMs,
   plans: plansMs,
   statuses: statusesMs,
   matchmaker: matchmakerMs,

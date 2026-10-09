@@ -9,6 +9,7 @@ import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { REF_PARAM } from '@/features/referrals/constants'
 import { createCrushInvite } from '@/features/crush/actions'
+import { useAccess } from '@/features/plans/components/access-provider'
 
 // Invite friends: Web Share sheet on phones, copy-to-clipboard elsewhere.
 // "I have a crush on this person" turns the share into a single-use crush link (created on the
@@ -20,10 +21,14 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
   const [copied, setCopied] = useState(false)
   const [crush, setCrush] = useState(false)
   // The crush link made for this card: shared again on a second tap instead of burning another
-  // of the 3 monthly links. Switching the option off and on starts a fresh one.
+  // of the plan's links for 30 days. Switching the option off and on starts a fresh one.
   const [crushCode, setCrushCode] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  // Crush links per 30 days from the plan (free 1, Plus 3, VIP 5; 20261009000280).
+  const { limit, remaining, recordUse, showUpgrade } = useAccess()
+  const crushLimit = limit('crush_links_per_30d')
+  const crushLeft = remaining('crush_links_per_30d')
   const link = (c: string) => `${publicEnv.NEXT_PUBLIC_SITE_URL}/${locale}?${REF_PARAM}=${c}`
 
   // "Link copied" reverts after a moment; the timer dies with the card.
@@ -60,9 +65,11 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
       if (!c) {
         const result = await createCrushInvite()
         if ('error' in result) {
+          if (result.error === 'plan') return showUpgrade(result.upgrade)
           setNote(result.error === 'limit' ? tc.inviteLimitReached : tc.inviteFailed)
           return
         }
+        recordUse('crush_links_per_30d')
         c = result.code
         setCrushCode(c)
       }
@@ -102,7 +109,11 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
         {crush && (
           <>
             <p className="text-muted text-sm">{tc.inviteOptionHint}</p>
-            <p className="text-muted text-sm">{tc.inviteLimit}</p>
+            <p className="text-muted text-sm tabular-nums">
+              {crushLimit !== null && crushLeft !== null
+                ? fmt(dict.plans.crushLeft, { count: crushLeft, limit: crushLimit })
+                : tc.inviteLimit}
+            </p>
           </>
         )}
         {note && (

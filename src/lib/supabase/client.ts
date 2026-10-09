@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { publicEnv } from '@/lib/env'
 import type { Database } from '@/types/database.types'
 import { getBrowserToken, type BrowserToken } from './realtime-token'
+import { isStaleClientError, reloadForNewVersion } from '@/features/pwa/reload'
 
 const REFRESH_MARGIN_MS = 60_000
 
@@ -13,7 +14,18 @@ let browserClient: ReturnType<typeof createBrowserClient> | undefined
 // supabase-js asks for a token before every request, so reuse it until it is about to expire.
 async function accessToken(): Promise<string | null> {
   if (!cached || cached.expiresAt - Date.now() < REFRESH_MARGIN_MS) {
-    cached = await getBrowserToken()
+    try {
+      cached = await getBrowserToken()
+    } catch (error) {
+      // After a deploy this tab still calls the old action id: retrying can never work, so
+      // reload onto the new build (guarded against loops) and carry on without a token.
+      if (isStaleClientError(error)) {
+        reloadForNewVersion()
+        cached = null
+        return null
+      }
+      throw error
+    }
   }
   return cached?.token ?? null
 }

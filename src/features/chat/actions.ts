@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, rateLimitedOr, zodErrorKey, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { planFail } from '@/features/plans/errors'
 import { notifyNewMessage } from '@/features/push/send'
 import { hydrateMessages } from './hydrate'
 import { MESSAGE_COLUMNS } from './message-row'
@@ -53,6 +54,9 @@ export async function sendMessage(
     .select(MESSAGE_COLUMNS)
     .single()
   if (error) {
+    // VP402: photos, voice and video messages need Plus (20261009000280).
+    const gated = planFail(error)
+    if (gated) return gated
     const key = image ? 'photoSendFailed' : recording ? 'mediaSendFailed' : 'generic'
     return fail(rateLimitedOr(error.code, key))
   }

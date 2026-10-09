@@ -14,7 +14,8 @@ import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
 import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
-import { crossedEn, plansEn } from './nearby/en'
+import { crossedEn, presetsEn } from './nearby/en'
+import { planErrorsEn, plansEn } from './plans/en'
 import { statusErrorsEn, statusesEn } from './statuses/en'
 import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from './matchmaker/en'
 import { eventErrorsEn, eventsEn } from './events/en'
@@ -49,6 +50,7 @@ export const en = {
     ...matchmakerErrorsEn,
     ...eventErrorsEn,
     ...promoErrorsEn,
+    ...planErrorsEn,
     ...duoErrorsEn,
     ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
@@ -403,6 +405,7 @@ export const en = {
   reports: reportsEn,
   sanctions: sanctionsEn,
   crossed: crossedEn,
+  presets: presetsEn,
   plans: plansEn,
   statuses: statusesEn,
   matchmaker: matchmakerEn,

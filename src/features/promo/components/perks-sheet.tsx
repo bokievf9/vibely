@@ -38,7 +38,7 @@ export function PerksSheet({ outcome, onClose }: Props) {
             </p>
           </div>
           <ul className="card divide-border flex flex-col divide-y">
-            {perkLines(outcome, t, locale).map((line) => (
+            {perkLines(outcome, dict, locale).map((line) => (
               <li key={line} className="flex items-center gap-3 px-4 py-3">
                 <Check className="text-success size-5 shrink-0" aria-hidden />
                 <span className="min-w-0">{line}</span>

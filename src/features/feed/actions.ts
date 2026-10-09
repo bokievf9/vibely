@@ -8,6 +8,7 @@ import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { notifyNewComment } from './notify'
 import { getAuthorCard, getFeedPage } from './queries'
 import { FEED_TABS, type AuthorCard, type FeedPage } from './types'
+import { planFail } from '@/features/plans/errors'
 
 const uuid = z.uuid()
 const tabSchema = z.enum(FEED_TABS)
@@ -47,7 +48,8 @@ export async function createPost(raw: string, asMe: boolean): Promise<UserResult
   if (body === 'messageEmpty' || body === 'messageTooLong') return fail(body)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_post', { p_body: body, p_named: asMe })
-  return error ? fail(rpcError(error.code)) : ok(data)
+  // VP402: posting needs Plus (20261009000280).
+  return error ? (planFail(error) ?? fail(rpcError(error.code))) : ok(data)
 }
 
 export async function createComment(
@@ -66,7 +68,7 @@ export async function createComment(
     p_body: body,
     p_named: asMe,
   })
-  if (error) return fail(rpcError(error.code))
+  if (error) return planFail(error) ?? fail(rpcError(error.code))
   notifyNewComment(data, postId)
   return ok(data)
 }
@@ -75,7 +77,7 @@ export async function toggleLike(postId: string): Promise<UserResult<boolean>> {
   if (!uuid.safeParse(postId).success) return fail('invalidInput')
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('toggle_post_like', { p_post_id: postId })
-  return error ? fail(rpcError(error.code)) : ok(data)
+  return error ? (planFail(error) ?? fail(rpcError(error.code))) : ok(data)
 }
 
 export async function deletePost(postId: string): Promise<UserResult> {

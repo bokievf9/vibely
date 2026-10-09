@@ -7,6 +7,7 @@ import { FormError } from '@/components/ui/field'
 import { useErrorText, useI18n, useLocaleRouter } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { swipe } from '@/features/swipe/actions'
+import { useUpgradeHandler } from '@/features/plans/components/access-provider'
 
 // Profile opened from people search or Crossed paths: a "secret like", which is exactly a
 // Discover like (same swipes insert): the other person learns of it only in "Who liked you" or
@@ -16,6 +17,7 @@ export function ProfileLikeButton({ userId, liked }: { userId: string; liked: bo
   const t = dict.username
   const errorText = useErrorText()
   const router = useLocaleRouter()
+  const upgradeOr = useUpgradeHandler()
   const [done, setDone] = useState(liked)
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
@@ -23,7 +25,7 @@ export function ProfileLikeButton({ userId, liked }: { userId: string; liked: bo
   const like = () =>
     startTransition(async () => {
       const result = await swipe({ targetId: userId, direction: 'like' })
-      if (!result.ok) return setError(result.error)
+      if (!result.ok) return upgradeOr(result) ? undefined : setError(result.error)
       setError(undefined)
       if (result.data.matchId) return router.push(`/chats/${result.data.matchId}`)
       setDone(true)

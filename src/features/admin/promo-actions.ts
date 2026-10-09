@@ -17,11 +17,10 @@ export async function upsertPromo(input: z.input<typeof upsertPromoSchema>) {
       p_code: d.code,
       p_max_uses: d.maxUses,
       p_expires_at: d.expiresAt,
+      // New shape only (20261009000280): {plan, days} and/or {boost_hours}.
       p_benefits: {
-        vip_days: d.benefits.vipDays,
-        boost_hours: d.benefits.boostHours,
-        see_likes: d.benefits.seeLikes,
-        queue_priority: d.benefits.queuePriority,
+        ...(d.benefits.plan ? { plan: d.benefits.plan, days: d.benefits.days } : {}),
+        ...(d.benefits.boostHours > 0 ? { boost_hours: d.benefits.boostHours } : {}),
       },
       p_gender: d.gender,
       p_requires_verified: d.requiresVerified,

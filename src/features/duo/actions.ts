@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
+import { planFail } from '@/features/plans/errors'
 import {
   notifyDuoInvite,
   notifyDuoMatch,
@@ -43,7 +44,8 @@ export async function inviteToDuo(
   if (!viewer) return fail('unauthorized')
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('duo_invite', userId ? { p_user: userId } : {})
-  if (error) return fail(error.code === 'P0002' ? 'notFound' : duoErrorKey(error.code))
+  if (error)
+    return planFail(error) ?? fail(error.code === 'P0002' ? 'notFound' : duoErrorKey(error.code))
   const result = z.object({ team_id: z.uuid(), code: z.string().nullable() }).safeParse(data)
   if (!result.success) return fail('generic')
   if (userId) notifyDuoInvite(userId, viewer.profile?.displayName ?? '')
@@ -249,7 +251,7 @@ export async function sendGroupMessage(
     .insert(row)
     .select(GROUP_MESSAGE_COLUMNS)
     .single()
-  if (error || !data) return fail(groupSendErrorKey(error?.code))
+  if (error || !data) return planFail(error) ?? fail(groupSendErrorKey(error?.code))
   const [message] = await hydrateGroupMessages(supabase, [data as GroupMessageRow])
   if (!message) return fail('generic')
   notifyGroupMessage(groupId, viewer.id, message.kind === 'image' ? 'image' : 'text')

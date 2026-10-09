@@ -14,6 +14,8 @@ import { Composer } from './composer'
 import { FeedTabs } from './feed-tabs'
 import { PostCard, PostCardSkeleton, PostListSkeleton } from './post-card'
 import { useNewPosts } from './use-new-posts'
+import { useAccess } from '@/features/plans/components/access-provider'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
 
 const COMPOSER_ID = 'feed-composer'
 // Start fetching the next page while the user is still ~1.5 screens away from the end.
@@ -32,6 +34,7 @@ type Props = {
 
 export function FeedList({ initial, prompt = null, promptMatches = [], top }: Props) {
   const { dict } = useI18n()
+  const canPost = useAccess().has('feed_post')
   const [tab, setTab] = useState<FeedTab>('new')
   const [page, setPage] = useState(initial)
   const [loadedTab, setLoadedTab] = useState<FeedTab>('new')
@@ -109,14 +112,18 @@ export function FeedList({ initial, prompt = null, promptMatches = [], top }: Pr
     <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
       {top}
       {prompt && <DailyPromptCard prompt={prompt} matches={promptMatches} />}
-      <Composer
-        id={COMPOSER_ID}
-        placeholder={dict.feed.placeholder}
-        submitLabel={dict.feed.publish}
-        maxLength={1000}
-        onSubmit={createPost}
-        onDone={() => void show('new')}
-      />
+      {canPost ? (
+        <Composer
+          id={COMPOSER_ID}
+          placeholder={dict.feed.placeholder}
+          submitLabel={dict.feed.publish}
+          maxLength={1000}
+          onSubmit={createPost}
+          onDone={() => void show('new')}
+        />
+      ) : (
+        <UpgradeCard feature="feed_post" compact text={dict.plans.feedPostLocked} />
+      )}
       <p className="text-muted text-footnote -mt-0.5 mb-1 flex items-start gap-1.5 px-1">
         <EyeOff className="mt-px size-3.5 shrink-0" aria-hidden />
         <span>{dict.feed.anonymousNote}</span>

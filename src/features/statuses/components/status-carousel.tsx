@@ -6,7 +6,6 @@ import { Avatar } from '@/components/ui/avatar'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
-import type { OwnPlan } from '@/features/plans/tags'
 import { clearStatus, loadStatuses } from '../actions'
 import { SEEN_KEY, orderStatuses, parseSeen, serializeSeen } from '../format'
 import type { LiveStatus, StatusesState } from '../types'
@@ -52,22 +51,47 @@ function addSeen(id: string, live: string[]) {
   listeners.forEach((l) => l())
 }
 
+// Discover shows "Share your vibe..." until it has been on screen once (per device, a convenience).
+const HINT_KEY = 'vibely:statuses-hint-seen'
+let hintSeenCache: boolean | null = null
+const noSubscribe = () => () => {}
+// Read once per page load: marking it seen keeps the sentence for the rest of this visit.
+const readHintSeen = () => {
+  if (hintSeenCache === null) {
+    try {
+      hintSeenCache = localStorage.getItem(HINT_KEY) === '1'
+    } catch {
+      hintSeenCache = false
+    }
+  }
+  return hintSeenCache
+}
+function markHintSeen() {
+  try {
+    localStorage.setItem(HINT_KEY, '1')
+  } catch {
+    // Not remembered: shown again next visit.
+  }
+}
+
 type Props = {
   initial: State
-  // undefined: plans not available (migration 20261009000200 missing).
-  plan: OwnPlan | null | undefined
   className?: string
+  // Discover: smaller bubbles (52px) and the explanatory sentence only until it has been seen once,
+  // so the deck below keeps its room on a phone.
+  compact?: boolean
 }
 
 // "Like stories" at the top of Discover and Feed: your own bubble first ("+" to share your vibe),
 // then live statuses of compatible people nearby. Unseen ones have the gradient ring; the seen
 // state lives in this browser only (localStorage).
-export function StatusCarousel({ initial, plan: initialPlan, className }: Props) {
+export function StatusCarousel({ initial, className, compact = false }: Props) {
   const { dict } = useI18n()
   const t = dict.statuses
   const [state, setState] = useState(initial)
-  const [plan, setPlan] = useState(initialPlan ?? null)
   const seen = useSyncExternalStore(subscribeSeen, getSeen, () => EMPTY)
+  // Server snapshot "seen": the sentence never flashes on later visits.
+  const hintSeen = useSyncExternalStore(noSubscribe, readHintSeen, () => true)
   const [sheet, setSheet] = useState(false)
   const [ownOpen, setOwnOpen] = useState(false)
   const [viewer, setViewer] = useState<{ items: LiveStatus[]; start: number } | null>(null)
@@ -94,11 +118,23 @@ export function StatusCarousel({ initial, plan: initialPlan, className }: Props)
 
   const own = state.own
   const openOwn = () => (own ? setOwnOpen(true) : setSheet(true))
+  const showHint = !state.people.length && !own && (!compact || !hintSeen)
+  const avatarSize = compact ? 52 : 60
+
+  // Shown once on Discover: remembered for the next visit as soon as it is on screen.
+  useEffect(() => {
+    if (compact && showHint) markHintSeen()
+  }, [compact, showHint])
 
   return (
     <>
       <section aria-label={t.title} className={cn('shrink-0', className)}>
-        <ul className="flex snap-x [scrollbar-width:none] gap-3 overflow-x-auto overscroll-x-contain px-3 py-1 [&::-webkit-scrollbar]:hidden">
+        <ul
+          className={cn(
+            'flex snap-x [scrollbar-width:none] overflow-x-auto overscroll-x-contain px-3 [&::-webkit-scrollbar]:hidden',
+            compact ? 'gap-2 py-0.5' : 'gap-3 py-1',
+          )}
+        >
           <li className="shrink-0 snap-start">
             <Bubble
               label={own ? t.textLabel : t.add}
@@ -106,8 +142,9 @@ export function StatusCarousel({ initial, plan: initialPlan, className }: Props)
               ring={own ? (own.held ? 'held' : 'unseen') : 'none'}
               onClick={openOwn}
               emoji={own?.emoji}
-              avatar={<Avatar photo={state.me.photo} alt="" size={60} />}
+              avatar={<Avatar photo={state.me.photo} alt="" size={avatarSize} />}
               plus={!own}
+              compact={compact}
             />
           </li>
           {ordered.map((s) => (
@@ -117,14 +154,15 @@ export function StatusCarousel({ initial, plan: initialPlan, className }: Props)
                 name={s.name}
                 ring={seen.has(s.id) ? 'seen' : 'unseen'}
                 emoji={s.emoji}
-                avatar={<Avatar photo={s.photo} alt="" size={60} />}
+                avatar={<Avatar photo={s.photo} alt="" size={avatarSize} />}
+                compact={compact}
                 onClick={() =>
                   setViewer({ items: ordered, start: ordered.findIndex((x) => x.id === s.id) })
                 }
               />
             </li>
           ))}
-          {!state.people.length && !own && (
+          {showHint && (
             <li className="flex max-w-56 shrink-0 items-center">
               <button
                 type="button"
@@ -142,10 +180,8 @@ export function StatusCarousel({ initial, plan: initialPlan, className }: Props)
         key={own?.id ?? 'new'}
         open={sheet}
         own={own}
-        plan={plan}
         onClose={() => setSheet(false)}
         onStatus={(next) => setState((s) => ({ ...s, own: next }))}
-        onPlan={setPlan}
       />
 
       {ownOpen && own && (
@@ -188,6 +224,7 @@ function Bubble({
   emoji,
   avatar,
   plus,
+  compact,
   onClick,
 }: {
   label: string
@@ -196,6 +233,7 @@ function Bubble({
   emoji?: string
   avatar: React.ReactNode
   plus?: boolean
+  compact?: boolean
   onClick: () => void
 }) {
   return (
@@ -203,7 +241,10 @@ function Bubble({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex w-[4.5rem] flex-col items-center gap-1 transition-[transform,scale] duration-150 ease-out active:scale-[0.95]"
+      className={cn(
+        'flex flex-col items-center transition-[transform,scale] duration-150 ease-out active:scale-[0.95]',
+        compact ? 'w-16 gap-0.5' : 'w-[4.5rem] gap-1',
+      )}
     >
       <span className="relative">
         <span

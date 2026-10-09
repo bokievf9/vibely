@@ -1,11 +1,13 @@
 import 'server-only'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 export type VipStatus = {
   isVip: boolean
   vipUntil: string | null
+  // Plans (20261009000280); 'vip' with vipUntil on older databases.
+  plan: 'free' | 'plus' | 'vip'
+  planUntil: string | null
   boostUntil: string | null
   seeLikes: boolean
   queuePriority: boolean
@@ -19,6 +21,8 @@ const myVipSchema = z.object({
   boost_until: z.string().nullable(),
   perks: z.object({ see_likes: z.boolean().optional(), queue_priority: z.boolean().optional() }),
   pending: z.number(),
+  plan: z.enum(['free', 'plus', 'vip']).optional(),
+  plan_until: z.string().nullable().optional(),
 })
 
 // The viewer's VIP state (my_vip). Null when the RPC is not deployed yet or the viewer has no
@@ -33,6 +37,8 @@ export async function getVipStatus(): Promise<VipStatus | null> {
   return {
     isVip: v.is_vip,
     vipUntil: v.is_vip ? v.vip_until : null,
+    plan: v.plan ?? (v.is_vip ? 'vip' : 'free'),
+    planUntil: v.plan ? (v.plan_until ?? null) : v.is_vip ? v.vip_until : null,
     boostUntil: v.boost_until,
     seeLikes: v.is_vip && (v.perks.see_likes ?? false),
     queuePriority: v.is_vip && (v.perks.queue_priority ?? false),
@@ -46,18 +52,4 @@ export async function getVipIds(ids: string[]): Promise<Set<string>> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('vip_ids', { p_ids: ids })
   return new Set(error ? [] : data)
-}
-
-// "Who liked you" for a VIP with the see_likes perk, when the global free flag is off.
-export async function viewerCanSeeLikes(): Promise<boolean> {
-  return (await getVipStatus())?.seeLikes ?? false
-}
-
-// Same check for a push recipient (no cookies: service role). False when the RPC is missing.
-export async function userCanSeeLikes(userId: string): Promise<boolean> {
-  const { data } = await createAdminClient().rpc('has_vip_perk', {
-    p_user: userId,
-    p_perk: 'see_likes',
-  })
-  return data === true
 }

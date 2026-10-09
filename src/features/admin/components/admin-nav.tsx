@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   CalendarHeart,
+  Crown,
   FileText,
   Flag,
   History,
@@ -44,6 +45,7 @@ const LINKS: NavLink[] = [
   { href: '/admin/duo', label: 'Дуо', icon: UsersRound },
   { href: '/admin/blocklist', label: 'Блок-лист', icon: PhoneOff, min: 'admin' },
   { href: '/admin/promo', label: 'Промокоды', icon: Ticket, min: 'admin' },
+  { href: '/admin/plans', label: 'Планы', icon: Crown, min: 'admin' },
   { href: '/admin/team', label: 'Команда', icon: UserCog, min: 'owner' },
 ]
 

@@ -16,10 +16,10 @@ type Props = {
   onClose: () => void
   onApply: (f: SwipeFilters) => void
   // Plans exist on this database (migration 20261009000200): offer "Similar plans first".
-  plansAvailable?: boolean
+  similarAvailable?: boolean
 }
 
-export function FilterSheet({ open, value, onClose, onApply, plansAvailable }: Props) {
+export function FilterSheet({ open, value, onClose, onApply, similarAvailable }: Props) {
   const { dict } = useI18n()
   const t = dict.discoverui
   const [draft, setDraft] = useState(value)
@@ -62,17 +62,17 @@ export function FilterSheet({ open, value, onClose, onApply, plansAvailable }: P
             valueText={(km) => fmt(t.kmValue, { km })}
           />
         </fieldset>
-        {plansAvailable && (
+        {similarAvailable && (
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">{dict.plans.filter}</span>
+              <span className="text-sm font-medium">{dict.presets.filter}</span>
               <Switch
                 checked={Boolean(draft.similarPlans)}
                 onToggle={() => set({ similarPlans: !draft.similarPlans })}
-                label={dict.plans.filter}
+                label={dict.presets.filter}
               />
             </div>
-            <p className="text-muted text-sm">{dict.plans.filterHint}</p>
+            <p className="text-muted text-sm">{dict.presets.filterHint}</p>
           </div>
         )}
         <Button fullWidth disabled={!draft.genders.length} onClick={() => onApply(draft)}>

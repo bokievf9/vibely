@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fail, ok, type UserResult } from '@/i18n/errors'
 import { getViewer } from '@/features/auth/session'
 import { notificationTypeSchema, type NotificationType } from '@/features/push/prefs'
+import { planFail } from '@/features/plans/errors'
 
 // Pause = hidden from Discover, "Who liked you" and the blind date queue; matches keep working.
 export async function setDiscoverable(discoverable: boolean): Promise<UserResult> {
@@ -21,7 +22,8 @@ export async function setDiscoverable(discoverable: boolean): Promise<UserResult
 }
 
 // Incognito: shown in Discover only to people the user liked; hidden from search, crossed paths
-// and "Who liked you" (enforced in the database, 20261009000240).
+// and "Who liked you" (enforced in the database, 20261009000240). Switching it on needs Plus
+// (VP402, 20261009000280); switching off is always allowed.
 export async function setIncognito(on: boolean): Promise<UserResult> {
   const value = z.boolean().safeParse(on)
   if (!value.success) return fail('invalidInput')
@@ -32,7 +34,7 @@ export async function setIncognito(on: boolean): Promise<UserResult> {
     .from('profiles')
     .update({ is_incognito: value.data })
     .eq('id', viewer.id)
-  return error ? fail('generic') : ok(undefined)
+  return error ? (planFail(error) ?? fail('generic')) : ok(undefined)
 }
 
 const prefSchema = z.object({ type: notificationTypeSchema, enabled: z.boolean() })

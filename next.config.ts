@@ -35,6 +35,11 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle: built in CI, shipped to the VPS as a release (scripts/deploy).
   output: 'standalone',
   poweredByHeader: false,
+  // Version-skew protection. CI sets NEXT_DEPLOYMENT_ID to the commit id: Next uses it for asset
+  // URLs and hard navigations on mismatch; the same id is inlined here so open tabs and installed
+  // PWAs can compare it with /api/version and reload themselves after a deploy
+  // (src/features/pwa/components/version-watcher.tsx).
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.NEXT_DEPLOYMENT_ID || 'dev' },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

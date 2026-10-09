@@ -4,8 +4,8 @@ export const crushMs: CrushDictionary = {
   inviteOption: 'Saya ada crush pada orang ini',
   inviteOptionHint:
     'Dia akan mendapat pautan peribadi sekali guna. Selepas dia menyertai dan disahkan, dia akan tahu anda ada crush padanya dan boleh menjawab ya atau tidak. Anda hanya akan tahu jika dia menjawab ya.',
-  inviteLimit: 'Sehingga 3 pautan crush setiap 30 hari. Setiap pautan berfungsi sekali sahaja.',
-  inviteLimitReached: 'Anda telah menggunakan 3 pautan crush untuk bulan ini.',
+  inviteLimit: 'Setiap pautan berfungsi sekali sahaja.',
+  inviteLimitReached: 'Anda telah menggunakan pautan crush anda buat masa ini.',
   inviteFailed: 'Pautan tidak dapat dibuat. Cuba lagi.',
   shareCrush: 'Kongsi pautan crush',
   crushMessage:

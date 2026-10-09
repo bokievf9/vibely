@@ -28,7 +28,7 @@ const EMPTY: Draft = {
   code: '',
   maxUses: '',
   expiresAt: '',
-  benefits: { vipDays: 30, boostHours: 0, seeLikes: false, queuePriority: false },
+  benefits: { plan: 'vip', days: 30, boostHours: 0 },
   gender: null,
   requiresVerified: true,
 }
@@ -53,12 +53,12 @@ const draftOf = (c: PromoCode): Draft => ({
   requiresVerified: c.requiresVerified,
 })
 
+const PLAN_LABEL = { plus: 'Plus', vip: 'VIP' } as const
+
 export function perksSummary(b: PromoBenefits): string {
   const parts: string[] = []
-  if (b.vipDays > 0) parts.push(`VIP ${b.vipDays} дн.`)
+  if (b.plan) parts.push(`${PLAN_LABEL[b.plan]} на ${b.days} дн.`)
   if (b.boostHours > 0) parts.push(`буст ${b.boostHours} ч`)
-  if (b.seeLikes) parts.push('кто лайкнул')
-  if (b.queuePriority) parts.push('приоритет в очереди')
   return parts.join(', ')
 }
 
@@ -157,16 +157,35 @@ export function PromoManager({ codes }: { codes: PromoCode[] }) {
                 ))}
               </div>
             </Field>
-            <Field label="VIP-дни" htmlFor="promo-vip" hint="Значок VIP рядом с именем">
+            <Field label="План" hint="Plus или VIP на срок, складывается с текущим">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="План">
+                {([null, 'plus', 'vip'] as const).map((p) => (
+                  <Chip
+                    key={p ?? 'none'}
+                    selected={draft.benefits.plan === p}
+                    onClick={() =>
+                      setB({
+                        plan: p,
+                        days: p && draft.benefits.days < 1 ? 30 : draft.benefits.days,
+                      })
+                    }
+                  >
+                    {p ? PLAN_LABEL[p] : 'Без плана'}
+                  </Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="Дней плана" htmlFor="promo-days" hint="От 1 до 3650">
               <Input
-                id="promo-vip"
+                id="promo-days"
                 type="number"
                 inputMode="numeric"
-                min={0}
+                min={1}
                 max={3650}
-                value={draft.benefits.vipDays}
+                disabled={!draft.benefits.plan}
+                value={draft.benefits.plan ? draft.benefits.days : ''}
                 onChange={(e) =>
-                  setB({ vipDays: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
+                  setB({ days: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
                 }
               />
             </Field>
@@ -185,16 +204,6 @@ export function PromoManager({ codes }: { codes: PromoCode[] }) {
             </Field>
           </div>
           <div className="flex flex-col gap-2">
-            <CheckRow
-              label="«Кто лайкнул» на время VIP"
-              checked={draft.benefits.seeLikes}
-              onChange={(v) => setB({ seeLikes: v })}
-            />
-            <CheckRow
-              label="Приоритет в очереди блайнд-дейта на время VIP"
-              checked={draft.benefits.queuePriority}
-              onChange={(v) => setB({ queuePriority: v })}
-            />
             <CheckRow
               label="Нужно одобренное селфи (иначе бонусы включатся после проверки)"
               checked={draft.requiresVerified}

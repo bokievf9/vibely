@@ -10,9 +10,7 @@ import { cn } from '@/lib/utils'
 import { hideCrossedPath, loadCrossedPaths, type CrossedPathsState } from '../actions'
 import { crossedLine } from '../format'
 import type { CrossedPerson } from '../types'
-import { CrossedPathsSheet } from './crossed-paths-sheet'
 
-const PROMO_KEY = 'vibely.crossedPaths.promoDismissed'
 const DISMISSED_KEY = 'vibely.crossedPaths.dismissed'
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
@@ -39,35 +37,32 @@ const signature = (people: CrossedPerson[]) =>
     .sort()
     .join(',')
 
-// Top of Discover: "You crossed paths" (small, dismissable). Loads after the deck, and renders
-// nothing when the feature is unavailable (migration not applied), off and dismissed, or empty.
+// Top of Discover: "You crossed paths" (small, dismissable). Loads after the deck and shows only
+// actual encounters: nothing while the feature is unavailable, off, dismissed or empty. The opt-in
+// invitation lives in Settings and on the profile page (CrossedPathsPromoRow), not on Discover,
+// so the deck keeps its room.
 export function CrossedPathsStrip() {
   const { dict, locale } = useI18n()
   const t = dict.crossed
   const [state, setState] = useState<CrossedPathsState>(null)
   const [hidden, setHidden] = useState(true)
-  const [sheet, setSheet] = useState(false)
-
-  const load = () =>
+  useEffect(() => {
     loadCrossedPaths()
       .then((next) => {
         setState(next)
         if (!next) return
         setHidden(
-          next.enabled
-            ? next.people.length === 0 || read(DISMISSED_KEY) === signature(next.people)
-            : read(PROMO_KEY) === '1',
+          !next.enabled ||
+            next.people.length === 0 ||
+            read(DISMISSED_KEY) === signature(next.people),
         )
       })
       .catch(() => setState(null))
-
-  useEffect(() => {
-    void load()
   }, [])
 
   const dismiss = () => {
     if (!state) return
-    write(state.enabled ? DISMISSED_KEY : PROMO_KEY, state.enabled ? signature(state.people) : '1')
+    write(DISMISSED_KEY, signature(state.people))
     setHidden(true)
   }
 
@@ -76,98 +71,64 @@ export function CrossedPathsStrip() {
     void hideCrossedPath(id)
   }
 
-  const visible = Boolean(state && !hidden && (!state.enabled || state.people.length > 0))
+  const visible = Boolean(state?.enabled && !hidden && state.people.length > 0)
 
   return (
-    <>
-      <AnimatePresence initial={false}>
-        {visible && state && (
-          <motion.section
-            key={state.enabled ? 'people' : 'promo'}
-            aria-label={state.enabled ? t.title : t.promoTitle}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto', transition: { duration: 0.28, ease: EASE_OUT } }}
-            exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease: EASE_OUT } }}
-            className="-mx-3 shrink-0 overflow-hidden"
-          >
-            {state.enabled ? (
-              // One compact row: a title tile, then people. Kept short so the deck keeps its room.
-              <ul className="flex snap-x snap-mandatory scroll-px-3 [scrollbar-width:none] gap-2 overflow-x-auto overscroll-x-contain px-3 py-1 [&::-webkit-scrollbar]:hidden">
-                <li className="bg-accent/10 text-accent highlight relative flex w-24 shrink-0 snap-start flex-col justify-between rounded-2xl p-2.5">
-                  <Footprints className="size-4" aria-hidden />
-                  <h2 className="text-footnote pr-1 leading-tight font-semibold">{t.title}</h2>
-                  <DismissButton
-                    label={t.dismiss}
-                    onClick={dismiss}
-                    className="top-0.5 right-0.5"
-                  />
-                </li>
-                <AnimatePresence initial={false}>
-                  {state.people.map((person) => (
-                    <motion.li
-                      key={person.id}
-                      layout
-                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
-                      className="relative w-56 shrink-0 snap-start"
-                    >
-                      <LocaleLink
-                        href={`/profile/${person.id}?from=discover`}
-                        aria-label={`${fmt(t.open, { name: person.name })}. ${crossedLine(t, locale, person)}`}
-                        className="card active:bg-fill flex h-full items-center gap-2.5 rounded-2xl p-2 transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
-                      >
-                        <Avatar person={person} />
-                        <span className="flex min-w-0 flex-col">
-                          <span className="text-callout truncate pr-6 font-semibold">
-                            {person.name}, <span className="font-normal">{person.age}</span>
-                          </span>
-                          <span className="text-muted text-caption line-clamp-2 leading-snug">
-                            {crossedLine(t, locale, person, true)}
-                          </span>
-                        </span>
-                      </LocaleLink>
-                      <button
-                        type="button"
-                        onClick={() => hidePerson(person.id)}
-                        aria-label={fmt(t.hideLabel, { name: person.name })}
-                        title={t.hide}
-                        className="text-muted active:bg-fill absolute top-0.5 right-0.5 flex size-8 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
-                      >
-                        <EyeOff className="size-3.5" aria-hidden />
-                      </button>
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-              </ul>
-            ) : (
-              <div className="px-3 py-1">
-                <div className="card flex items-center gap-2.5 rounded-2xl py-2 pr-1 pl-2.5">
-                  <span className="icon-tile bg-accent/15 text-accent">
-                    <Footprints className="size-4" aria-hidden />
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-callout leading-tight font-semibold">{t.promoTitle}</span>
-                    <span className="text-muted text-footnote truncate">{t.promoText}</span>
-                  </span>
+    <AnimatePresence initial={false}>
+      {visible && state && (
+        <motion.section
+          aria-label={t.title}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto', transition: { duration: 0.28, ease: EASE_OUT } }}
+          exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease: EASE_OUT } }}
+          className="-mx-3 shrink-0 overflow-hidden"
+        >
+          {/* One compact row: a title tile, then people. Kept short so the deck keeps its room. */}
+          <ul className="flex snap-x snap-mandatory scroll-px-3 [scrollbar-width:none] gap-2 overflow-x-auto overscroll-x-contain px-3 py-1 [&::-webkit-scrollbar]:hidden">
+            <li className="bg-accent/10 text-accent highlight relative flex w-24 shrink-0 snap-start flex-col justify-between rounded-2xl p-2.5">
+              <Footprints className="size-4" aria-hidden />
+              <h2 className="text-footnote pr-1 leading-tight font-semibold">{t.title}</h2>
+              <DismissButton label={t.dismiss} onClick={dismiss} className="top-0.5 right-0.5" />
+            </li>
+            <AnimatePresence initial={false}>
+              {state.people.map((person) => (
+                <motion.li
+                  key={person.id}
+                  layout
+                  exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
+                  className="relative w-56 shrink-0 snap-start"
+                >
+                  <LocaleLink
+                    href={`/profile/${person.id}?from=discover`}
+                    aria-label={`${fmt(t.open, { name: person.name })}. ${crossedLine(t, locale, person)}`}
+                    className="card active:bg-fill flex h-full items-center gap-2.5 rounded-2xl p-2 transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.98]"
+                  >
+                    <Avatar person={person} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-callout truncate pr-6 font-semibold">
+                        {person.name}, <span className="font-normal">{person.age}</span>
+                      </span>
+                      <span className="text-muted text-caption line-clamp-2 leading-snug">
+                        {crossedLine(t, locale, person, true)}
+                      </span>
+                    </span>
+                  </LocaleLink>
                   <button
                     type="button"
-                    onClick={() => setSheet(true)}
-                    className="text-accent active:bg-accent/10 text-callout relative h-9 shrink-0 rounded-full px-2.5 font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-1 active:scale-[0.96]"
+                    onClick={() => hidePerson(person.id)}
+                    aria-label={fmt(t.hideLabel, { name: person.name })}
+                    title={t.hide}
+                    className="text-muted active:bg-fill absolute top-0.5 right-0.5 flex size-8 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.92]"
                   >
-                    {t.promoAction}
+                    <EyeOff className="size-3.5" aria-hidden />
                   </button>
-                  <DismissButton label={t.dismiss} onClick={dismiss} />
-                </div>
-              </div>
-            )}
-          </motion.section>
-        )}
-      </AnimatePresence>
-      <CrossedPathsSheet
-        open={sheet}
-        onClose={() => setSheet(false)}
-        onEnabled={() => void load()}
-      />
-    </>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        </motion.section>
+      )}
+    </AnimatePresence>
   )
 }
 
