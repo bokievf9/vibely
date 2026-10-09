@@ -2572,7 +2572,7 @@ export async function run(db) {
 
   // ===== duo dating (20261009000260, 20261009000261) =====
   await (async () => {
-    const ids = Array.from({ length: 12 }, (_, i) => `d0000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const ids = Array.from({ length: 12 }, (_, i) => `de000000-0000-4000-8000-0000000000${String(i + 10)}`)
     const [A, B, C, D, E, F, G, H, I, J, K, ADM] = ids
     for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601577700' + String(i).padStart(2, '0')])
     // A, B: men who like women (team X). C, D: women who like men (team Y). E: woman, F: woman aged
