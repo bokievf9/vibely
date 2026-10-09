@@ -69,6 +69,8 @@ export type BlindSession = {
   commonTags: string[]
   partner: RevealedPartner | null
   matchId: string | null
+  // The Blind Dating Night this date happened in (20261009000210), or null.
+  eventId: string | null
   context: SessionContext
   // Messages sent so far by each side (the "Reveal identity" unlock on post conversations).
   myMessages: number

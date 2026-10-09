@@ -17,6 +17,9 @@ import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
 import { statusErrorsMs, statusesMs } from './statuses/ms'
+import { eventErrorsMs, eventsMs } from './events/ms'
+import { crushMs } from './crush/ms'
+import { promoMs, promoErrorsMs } from './promo/ms'
 import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 
 export const ms: Dictionary = {
@@ -42,6 +45,8 @@ export const ms: Dictionary = {
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
     ...statusErrorsMs,
+    ...eventErrorsMs,
+    ...promoErrorsMs,
     ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
@@ -403,5 +408,8 @@ export const ms: Dictionary = {
   crossed: crossedMs,
   plans: plansMs,
   statuses: statusesMs,
+  events: eventsMs,
+  crush: crushMs,
+  promo: promoMs,
   conversations: conversationsMs,
 }

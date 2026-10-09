@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  CalendarHeart,
   FileText,
   Flag,
   History,
@@ -13,6 +14,7 @@ import {
   Scale,
   ScanFace,
   Send,
+  Ticket,
   UserCog,
   Users,
   type LucideIcon,
@@ -35,7 +37,9 @@ const LINKS: NavLink[] = [
   { href: '/admin/prompts', label: 'Вопрос дня', icon: Lightbulb },
   { href: '/admin/log', label: 'Журнал', icon: History },
   { href: '/admin/telegram', label: 'Telegram', icon: Send },
+  { href: '/admin/events', label: 'Вечера', icon: CalendarHeart },
   { href: '/admin/blocklist', label: 'Блок-лист', icon: PhoneOff, min: 'admin' },
+  { href: '/admin/promo', label: 'Промокоды', icon: Ticket, min: 'admin' },
   { href: '/admin/team', label: 'Команда', icon: UserCog, min: 'owner' },
 ]
 

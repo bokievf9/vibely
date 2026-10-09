@@ -10,6 +10,8 @@ export const NOTIFICATION_TYPES = [
   'random_reveal',
   'new_people',
   'calls',
+  'events',
+  'crush',
   'post_replies',
   'daily_prompt',
 ] as const
@@ -27,6 +29,8 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   random_reveal: true,
   new_people: true,
   calls: true,
+  events: true,
+  crush: true,
   post_replies: true,
   daily_prompt: true,
 }

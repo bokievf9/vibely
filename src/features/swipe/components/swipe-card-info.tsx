@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { ChevronUp, MapPin } from 'lucide-react'
 import { VerifiedBadge } from '@/components/ui/verified-badge'
+import { VipBadge } from '@/components/ui/vip-badge'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
 import {
@@ -71,6 +72,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
             <span className="whitespace-nowrap">
               <span className="font-light text-white/90">{candidate.age}</span>
               <VerifiedBadge size={24} className="ml-1.5 align-[-0.1em]" />
+              {candidate.vip && <VipBadge size={22} className="ml-1 align-[-0.1em]" />}
             </span>
           </h2>
           {hasMore && (

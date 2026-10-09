@@ -1,7 +1,9 @@
 'use client'
 
 import {
+  CalendarHeart,
   Heart,
+  HeartHandshake,
   Lightbulb,
   MessageCircle,
   MessageSquareLock,
@@ -29,6 +31,8 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   random_reveal: VenetianMask,
   new_people: UserPlus,
   calls: Phone,
+  events: CalendarHeart,
+  crush: HeartHandshake,
   post_replies: MessageSquareLock,
   daily_prompt: Lightbulb,
 }

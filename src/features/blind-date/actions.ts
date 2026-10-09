@@ -85,6 +85,8 @@ const sessionSchema = z.object({
   common_tags: z.array(z.string()).nullable(),
   partner: z.unknown(),
   match_id: z.uuid().nullable(),
+  // Added by 20261009000210: absent until that migration is applied.
+  event_id: z.uuid().nullable().optional(),
   kind: z.enum(['blind', 'post', 'prompt']).catch('blind'),
   context: contextSchema,
   my_messages: z.number().int().catch(0),
@@ -212,6 +214,7 @@ async function toSession(s: z.infer<typeof sessionSchema>): Promise<BlindSession
     commonTags: s.common_tags ?? [],
     partner,
     matchId: s.state === 'matched' ? s.match_id : null,
+    eventId: s.event_id ?? null,
     context,
     myMessages: s.my_messages,
     partnerMessages: s.partner_messages,
@@ -232,18 +235,30 @@ export async function getBlindSession(sessionId?: string): Promise<BlindSession 
   return toSession(parsed.data)
 }
 
-// Returns the session if paired right away, or null while waiting in the queue.
-export async function joinBlind(filters: JoinFilters): Promise<UserResult<BlindSession | null>> {
+// Returns the session if paired right away, or null while waiting in the queue. With an event id
+// the join goes into that Blind Dating Night's room (relaxed filters, see 20261009000210); the
+// night must be live, otherwise `eventNotLive`.
+export async function joinBlind(
+  filters: JoinFilters,
+  eventId?: string,
+): Promise<UserResult<BlindSession | null>> {
   const parsed = joinSchema.safeParse(filters)
   if (!parsed.success) return fail('invalidInput')
+  if (eventId !== undefined && !uuid.safeParse(eventId).success) return fail('invalidInput')
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('randomizer_join', {
     p_genders: parsed.data.genders,
     p_min_age: parsed.data.minAge,
     p_max_age: parsed.data.maxAge,
     p_tags: parsed.data.tagIds,
+    // Only sent for a night: older databases (4-parameter function) keep working for normal joins.
+    ...(eventId ? { p_event_id: eventId } : {}),
   })
-  if (error) return fail(error.code === '42501' ? 'unauthorized' : 'generic')
+  if (error) {
+    if (error.code === '42501') return fail('unauthorized')
+    if (error.code === 'P0002') return fail('eventNotLive')
+    return fail('generic')
+  }
   return ok(data ? await getBlindSession() : null)
 }
 
@@ -442,6 +457,7 @@ async function legacySession(): Promise<BlindSession | null> {
     commonTags: s.common_tags ?? [],
     partner,
     matchId: partner ? s.match_id : null,
+    eventId: null,
     context: null,
     myMessages: 0,
     partnerMessages: 0,

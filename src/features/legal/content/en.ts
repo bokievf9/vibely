@@ -1,5 +1,6 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { crushLegal } from './crush'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
@@ -56,12 +57,16 @@ export const en: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.privacy,
-      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
-      conversationsLegal.en.privacy,
       // --- end calls ---
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.en.privacy,
       // --- end crossed paths & plans ---
+      // --- secret crush (src/features/legal/content/crush.ts) ---
+      crushLegal.en.privacy,
+      // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.privacy,
+      // --- end private replies & question of the day ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -177,9 +182,10 @@ export const en: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.terms,
+      // --- end calls ---
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.en.terms,
-      // --- end calls ---
+      // --- end private replies & question of the day ---
       {
         heading: '6. Moderation',
         paragraphs: [
@@ -199,6 +205,7 @@ export const en: LegalContent = {
         heading: '8. The service',
         paragraphs: [
           'Vibely is provided "as is". We work to keep it available and secure, but we may change, pause or stop features. We do not promise that you will find a match.',
+          'Promo codes and VIP: we may hand out promo codes (for example at events or through partners) that unlock VIP perks for a limited time, such as a VIP badge, being shown first in Discover, seeing who liked you or priority in blind dating. Some codes are limited in number, valid until a date, reserved for a group (for example a gender confirmed by the selfie check) or require an approved selfie. Perks are personal, cannot be transferred or exchanged for money, and we may revoke them and block the code if it is shared, resold or used to break these Terms.',
         ],
       },
       {

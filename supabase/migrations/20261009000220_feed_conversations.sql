@@ -11,6 +11,11 @@
 --                   and Connect = match as usual.
 -- Blind dates stay kind 'blind'. Every conversation is stored with the same 90-day retention.
 --
+-- Applied after 20261009000210 (Blind Dating Nights). get_blind_session, blind_decide,
+-- randomizer_join and event_requeue are redefined here from their 20261009000210 bodies, so the
+-- event behaviour (event_id, event pools, re-queue after a Pass) is kept; post / prompt
+-- conversations never carry an event_id and are never queued or re-queued.
+--
 -- Also: daily_prompts (queue rotated by pg_cron at 19:00 Asia/Kuala_Lumpur), prompt_answers,
 -- notification preferences post_replies / daily_prompt, and the Russian admin RPCs for /admin/prompts.
 
@@ -273,7 +278,9 @@ alter table public.random_chat_sessions
   add constraint random_sessions_kind_context check (
     (kind = 'blind' and post_id is null and prompt_id is null and started_by is null)
     or (kind = 'post' and prompt_id is null and started_by is not null)
-    or (kind = 'prompt' and post_id is null and started_by is not null and prompt_id is not null));
+    or (kind = 'prompt' and post_id is null and started_by is not null and prompt_id is not null)),
+  -- Blind Dating Nights (20261009000210) pair blind dates only.
+  add constraint random_sessions_event_blind check (event_id is null or kind = 'blind');
 
 -- One conversation per post and pair, one per question and pair (reused, whatever its state).
 create unique index random_sessions_post_pair_idx
@@ -351,11 +358,11 @@ $$;
 
 revoke execute on function public.session_context(public.random_chat_sessions, uuid) from public, anon, authenticated;
 
--- get_blind_session: same as 20261009000190 plus kind, context, message counts (the reveal
--- unlock) and revealed_from_start. The return type grows, so drop and recreate. Without an id it
--- returns only the newest active BLIND date (post / prompt conversations have their own list and
--- pages, and must not hijack the Blind Dating screen). The partner profile is included after a
--- match, or from the start for prompt conversations; never otherwise.
+-- get_blind_session: the 20261009000210 definition (with event_id) plus kind, context, message
+-- counts (the reveal unlock) and revealed_from_start. The return type grows, so drop and recreate.
+-- Without an id it returns only the newest active BLIND date (post / prompt conversations have
+-- their own list and pages, and must not hijack the Blind Dating screen). The partner profile is
+-- included after a match, or from the start for prompt conversations; never otherwise.
 drop function public.get_blind_session(uuid);
 
 create function public.get_blind_session(p_session uuid default null)
@@ -370,6 +377,7 @@ returns table (
   partner             jsonb,
   match_id            uuid,
   started_at          timestamptz,
+  event_id            uuid,
   kind                text,
   context             jsonb,
   my_messages         int,
@@ -415,6 +423,7 @@ as $$
     ) end,
     case when s.end_reason = 'matched' then s.match_id end,
     s.started_at,
+    s.event_id,
     s.kind,
     public.session_context(s.sess, (select auth.uid())),
     (select count(*) from public.random_chat_messages m
@@ -428,9 +437,10 @@ $$;
 revoke execute on function public.get_blind_session(uuid) from public, anon;
 grant execute on function public.get_blind_session(uuid) to authenticated;
 
--- blind_decide: copied from 20261009000190; the only change is the reveal unlock for post
--- conversations (Connect = "Reveal identity" needs reveal_unlock_messages() from each side;
--- SQLSTATE P0423 before that). Prompt conversations decide like blind dates.
+-- blind_decide: the 20261009000210 definition (event re-queue after a Pass during a live night)
+-- plus the reveal unlock for post conversations (Connect = "Reveal identity" needs
+-- reveal_unlock_messages() from each side; SQLSTATE P0423 before that). Prompt conversations
+-- decide like blind dates. Only blind dates are re-queued.
 create or replace function public.blind_decide(p_session uuid, p_connect boolean)
 returns jsonb
 language plpgsql
@@ -442,6 +452,7 @@ declare
   s       public.random_chat_sessions;
   side    text;
   v_match uuid;
+  ev      public.scheduled_events;
   mine    int;
   theirs  int;
 begin
@@ -496,6 +507,15 @@ begin
     perform realtime.send(jsonb_build_object('session_id', s.id, 'decision', false),
       'decided', 'randomizer:' || me::text, true);
     perform realtime.send('{}'::jsonb, 'ended', 'random:' || s.id::text, true);
+    -- Only blind dates belong to a night (random_sessions_event_blind); post / prompt
+    -- conversations are never re-queued.
+    if s.event_id is not null and s.kind = 'blind' then
+      select * into ev from public.scheduled_events where id = s.event_id;
+      if ev.id is not null and public.event_effective_status(ev) = 'live' then
+        perform public.event_requeue(ev.id, s.user_a);
+        perform public.event_requeue(ev.id, s.user_b);
+      end if;
+    end if;
     return jsonb_build_object('state', 'passed', 'match_id', null);
   end if;
 
@@ -718,30 +738,144 @@ grant execute on function public.start_post_conversation(uuid, text) to authenti
 grant execute on function public.start_prompt_conversation(uuid, uuid) to authenticated;
 grant execute on function public.list_my_conversations() to authenticated;
 
--- randomizer_join (owned by the scheduled-events work, 20261009000210, so it is not redefined
--- here) returns the caller's active session instead of enqueueing them. That check must ignore
--- post / prompt conversations, otherwise anyone with an open private reply could never start a
--- blind date. This adds `kind = 'blind'` to that check in whatever definition is current, and
--- warns when the expected text is not there (then add the filter by hand).
-do $$
+-- randomizer_join: the 20261009000210 definition (optional event pool, relaxed event filters),
+-- with one change: the "already in a session" check only looks at blind dates, otherwise anyone
+-- with an open private reply / prompt conversation could never start a blind date. Sessions it
+-- creates are always kind 'blind'. Same signature, so grants are kept.
+create or replace function public.randomizer_join(
+  p_genders  public.gender[],
+  p_min_age  int,
+  p_max_age  int,
+  p_tags     smallint[] default '{}',
+  p_event_id uuid default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
 declare
-  r   record;
-  def text;
-  old constant text := 'where status = ''active'' and me.id in (user_a, user_b)';
+  me        public.profiles;
+  my_age    int;
+  my_tags   smallint[];
+  partner   uuid;
+  v_session uuid;
+  ev        public.scheduled_events;
 begin
-  for r in
-    select p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'randomizer_join'
-  loop
-    def := pg_get_functiondef(r.oid);
-    if def like '%kind = ''blind''%' then
-      continue;
-    elsif position(old in def) > 0 then
-      execute replace(def, old, 'where status = ''active'' and kind = ''blind'' and me.id in (user_a, user_b)');
-    else
-      raise warning 'randomizer_join: add "and kind = ''blind''" to its active-session check (20261009000220)';
+  select * into me from public.profiles where id = (select auth.uid());
+  if me.id is null or not public.is_verified() then
+    raise exception 'Verification required' using errcode = 'insufficient_privilege';
+  end if;
+
+  my_age := public.age_in_years(me.birth_date);
+
+  if p_event_id is not null then
+    select * into ev from public.scheduled_events where id = p_event_id for update;
+    if ev.id is null or public.event_effective_status(ev) <> 'live' then
+      raise exception 'Event is not live' using errcode = 'no_data_found';
     end if;
-  end loop;
+    if ev.status = 'scheduled' then
+      update public.scheduled_events set status = 'live', updated_at = now() where id = ev.id;
+    end if;
+    -- Relaxed filters: genders as chosen, a wide age band, no interest filter.
+    p_min_age := greatest(18, my_age - 10);
+    p_max_age := least(99, my_age + 10);
+    p_tags := '{}';
+  else
+    p_min_age := greatest(18, p_min_age);
+    p_max_age := least(99, greatest(p_min_age, p_max_age));
+    p_tags := coalesce(p_tags[1:10], '{}');
+  end if;
+  select coalesce(array_agg(tag_id), '{}') into my_tags
+  from public.profile_tags where profile_id = me.id;
+
+  -- Serialize matchmaking: two users joining at once must see each other.
+  perform pg_advisory_xact_lock(hashtext('randomizer_join'));
+
+  select id into v_session from public.random_chat_sessions
+  where status = 'active' and kind = 'blind' and me.id in (user_a, user_b);
+  if v_session is not null then
+    return v_session;
+  end if;
+
+  delete from public.random_chat_queue
+  where user_id = me.id or last_seen_at < now() - interval '10 minutes';
+
+  if p_event_id is not null then
+    insert into public.event_participants (event_id, user_id, want_genders)
+    values (p_event_id, me.id, p_genders)
+    on conflict (event_id, user_id) do update set want_genders = excluded.want_genders;
+  end if;
+
+  -- Compatibility must hold both ways: each side fits the other's filters.
+  select q.user_id into partner
+  from public.random_chat_queue q
+  join public.profiles p on p.id = q.user_id
+  where q.last_seen_at > now() - interval '45 seconds'
+    and q.event_id is not distinct from p_event_id
+    and p.verification_status = 'approved'
+    and p.is_active
+    and p.gender = any (p_genders)
+    and public.age_in_years(p.birth_date) between p_min_age and p_max_age
+    and me.gender = any (q.want_genders)
+    and my_age between q.min_age and q.max_age
+    and (cardinality(p_tags) = 0 or exists (
+          select 1 from public.profile_tags pt
+          where pt.profile_id = p.id and pt.tag_id = any (p_tags)))
+    and (cardinality(q.want_tags) = 0 or my_tags && q.want_tags)
+    and not public.is_blocked_between(me.id, p.id)
+  order by q.enqueued_at
+  limit 1;
+
+  if partner is null then
+    insert into public.random_chat_queue (user_id, want_genders, min_age, max_age, want_tags, event_id)
+    values (me.id, p_genders, p_min_age, p_max_age, p_tags, p_event_id);
+    return null;
+  end if;
+
+  delete from public.random_chat_queue where user_id = partner;
+  insert into public.random_chat_sessions (user_a, user_b, kind, event_id)
+  values (partner, me.id, 'blind', p_event_id)
+  returning id into v_session;
+
+  perform realtime.send(
+    jsonb_build_object('session_id', v_session), 'paired', 'randomizer:' || partner::text, true);
+  return v_session;
+end;
+$$;
+
+-- event_requeue: the 20261009000210 definition; the "in another session" check likewise only
+-- looks at blind dates, so an open private reply does not stop the re-queue after a Pass.
+create or replace function public.event_requeue(p_event uuid, p_user uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  p      public.profiles;
+  my_age int;
+  wants  public.gender[];
+begin
+  select * into p from public.profiles where id = p_user;
+  if p.id is null or p.verification_status <> 'approved' or not p.is_active then
+    return;
+  end if;
+  if exists (select 1 from public.random_chat_sessions s
+             where s.status = 'active' and s.kind = 'blind' and p_user in (s.user_a, s.user_b)) then
+    return;
+  end if;
+  select want_genders into wants from public.event_participants
+  where event_id = p_event and user_id = p_user;
+  if wants is null then
+    return;
+  end if;
+  my_age := public.age_in_years(p.birth_date);
+  insert into public.random_chat_queue (user_id, want_genders, min_age, max_age, want_tags, event_id)
+  values (p_user, wants, greatest(18, my_age - 10), least(99, my_age + 10), '{}', p_event)
+  on conflict (user_id) do update
+    set want_genders = excluded.want_genders, min_age = excluded.min_age,
+        max_age = excluded.max_age, want_tags = '{}', event_id = excluded.event_id,
+        enqueued_at = now(), last_seen_at = now();
 end;
 $$;
 

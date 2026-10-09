@@ -16,6 +16,9 @@ import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
 import { statusErrorsEn, statusesEn } from './statuses/en'
+import { eventErrorsEn, eventsEn } from './events/en'
+import { crushEn } from './crush/en'
+import { promoEn, promoErrorsEn } from './promo/en'
 import { conversationErrorsEn, conversationsEn } from './conversations/en'
 
 export const en = {
@@ -41,6 +44,8 @@ export const en = {
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
     ...statusErrorsEn,
+    ...eventErrorsEn,
+    ...promoErrorsEn,
     ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
@@ -396,6 +401,9 @@ export const en = {
   crossed: crossedEn,
   plans: plansEn,
   statuses: statusesEn,
+  events: eventsEn,
+  crush: crushEn,
+  promo: promoEn,
   conversations: conversationsEn,
 }
 

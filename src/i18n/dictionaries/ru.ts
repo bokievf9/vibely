@@ -17,6 +17,9 @@ import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 import { crossedRu, plansRu } from './nearby/ru'
 import { statusErrorsRu, statusesRu } from './statuses/ru'
+import { eventErrorsRu, eventsRu } from './events/ru'
+import { crushRu } from './crush/ru'
+import { promoRu, promoErrorsRu } from './promo/ru'
 import { conversationErrorsRu, conversationsRu } from './conversations/ru'
 
 export const ru: Dictionary = {
@@ -44,6 +47,8 @@ export const ru: Dictionary = {
     ...passwordErrorsRu,
     ...sanctionErrorsRu,
     ...statusErrorsRu,
+    ...eventErrorsRu,
+    ...promoErrorsRu,
     ...conversationErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
@@ -401,5 +406,8 @@ export const ru: Dictionary = {
   crossed: crossedRu,
   plans: plansRu,
   statuses: statusesRu,
+  events: eventsRu,
+  crush: crushRu,
+  promo: promoRu,
   conversations: conversationsRu,
 }

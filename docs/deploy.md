@@ -35,7 +35,7 @@ Telegram-бот модерации (опционально, см. раздел �
 | `VPS_USER` | `deploy` |
 | `VPS_SSH_KEY` | приватный ключ `/home/deploy/.ssh/gha_deploy` |
 | `VPS_KNOWN_HOSTS` | вывод `ssh-keyscan 68.183.177.183` |
-| `CRON_SECRET` | то же значение, что в `shared/.env.production` (`.github/workflows/retention.yml`, ежедневно; `.github/workflows/telegram.yml`, ежечасно и в 09:00 MYT) |
+| `CRON_SECRET` | то же значение, что в `shared/.env.production` (`.github/workflows/retention.yml`, ежедневно; `.github/workflows/telegram.yml`, ежечасно и в 09:00 MYT; `.github/workflows/events.yml`, каждые 5 минут: напоминания о вечерах свиданий вслепую, `POST /api/cron/events-push`) |
 
 Variables (публичные значения, вшиваются в бандл при сборке): `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
