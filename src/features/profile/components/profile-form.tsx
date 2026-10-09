@@ -12,6 +12,9 @@ import { track } from '@/lib/analytics'
 import { createProfile, updateProfile } from '../actions'
 import type { OwnProfile, Tag } from '../queries'
 import { TermsConsent } from '@/features/legal/components/terms-consent'
+import { PerksSheet } from '@/features/promo/components/perks-sheet'
+import { PromoField } from '@/features/promo/components/promo-field'
+import type { PromoOutcome } from '@/features/promo/schemas'
 import { suggestUsername } from '@/features/username/actions'
 import { UsernameField } from '@/features/username/components/username-field'
 import { MAX_TAGS, newProfileSchema, profileFormSchema, type NewProfileInput } from '../schemas'
@@ -28,6 +31,9 @@ export function ProfileForm({ tags, initial }: Props) {
   const errorText = useErrorText()
   const router = useLocaleRouter()
   const [serverError, setServerError] = useState<string>()
+  // Onboarding: a code accepted with the profile; the success sheet shows the perks, then the
+  // flow continues to the photo step.
+  const [promo, setPromo] = useState<PromoOutcome | null>(null)
   const { register, control, handleSubmit, setError, setValue, formState } =
     useForm<NewProfileInput>({
       resolver: zodResolver(initial ? profileFormSchema : newProfileSchema),
@@ -41,6 +47,7 @@ export function ProfileForm({ tags, initial }: Props) {
         username: '',
         birthDate: '',
         acceptTerms: false,
+        promoCode: '',
         ...initial,
       },
     })
@@ -66,9 +73,22 @@ export function ProfileForm({ tags, initial }: Props) {
   }, [displayName, initial, usernameEdited, setValue])
 
   const onSubmit = handleSubmit(async (values) => {
-    const result = initial ? await updateProfile(values) : await createProfile(values)
-    if (result.ok && !initial) track('profile_created')
-    if (result.ok) return initial ? router.push('/profile') : router.refresh()
+    if (initial) {
+      const result = await updateProfile(values)
+      if (result.ok) return router.push('/profile')
+      setServerError(result.error)
+      Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) =>
+        setError(field as keyof NewProfileInput, { message: messages[0] }),
+      )
+      return
+    }
+    const result = await createProfile(values)
+    if (result.ok) {
+      track('profile_created')
+      // The sheet's Done continues to the photo step.
+      if (result.data.promo) return setPromo(result.data.promo)
+      return router.refresh()
+    }
     setServerError(result.error)
     Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) =>
       setError(field as keyof NewProfileInput, { message: messages[0] }),
@@ -179,7 +199,17 @@ export function ProfileForm({ tags, initial }: Props) {
       </Field>
       {initial && <MoreAboutSection control={control} register={register} errors={errors} />}
       {!initial && (
-        <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
+        <>
+          <PromoField error={err(errors.promoCode?.message)} registration={register('promoCode')} />
+          <TermsConsent error={err(errors.acceptTerms?.message)} {...register('acceptTerms')} />
+          <PerksSheet
+            outcome={promo}
+            onClose={() => {
+              setPromo(null)
+              router.refresh()
+            }}
+          />
+        </>
       )}
       {initial ? (
         // Editing: Save stays in reach above the tab bar instead of waiting at the end of a long

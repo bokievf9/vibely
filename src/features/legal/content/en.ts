@@ -198,6 +198,7 @@ export const en: LegalContent = {
         heading: '8. The service',
         paragraphs: [
           'Vibely is provided "as is". We work to keep it available and secure, but we may change, pause or stop features. We do not promise that you will find a match.',
+          'Promo codes and VIP: we may hand out promo codes (for example at events or through partners) that unlock VIP perks for a limited time, such as a VIP badge, being shown first in Discover, seeing who liked you or priority in blind dating. Some codes are limited in number, valid until a date, reserved for a group (for example a gender confirmed by the selfie check) or require an approved selfie. Perks are personal, cannot be transferred or exchanged for money, and we may revoke them and block the code if it is shared, resold or used to break these Terms.',
         ],
       },
       {

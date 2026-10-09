@@ -18,6 +18,7 @@ import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
 import { crushMs } from './crush/ms'
+import { promoMs, promoErrorsMs } from './promo/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -42,6 +43,7 @@ export const ms: Dictionary = {
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
     ...eventErrorsMs,
+    ...promoErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -403,4 +405,5 @@ export const ms: Dictionary = {
   plans: plansMs,
   events: eventsMs,
   crush: crushMs,
+  promo: promoMs,
 }

@@ -1818,6 +1818,10 @@ export async function run(db) {
     await as(M1, `select randomizer_send($1,'hi there')`, [s1])
     await as(F1, `select randomizer_send($1,'hello!')`, [s1])
     await as(M1, `select randomizer_send($1,'how is your day?')`, [s1])
+    // Inserts can share a millisecond: spread them so "in order" has one answer.
+    await su(`update random_chat_messages m set created_at = created_at + (o.n || ' ms')::interval * 10
+      from (select id, row_number() over (order by created_at, id) n from random_chat_messages where session_id=$1) o
+      where m.id = o.id`, [s1])
     const hist = (await as(F1, `select * from get_random_messages($1)`, [s1])).rows
     ok('blind: history has no sender ids', hist.length === 3 && !leaks(hist))
     ok('blind: outsider sees no session', (await as(X, `select * from get_blind_session($1)`, [s1])).rows.length === 0)
@@ -2413,6 +2417,158 @@ export async function run(db) {
     ok('secret like: no view exposes swipes', (await su(`select count(*)::int c from pg_views where schemaname = 'public' and definition ~ 'swipes'`)).rows[0].c === 0)
   })()
   // ===== end secret crush =====
+  // ===== promo codes / VIP (20261009000230) =====
+  // Every redeem_promo rule, reservation until the selfie check, counting under a row lock,
+  // rate limit, perks, expression-based expiry, Discover boost, admin role checks and logging.
+  await (async () => {
+    const P = ['9c000000-0000-4000-8000-000000000001', '9c000000-0000-4000-8000-000000000002',
+               '9c000000-0000-4000-8000-000000000003', '9c000000-0000-4000-8000-000000000004',
+               '9c000000-0000-4000-8000-000000000005', '9c000000-0000-4000-8000-000000000006',
+               '9c000000-0000-4000-8000-000000000007', '9c000000-0000-4000-8000-000000000008']
+    const [F1, F2, F3, M1, M2, NEW, ADM, MOD] = P
+    for (const [i, u] of P.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6013888000' + i])
+    for (const [u, name, g, w] of [[F1, 'Aina', 'female', '{male}'], [F2, 'Lina', 'female', '{male}'], [F3, 'Dewi', 'female', '{male}'],
+      [M1, 'Amir', 'male', '{female}'], [M2, 'Zul', 'male', '{female}'], [NEW, 'Nur', 'female', '{male}'],
+      [ADM, 'Admin', 'male', '{female}'], [MOD, 'Mod', 'male', '{female}']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1998-02-02',$2,$3,'Johor Bahru','SRID=4326;POINT(103.76 1.49)')`, [name, g, w])
+    await su(`update profiles set verification_status='approved' where id = any($1) and id <> $2`, [P, NEW])
+    await su(`insert into admins (user_id, role) values ($1, 'admin'), ($2, 'moderator')`, [ADM, MOD])
+    const redeem = async (u, code) => (await as(u, `select redeem_promo($1) r`, [code])).rows[0].r
+    const vip = async (u) => (await as(u, `select my_vip() v`)).rows[0].v
+    const prof = async (u) => (await su(`select vip_until, vip_boost_until, vip_perks from profiles where id=$1`, [u])).rows[0]
+    const logs = async (action) => (await su(`select count(*)::int c from moderation_actions where action=$1 and admin_id=$2`, [action, ADM])).rows[0].c
+    const upsert = (admin, args) => su(`select admin_upsert_promo($1, $2, $3, $4, $5, $6::jsonb, $7, $8) id`,
+      [admin, args.id ?? null, args.code, args.maxUses ?? null, args.expiresAt ?? null, JSON.stringify(args.benefits), args.gender ?? null, args.requiresVerified ?? true])
+    const statsOf = async (id) => (await su(`select * from admin_promo_stats($1)`, [ADM])).rows.find((r) => r.id === id)
+
+    // --- tables closed, normalisation, seed (M1 makes the probe calls: 5 attempts per hour per user)
+    ok('promo: tables closed to clients', !!(await fails(() => as(F1, `select * from promo_codes`))) &&
+       !!(await fails(() => as(F1, `select * from promo_redemptions`))) && !!(await fails(() => as(F1, `select * from promo_attempts`))))
+    ok('promo: anon cannot redeem', (await su(`select has_function_privilege('anon', 'public.redeem_promo(text)', 'execute') a`)).rows[0].a === false)
+    ok('promo: normalisation', (await su(`select normalize_promo_code('  xmum first_100 ') n`)).rows[0].n === 'XMUMFIRST_100')
+    const seed = (await su(`select * from promo_codes where code='XMUM_FIRST_100'`)).rows[0]
+    ok('promo: seed code is inactive, female, 100 uses', seed && seed.is_active === false && seed.gender_restriction === 'female' && seed.max_uses === 100 &&
+       seed.benefits.vip_days === 30 && seed.benefits.boost_hours === 48 && seed.benefits.see_likes === true && seed.benefits.queue_priority === true, JSON.stringify(seed))
+    ok('promo: inactive code reads as invalid', (await redeem(M1, 'xmum_first_100')).error === 'invalid')
+    ok('promo: unknown code', (await redeem(M1, 'NOPE123')).error === 'invalid')
+    ok('promo: empty code', (await redeem(M1, '   ')).error === 'invalid')
+
+    // --- admin: role checks and logging
+    ok('promo: moderator cannot create', (await fails(() => upsert(MOD, { code: 'MODCODE', benefits: { vip_days: 1 } })))?.includes('admin'))
+    ok('promo: client cannot call admin RPCs', !!(await fails(() => as(F1, `select admin_promo_stats($1)`, [F1]))) &&
+       !!(await fails(() => as(ADM, `select admin_upsert_promo($1, null, 'X', null, null, '{}', null, true)`, [ADM]))))
+    ok('promo: invalid benefits rejected', !!(await fails(() => upsert(ADM, { code: 'BAD1', benefits: { see_likes: true } }))) &&
+       !!(await fails(() => upsert(ADM, { code: 'BAD2', benefits: { vip_days: -1 } }))) &&
+       !!(await fails(() => upsert(ADM, { code: 'BAD3', benefits: { vip_days: 1, extra: 1 } }))) &&
+       !!(await fails(() => upsert(ADM, { code: 'BAD4', benefits: {} }))))
+    ok('promo: invalid code text rejected', !!(await fails(() => upsert(ADM, { code: 'a b!', benefits: { vip_days: 1 } }))) &&
+       !!(await fails(() => upsert(ADM, { code: 'ab', benefits: { vip_days: 1 } }))))
+    ok('promo: gender restriction only male/female', !!(await fails(() => upsert(ADM, { code: 'OTHERS', benefits: { vip_days: 1 }, gender: 'other' }))))
+    const two = (await upsert(ADM, { code: ' two-seats ', maxUses: 2, benefits: { vip_days: 7, boost_hours: 24, see_likes: true }, requiresVerified: false })).rows[0].id
+    ok('promo: create normalises and logs', (await su(`select code from promo_codes where id=$1`, [two])).rows[0].code === 'TWO-SEATS' && (await logs('promo.create')) === 1)
+    ok('promo: case-insensitive uniqueness', (await fails(() => upsert(ADM, { code: 'two-SEATS', benefits: { vip_days: 1 } })))?.includes('promo_codes_code_key'))
+    await upsert(ADM, { id: two, code: 'TWO-SEATS', maxUses: 2, benefits: { vip_days: 7, boost_hours: 24, see_likes: true, queue_priority: true }, requiresVerified: false })
+    ok('promo: edit logs', (await logs('promo.update')) === 1 && (await su(`select benefits->'queue_priority' q from promo_codes where id=$1`, [two])).rows[0].q === true)
+    ok('promo: editing a missing code fails', !!(await fails(() => upsert(ADM, { id: '9c000000-0000-4000-8000-0000000000ff', code: 'GHOST', benefits: { vip_days: 1 } }))))
+    await su(`select admin_set_promo_active($1, $2, false)`, [ADM, two])
+    ok('promo: deactivate logs and hides the code', (await logs('promo.deactivate')) === 1 && (await redeem(M1, 'two-seats')).error === 'invalid')
+    await su(`select admin_set_promo_active($1, $2, false)`, [ADM, two])
+    ok('promo: no log when nothing changes', (await logs('promo.deactivate')) === 1)
+    await su(`select admin_set_promo_active($1, $2, true)`, [ADM, two])
+    ok('promo: activate logs', (await logs('promo.activate')) === 1)
+    ok('promo: moderator cannot toggle', !!(await fails(() => su(`select admin_set_promo_active($1, $2, false)`, [MOD, two]))))
+
+    // --- granting, stacking, counting to max_uses
+    const before = await prof(F1)
+    ok('promo: no VIP before', before.vip_until === null && (await vip(F1)).is_vip === false && (await su(`select is_vip($1) v`, [F1])).rows[0].v === false)
+    const g1 = await redeem(F1, 'two-seats')
+    ok('promo: granted with perks', g1.status === 'granted' && g1.code === 'TWO-SEATS' && g1.vip_days === 7 && g1.boost_hours === 24 &&
+       g1.perks.see_likes === true && g1.perks.queue_priority === true && !!g1.vip_until && !!g1.boost_until, JSON.stringify(g1))
+    const a1 = await prof(F1)
+    ok('promo: vip_until about 7 days, boost about 24h', Math.abs((new Date(a1.vip_until) - Date.now()) / 864e5 - 7) < 0.05 &&
+       Math.abs((new Date(a1.vip_boost_until) - Date.now()) / 36e5 - 24) < 0.05, JSON.stringify(a1))
+    ok('promo: is_vip / has_vip_perk / my_vip', (await su(`select is_vip($1) v`, [F1])).rows[0].v === true &&
+       (await su(`select has_vip_perk($1, 'see_likes') v`, [F1])).rows[0].v === true &&
+       (await su(`select has_vip_perk($1, 'nothing') v`, [F1])).rows[0].v === false &&
+       (await as(M1, `select is_vip($1) v`, [F1])).rows[0].v === true && (await vip(F1)).is_vip === true && (await vip(F1)).pending === 0)
+    ok('promo: already redeemed', (await redeem(F1, 'TWO-SEATS')).error === 'already_redeemed')
+    ok('promo: second seat taken', (await redeem(F2, 'two-seats')).status === 'granted')
+    ok('promo: used up for the third', (await redeem(F3, 'two-seats')).error === 'used_up')
+    ok('promo: current_uses counted', (await su(`select current_uses c from promo_codes where id=$1`, [two])).rows[0].c === 2)
+    const st = await statsOf(two)
+    ok('promo: stats row', st.current_uses === 2 && Number(st.granted_count) === 2 && Number(st.pending_count) === 0 && st.is_active === true, JSON.stringify(st))
+    const reds = (await su(`select * from admin_promo_redemptions($1, $2)`, [ADM, two])).rows
+    ok('promo: redemptions list', reds.length === 2 && reds.every((r) => r.phone?.startsWith('6013888') && r.username && r.granted_at), JSON.stringify(reds))
+    // stacking: a second code extends the running VIP
+    const plus = (await upsert(ADM, { code: 'PLUS3', benefits: { vip_days: 3 }, requiresVerified: false })).rows[0].id
+    await redeem(F1, 'plus3')
+    const a2 = await prof(F1)
+    ok('promo: VIP stacks', Math.abs((new Date(a2.vip_until) - Date.now()) / 864e5 - 10) < 0.05 && a2.vip_perks.see_likes === true, JSON.stringify(a2))
+    await su(`delete from promo_codes where id=$1`, [plus])
+
+    // --- expiry of codes and VIP
+    const old = (await upsert(ADM, { code: 'OLDCODE', benefits: { vip_days: 1 }, expiresAt: new Date(Date.now() - 1000).toISOString(), requiresVerified: false })).rows[0].id
+    ok('promo: expired code', (await redeem(F3, 'oldcode')).error === 'expired')
+    await su(`delete from promo_codes where id=$1`, [old])
+    await su(`update profiles set vip_until = now() - interval '1 second', vip_boost_until = now() - interval '1 second' where id=$1`, [F2])
+    const v2 = await vip(F2)
+    ok('promo: VIP expiry is automatic', v2.is_vip === false && v2.boost_until === null && (await su(`select is_vip($1) v`, [F2])).rows[0].v === false &&
+       (await su(`select has_vip_perk($1, 'see_likes') v`, [F2])).rows[0].v === false, JSON.stringify(v2))
+    ok('promo: vip_ids lists only active VIPs the caller may see', JSON.stringify((await as(M1, `select vip_ids($1) id`, [[F1, F2, F3, M1]])).rows.map((r) => r.id)) === JSON.stringify([F1]))
+
+    // --- gender restriction and verification requirement (reservation)
+    const women = (await upsert(ADM, { code: 'WOMEN10', maxUses: 10, benefits: { vip_days: 30, boost_hours: 48, see_likes: true, queue_priority: true }, gender: 'female', requiresVerified: true })).rows[0].id
+    ok('promo: not for men', (await redeem(M1, 'women10')).error === 'not_for_you')
+    ok('promo: woman gets it', (await redeem(F3, 'women10')).status === 'granted')
+    const pend = await redeem(NEW, 'WOMEN10')
+    ok('promo: unverified gets a reservation', pend.status === 'pending' && pend.benefits.vip_days === 30, JSON.stringify(pend))
+    ok('promo: reservation takes a use and grants nothing yet', (await su(`select current_uses c from promo_codes where id=$1`, [women])).rows[0].c === 2 &&
+       (await prof(NEW)).vip_until === null && (await vip(NEW)).pending === 1 && (await su(`select is_vip($1) v`, [NEW])).rows[0].v === false)
+    ok('promo: reservation counts as redeemed', (await redeem(NEW, 'women10')).error === 'already_redeemed')
+    ok('promo: pending in stats', Number((await statsOf(women)).pending_count) === 1 && Number((await statsOf(women)).granted_count) === 1)
+    await as(NEW, `insert into verification_requests (selfie_path, challenge) values ($1, 'peace')`, [`${NEW}/s.jpg`])
+    await su(`update verification_requests set status='rejected', rejection_reason='face_not_visible' where user_id=$1`, [NEW])
+    ok('promo: rejection grants nothing', (await prof(NEW)).vip_until === null)
+    await su(`update verification_requests set status='approved' where user_id=$1`, [NEW])
+    const nv = await prof(NEW)
+    ok('promo: approval grants the reserved perks', !!nv.vip_until && !!nv.vip_boost_until && nv.vip_perks.queue_priority === true &&
+       (await su(`select is_vip($1) v`, [NEW])).rows[0].v === true && (await vip(NEW)).pending === 0 &&
+       (await su(`select count(*)::int c from promo_redemptions where user_id=$1 and granted_at is not null`, [NEW])).rows[0].c === 1, JSON.stringify(nv))
+    await su(`update verification_requests set status='pending' where user_id=$1`, [NEW])
+    await su(`update verification_requests set status='approved' where user_id=$1`, [NEW])
+    ok('promo: re-approval grants nothing twice', Math.abs(new Date((await prof(NEW)).vip_until) - new Date(nv.vip_until)) < 1000)
+
+    // --- rate limit: 5 calls per hour, successful or not
+    for (let i = 0; i < 5; i++) await redeem(M2, 'nope' + i)
+    ok('promo: 6th attempt in an hour blocked', (await redeem(M2, 'two-seats')).error === 'too_many_attempts')
+    ok('promo: failed attempts are kept', (await su(`select count(*)::int c from promo_attempts where user_id=$1`, [M2])).rows[0].c === 5)
+    await su(`update promo_attempts set created_at = now() - interval '61 minutes' where user_id=$1`, [M2])
+    ok('promo: attempts expire after an hour', (await redeem(M2, 'nope')).error === 'invalid' &&
+       (await su(`select count(*)::int c from promo_attempts where user_id=$1`, [M2])).rows[0].c === 1)
+
+    // --- Discover boost: the boosted profile comes first even when less recently active
+    await su(`update profiles set last_active_at = now() - interval '5 days', vip_boost_until = now() + interval '1 hour' where id=$1`, [F3])
+    await su(`update profiles set last_active_at = now(), vip_boost_until = null where id = any($1)`, [[F1, F2, NEW]])
+    const deck = (await as(M2, `select id from get_swipe_candidates('{female}', 18, 40, 50, 20)`)).rows.map((r) => r.id)
+    ok('promo: boosted profile first', deck[0] === F3 && deck.includes(F1) && deck.includes(F2), JSON.stringify(deck))
+    await su(`update profiles set vip_boost_until = now() - interval '1 minute' where id=$1`, [F3])
+    ok('promo: expired boost drops back', (await as(M2, `select id from get_swipe_candidates('{female}', 18, 40, 50, 20)`)).rows.map((r) => r.id)[0] !== F3)
+    ok('promo: candidate columns unchanged', !('vip' in ((await as(M2, `select * from get_swipe_candidates('{female}', 18, 40, 50, 1)`)).rows[0] ?? {})))
+    ok('promo: one get_swipe_candidates overload (the 20261009000200 signature)',
+       (await su(`select count(*)::int c from pg_proc where proname='get_swipe_candidates' and pronamespace='public'::regnamespace`)).rows[0].c === 1 &&
+       (await su(`select pg_get_function_identity_arguments(oid) a from pg_proc where proname='get_swipe_candidates' and pronamespace='public'::regnamespace`)).rows[0].a.includes('p_similar_plans'))
+    // boost first, then "Similar plans", then the usual order; the plan column still comes through
+    await su(`update profiles set vip_boost_until = now() + interval '1 hour', last_active_at = now() - interval '5 days' where id=$1`, [F3])
+    await as(M2, `select set_plan('gym')`)
+    await as(F1, `select set_plan('gym')`)
+    await su(`update profiles set last_active_at = now() - interval '2 days' where id=$1`, [F1])
+    const planDeck = (await as(M2, `select id, plan from get_swipe_candidates('{female}', 18, 40, 50, 20, true)`)).rows
+    ok('promo: boost outranks similar plans, which outrank activity', planDeck[0]?.id === F3 && planDeck[1]?.id === F1 && planDeck[1]?.plan === 'gym', JSON.stringify(planDeck))
+    await as(M2, `select clear_plan()`)
+    await as(F1, `select clear_plan()`)
+    await su(`update profiles set vip_boost_until = null where id=$1`, [F3])
+  })()
+  // ===== end promo codes / VIP =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail
