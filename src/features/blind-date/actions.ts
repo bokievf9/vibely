@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
-import { LOCALES } from '@/i18n/config'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { notifyBlindMatch } from '@/features/push/send'
 import { toPseudonym } from '@/features/feed/pseudonym'
@@ -30,8 +29,13 @@ const uuid = z.uuid()
 // TODO: remove the fallbacks once the migration is live everywhere.
 const MISSING_RPC = 'PGRST202'
 
-const localeRecord = z.object(Object.fromEntries(LOCALES.map((l) => [l, z.string()])))
-const localeLists = z.object(Object.fromEntries(LOCALES.map((l) => [l, z.array(z.string())])))
+// Explicit keys (not Object.fromEntries over LOCALES) so the parsed shape is Record<Locale, …>.
+const localeRecord = z.object({ en: z.string(), ms: z.string(), ru: z.string() })
+const localeLists = z.object({
+  en: z.array(z.string()),
+  ms: z.array(z.string()),
+  ru: z.array(z.string()),
+})
 
 const photoSchema = z
   .object({ path: z.string(), width: z.number(), height: z.number() })
@@ -170,8 +174,7 @@ async function toContext(raw: z.infer<typeof contextSchema>): Promise<SessionCon
     }
   }
   const a = raw.author
-  const photoUrl =
-    a?.photo && (await signPhotoPaths([a.photo.path])).get(a.photo.path)
+  const photoUrl = a?.photo && (await signPhotoPaths([a.photo.path])).get(a.photo.path)
   const ps = raw.author_pseudonym
   return {
     kind: 'post',

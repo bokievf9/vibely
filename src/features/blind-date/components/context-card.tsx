@@ -16,7 +16,7 @@ export function ContextCard({ context }: { context: SessionContext }) {
   if (!context) return null
 
   if (context.kind === 'prompt') {
-    const answer = (i: number | null) => (i === null ? null : context.options[locale][i])
+    const answer = (i: number | null) => (i === null ? null : (context.options[locale][i] ?? null))
     const mine = answer(context.myOption)
     const theirs = answer(context.partnerOption)
     return (
@@ -39,10 +39,7 @@ export function ContextCard({ context }: { context: SessionContext }) {
 
   const body = (
     <p
-      className={cn(
-        'text-callout wrap-anywhere whitespace-pre-wrap',
-        !expanded && 'line-clamp-4',
-      )}
+      className={cn('text-callout wrap-anywhere whitespace-pre-wrap', !expanded && 'line-clamp-4')}
     >
       {context.body}
     </p>
@@ -76,13 +73,7 @@ export function ContextCard({ context }: { context: SessionContext }) {
   )
 }
 
-function Label({
-  icon: Icon,
-  children,
-}: {
-  icon: typeof Lightbulb
-  children: React.ReactNode
-}) {
+function Label({ icon: Icon, children }: { icon: typeof Lightbulb; children: React.ReactNode }) {
   return (
     <span className="text-muted text-caption flex items-center gap-1.5 font-semibold tracking-wide uppercase">
       <Icon className="size-3.5" aria-hidden /> {children}

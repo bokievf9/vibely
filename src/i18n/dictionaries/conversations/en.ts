@@ -42,6 +42,8 @@ export const conversationsEn = {
   promptNewAt: 'New question every day at 7 pm',
   promptAnswered: '{count} answered',
   promptSame: 'They chose the same',
+  promptAnswerHint: 'Answer to see the results and who near you picked the same.',
+  promptChange: 'Change answer',
   promptSameHint: 'People near you who picked your answer. Say hi to start a chat.',
   promptNobody: 'Nobody near you with your answer yet. Check back later.',
   sayHi: 'Say hi',

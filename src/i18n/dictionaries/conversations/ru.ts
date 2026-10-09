@@ -37,6 +37,8 @@ export const conversationsRu: ConversationsDictionary = {
   promptNewAt: 'Новый вопрос каждый день в 19:00',
   promptAnswered: 'Ответили: {count}',
   promptSame: 'Выбрали то же',
+  promptAnswerHint: 'Ответьте, чтобы увидеть результаты и кто рядом выбрал то же.',
+  promptChange: 'Изменить ответ',
   promptSameHint: 'Люди рядом с вашим ответом. Поздоровайтесь, чтобы начать чат.',
   promptNobody: 'Рядом пока никого с вашим ответом. Загляните позже.',
   sayHi: 'Привет',

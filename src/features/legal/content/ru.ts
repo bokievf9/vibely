@@ -1,4 +1,5 @@
 import { callsLegal } from './calls'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -57,6 +58,8 @@ export const ru: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ru.privacy,
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ru.privacy,
       // --- end calls ---
       {
         heading: '6. Жалобы, модерация и блокировка',
@@ -173,6 +176,8 @@ export const ru: LegalContent = {
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ru.terms,
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ru.terms,
       // --- end calls ---
       {
         heading: '6. Модерация',

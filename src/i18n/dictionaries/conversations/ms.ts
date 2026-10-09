@@ -14,7 +14,8 @@ export const conversationsMs: ConversationsDictionary = {
   bothChose: 'Anda berdua memilih: {answer}',
   youChose: 'Anda: {answer}',
   theyChose: 'Mereka: {answer}',
-  authorHint: 'Seseorang membalas hantaran anda secara peribadi. Mereka hanya nampak nama hantaran anda.',
+  authorHint:
+    'Seseorang membalas hantaran anda secara peribadi. Mereka hanya nampak nama hantaran anda.',
   replierHint: 'Penulis melihat anda sebagai {alias}.',
   promptHint: 'Anda berdua memilih jawapan yang sama. Sambung apabila serasi.',
   revealIdentity: 'Dedahkan identiti',
@@ -37,6 +38,8 @@ export const conversationsMs: ConversationsDictionary = {
   promptNewAt: 'Soalan baharu setiap hari jam 7 malam',
   promptAnswered: '{count} menjawab',
   promptSame: 'Mereka memilih yang sama',
+  promptAnswerHint: 'Jawab untuk melihat keputusan dan siapa berdekatan yang memilih sama.',
+  promptChange: 'Tukar jawapan',
   promptSameHint: 'Orang berdekatan yang memilih jawapan anda. Tegur untuk mula bersembang.',
   promptNobody: 'Belum ada orang berdekatan dengan jawapan anda. Cuba lagi nanti.',
   sayHi: 'Tegur',
