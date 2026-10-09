@@ -95,7 +95,7 @@ export function OtpForm({ phone }: { phone: string }) {
     >
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <label htmlFor="token" className="text-muted min-w-0 text-sm font-medium">
+          <label htmlFor="token" className="text-muted text-footnote min-w-0 px-1 font-medium">
             {fmt(dict.auth.otpLabel, { phone })}
           </label>
           <LocaleLink
@@ -114,11 +114,11 @@ export function OtpForm({ phone }: { phone: string }) {
                 <span
                   key={i}
                   className={cn(
-                    'bg-surface flex h-14 items-center justify-center rounded-2xl border text-2xl font-semibold tabular-nums transition-colors duration-150',
+                    'bg-surface-raised flex h-[3.75rem] items-center justify-center rounded-[0.875rem] border text-[1.625rem] font-semibold tabular-nums shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] transition-[border-color,box-shadow] duration-150',
                     invalid
                       ? 'border-danger/70'
                       : active
-                        ? 'border-accent'
+                        ? 'border-accent/80 shadow-[0_0_0_4px_rgb(255_77_125/0.15),inset_0_1px_0_rgb(255_255_255/0.05)]'
                         : code[i]
                           ? 'border-foreground/25'
                           : 'border-border',
@@ -157,7 +157,9 @@ export function OtpForm({ phone }: { phone: string }) {
       <div id="token-msg">
         <FormError message={error} />
       </div>
-      {turnstileSiteKey && (
+      {/* The phone step already passed a captcha; this one only guards "Resend", so it mounts
+          when resend becomes available instead of greeting the user with a second check. */}
+      {turnstileSiteKey && cooldown <= 0 && (
         <Turnstile
           ref={captcha}
           siteKey={turnstileSiteKey}

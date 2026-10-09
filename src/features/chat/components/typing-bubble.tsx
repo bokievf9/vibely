@@ -24,7 +24,7 @@ export function TypingBubble({ name }: { name: string }) {
       <span
         role="status"
         aria-label={fmt(dict.chatui.typing, { name })}
-        className="bg-surface flex h-9 items-center gap-1 rounded-2xl rounded-bl-md px-3.5"
+        className="bg-surface-raised flex h-9 items-center gap-1 rounded-[1.25rem] rounded-bl-[0.375rem] px-3.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),inset_0_0_0_1px_var(--border)]"
       >
         {[0, 1, 2].map((i) => (
           <span key={i} aria-hidden className={`${styles.dot} bg-muted size-1.5 rounded-full`} />

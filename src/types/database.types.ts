@@ -85,6 +85,427 @@ export type Database = {
           },
         ]
       }
+      crossed_paths_settings: {
+        Row: {
+          enabled_at: string
+          last_ping_at: string | null
+          user_id: string
+        }
+        Insert: {
+          enabled_at?: string
+          last_ping_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          enabled_at?: string
+          last_ping_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'crossed_paths_settings_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      matchmaker_referrals: {
+        Row: {
+          created_at: string
+          decision_b: boolean | null
+          decision_c: boolean | null
+          id: string
+          match_id: string | null
+          matchmaker_id: string
+          note: string | null
+          rewarded_at: string | null
+          status: string
+          user_b: string
+          user_c: string
+        }
+        Insert: {
+          created_at?: string
+          decision_b?: boolean | null
+          decision_c?: boolean | null
+          id?: string
+          match_id?: string | null
+          matchmaker_id: string
+          note?: string | null
+          rewarded_at?: string | null
+          status?: string
+          user_b: string
+          user_c: string
+        }
+        Update: {
+          created_at?: string
+          decision_b?: boolean | null
+          decision_c?: boolean | null
+          id?: string
+          match_id?: string | null
+          matchmaker_id?: string
+          note?: string | null
+          rewarded_at?: string | null
+          status?: string
+          user_b?: string
+          user_c?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'matchmaker_referrals_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_matchmaker_id_fkey'
+            columns: ['matchmaker_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_user_b_fkey'
+            columns: ['user_b']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_user_c_fkey'
+            columns: ['user_c']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      duo_teams: {
+        Row: {
+          accepted_at: string | null
+          bio: string | null
+          bio_status: string
+          created_at: string
+          dissolve_reason: string | null
+          dissolved_at: string | null
+          id: string
+          invite_code: string | null
+          max_age: number
+          max_km: number
+          min_age: number
+          status: string
+          user_a: string
+          user_b: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          bio?: string | null
+          bio_status?: string
+          created_at?: string
+          dissolve_reason?: string | null
+          dissolved_at?: string | null
+          id?: string
+          invite_code?: string | null
+          max_age?: number
+          max_km?: number
+          min_age?: number
+          status?: string
+          user_a: string
+          user_b?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          bio?: string | null
+          bio_status?: string
+          created_at?: string
+          dissolve_reason?: string | null
+          dissolved_at?: string | null
+          id?: string
+          invite_code?: string | null
+          max_age?: number
+          max_km?: number
+          min_age?: number
+          status?: string
+          user_a?: string
+          user_b?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_teams_user_a_fkey'
+            columns: ['user_a']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_teams_user_b_fkey'
+            columns: ['user_b']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      duo_likes: {
+        Row: {
+          created_at: string
+          direction: Database['public']['Enums']['swipe_direction']
+          target_team_id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: Database['public']['Enums']['swipe_direction']
+          target_team_id: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: Database['public']['Enums']['swipe_direction']
+          target_team_id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_likes_team_id_fkey'
+            columns: ['team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_likes_target_team_id_fkey'
+            columns: ['target_team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_likes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      duo_matches: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          team_a: string
+          team_b: string
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          team_a: string
+          team_b: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          team_a?: string
+          team_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'duo_matches_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_matches_team_a_fkey'
+            columns: ['team_a']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'duo_matches_team_b_fkey'
+            columns: ['team_b']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      group_chats: {
+        Row: {
+          created_at: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          left_at: string | null
+          left_reason: string | null
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          left_reason?: string | null
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          left_reason?: string | null
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'group_members_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_members_team_id_fkey'
+            columns: ['team_id']
+            isOneToOne: false
+            referencedRelation: 'duo_teams'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_members_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          about_user: string | null
+          body: string | null
+          created_at: string
+          group_id: string
+          id: string
+          image_height: number | null
+          image_width: number | null
+          kind: string
+          media_expired_at: string | null
+          media_path: string | null
+          sender_id: string | null
+          system_event: string | null
+        }
+        Insert: {
+          about_user?: string | null
+          body?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          image_height?: number | null
+          image_width?: number | null
+          kind?: string
+          media_expired_at?: string | null
+          media_path?: string | null
+          sender_id?: string | null
+          system_event?: string | null
+        }
+        Update: {
+          about_user?: string | null
+          body?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          image_height?: number | null
+          image_width?: number | null
+          kind?: string
+          media_expired_at?: string | null
+          media_path?: string | null
+          sender_id?: string | null
+          system_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'group_messages_about_user_fkey'
+            columns: ['about_user']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_messages_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'group_chats'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'group_messages_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      user_plans: {
+        Row: {
+          created_at: string
+          expires_at: string
+          tag: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          tag: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          tag?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_plans_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -276,6 +697,57 @@ export type Database = {
           },
         ]
       }
+      daily_prompts: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          options_en: string[]
+          options_ms: string[]
+          options_ru: string[]
+          pushed_at: string | null
+          question_en: string
+          question_ms: string
+          question_ru: string
+          show_date: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          options_en: string[]
+          options_ms: string[]
+          options_ru: string[]
+          pushed_at?: string | null
+          question_en: string
+          question_ms: string
+          question_ru: string
+          show_date?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          options_en?: string[]
+          options_ms?: string[]
+          options_ru?: string[]
+          pushed_at?: string | null
+          question_en?: string
+          question_ms?: string
+          question_ru?: string
+          show_date?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -454,12 +926,14 @@ export type Database = {
           image_height: number | null
           image_path: string | null
           image_width: number | null
+          kind: string
           match_id: string
           media_duration_ms: number | null
           media_expired_at: string | null
           media_kind: string | null
           media_mime: string | null
           media_path: string | null
+          payload: Json | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
@@ -474,12 +948,14 @@ export type Database = {
           image_height?: number | null
           image_path?: string | null
           image_width?: number | null
+          kind?: string
           match_id: string
           media_duration_ms?: number | null
           media_expired_at?: string | null
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
+          payload?: Json | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -494,12 +970,14 @@ export type Database = {
           image_height?: number | null
           image_path?: string | null
           image_width?: number | null
+          kind?: string
           match_id?: string
           media_duration_ms?: number | null
           media_expired_at?: string | null
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
+          payload?: Json | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -597,37 +1075,201 @@ export type Database = {
           },
         ]
       }
+      event_participants: {
+        Row: {
+          event_id: string
+          joined_at: string
+          user_id: string
+          want_genders: Database['public']['Enums']['gender'][]
+        }
+        Insert: {
+          event_id: string
+          joined_at?: string
+          user_id: string
+          want_genders: Database['public']['Enums']['gender'][]
+        }
+        Update: {
+          event_id?: string
+          joined_at?: string
+          user_id?: string
+          want_genders?: Database['public']['Enums']['gender'][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_participants_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_participants_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      event_reminders: {
+        Row: {
+          created_at: string
+          event_id: string
+          reminder_sent_at: string | null
+          start_sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          reminder_sent_at?: string | null
+          start_sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          reminder_sent_at?: string | null
+          start_sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_reminders_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_reminders_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      scheduled_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          ends_at: string
+          id: string
+          parent_id: string | null
+          recurrence: string | null
+          starts_at: string
+          stats_joined: number
+          stats_matches: number
+          stats_pairs: number
+          status: Database['public']['Enums']['event_status']
+          theme: string | null
+          title_en: string
+          title_ms: string
+          title_ru: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ends_at: string
+          id?: string
+          parent_id?: string | null
+          recurrence?: string | null
+          starts_at: string
+          stats_joined?: number
+          stats_matches?: number
+          stats_pairs?: number
+          status?: Database['public']['Enums']['event_status']
+          theme?: string | null
+          title_en: string
+          title_ms: string
+          title_ru: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ends_at?: string
+          id?: string
+          parent_id?: string | null
+          recurrence?: string | null
+          starts_at?: string
+          stats_joined?: number
+          stats_matches?: number
+          stats_pairs?: number
+          status?: Database['public']['Enums']['event_status']
+          theme?: string | null
+          title_en?: string
+          title_ms?: string
+          title_ru?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'scheduled_events_parent_id_fkey'
+            columns: ['parent_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       notification_prefs: {
         Row: {
           calls: boolean
+          duo: boolean
+          events: boolean
+          crush: boolean
+          daily_prompt: boolean
           feed_replies: boolean
           likes: boolean
+          matchmaker: boolean
           messages: boolean
           new_matches: boolean
           new_people: boolean
+          post_replies: boolean
           random_reveal: boolean
+          status_replies: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           calls?: boolean
+          duo?: boolean
+          events?: boolean
+          crush?: boolean
+          daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
+          matchmaker?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
+          post_replies?: boolean
           random_reveal?: boolean
+          status_replies?: boolean
           updated_at?: string
           user_id?: string
         }
         Update: {
           calls?: boolean
+          duo?: boolean
+          events?: boolean
+          crush?: boolean
+          daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
+          matchmaker?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
+          post_replies?: boolean
           random_reveal?: boolean
+          status_replies?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -640,6 +1282,27 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      password_login_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip: unknown
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip?: unknown
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip?: unknown
+          username?: string
+        }
+        Relationships: []
       }
       phone_blocklist: {
         Row: {
@@ -947,6 +1610,7 @@ export type Database = {
           id: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active: boolean
+          is_incognito: boolean
           job_title: string | null
           languages: Database['public']['Enums']['spoken_language'][] | null
           last_active_at: string
@@ -966,6 +1630,9 @@ export type Database = {
           username: string
           username_changed_at: string | null
           verification_status: Database['public']['Enums']['verification_status']
+          vip_boost_until: string | null
+          vip_perks: Json
+          vip_until: string | null
         }
         Insert: {
           ban_reason?: string | null
@@ -989,6 +1656,7 @@ export type Database = {
           id?: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          is_incognito?: boolean
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
@@ -1008,6 +1676,9 @@ export type Database = {
           username: string
           username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
+          vip_boost_until?: string | null
+          vip_perks?: Json
+          vip_until?: string | null
         }
         Update: {
           ban_reason?: string | null
@@ -1031,6 +1702,7 @@ export type Database = {
           id?: string
           interested_in?: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          is_incognito?: boolean
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
@@ -1050,11 +1722,148 @@ export type Database = {
           username?: string
           username_changed_at?: string | null
           verification_status?: Database['public']['Enums']['verification_status']
+          vip_boost_until?: string | null
+          vip_perks?: Json
+          vip_until?: string | null
         }
         Relationships: [
           {
             foreignKeyName: 'profiles_referred_by_fkey'
             columns: ['referred_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      promo_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          benefits: Json
+          code: string
+          created_at: string
+          created_by: string | null
+          current_uses: number
+          expires_at: string | null
+          gender_restriction: Database['public']['Enums']['gender'] | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          requires_verified: boolean
+          updated_at: string
+        }
+        Insert: {
+          benefits?: Json
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          expires_at?: string | null
+          gender_restriction?: Database['public']['Enums']['gender'] | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          requires_verified?: boolean
+          updated_at?: string
+        }
+        Update: {
+          benefits?: Json
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          expires_at?: string | null
+          gender_restriction?: Database['public']['Enums']['gender'] | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          requires_verified?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promo_redemptions: {
+        Row: {
+          code_id: string
+          granted_at: string | null
+          id: string
+          perks: Json
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          granted_at?: string | null
+          id?: string
+          perks?: Json
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          granted_at?: string | null
+          id?: string
+          perks?: Json
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'promo_redemptions_code_id_fkey'
+            columns: ['code_id']
+            isOneToOne: false
+            referencedRelation: 'promo_codes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      prompt_answers: {
+        Row: {
+          created_at: string
+          option_idx: number
+          prompt_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          option_idx: number
+          prompt_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          option_idx?: number
+          prompt_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'prompt_answers_prompt_id_fkey'
+            columns: ['prompt_id']
+            isOneToOne: false
+            referencedRelation: 'daily_prompts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'prompt_answers_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
@@ -1141,6 +1950,7 @@ export type Database = {
       random_chat_queue: {
         Row: {
           enqueued_at: string
+          event_id: string | null
           last_seen_at: string
           max_age: number
           min_age: number
@@ -1150,6 +1960,7 @@ export type Database = {
         }
         Insert: {
           enqueued_at?: string
+          event_id?: string | null
           last_seen_at?: string
           max_age: number
           min_age: number
@@ -1159,6 +1970,7 @@ export type Database = {
         }
         Update: {
           enqueued_at?: string
+          event_id?: string | null
           last_seen_at?: string
           max_age?: number
           min_age?: number
@@ -1167,6 +1979,13 @@ export type Database = {
           want_tags?: number[]
         }
         Relationships: [
+          {
+            foreignKeyName: 'random_chat_queue_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'random_chat_queue_user_id_fkey'
             columns: ['user_id']
@@ -1179,41 +1998,114 @@ export type Database = {
       random_chat_sessions: {
         Row: {
           a_revealed: boolean
+          alias_a: number
+          alias_b: number
           b_revealed: boolean
+          decided_at: string | null
+          decision_a: boolean | null
+          decision_b: boolean | null
+          end_reason: string | null
           ended_at: string | null
+          event_id: string | null
           id: string
+          kind: string
+          last_push_at: string | null
           match_id: string | null
+          post_id: string | null
+          prompt_id: string | null
           revealed_at: string | null
+          revealed_from_start: boolean
           started_at: string
+          started_by: string | null
           status: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
+          status_id: string | null
+          status_snapshot: Json | null
         }
         Insert: {
           a_revealed?: boolean
+          alias_a?: number
+          alias_b?: number
           b_revealed?: boolean
+          decided_at?: string | null
+          decision_a?: boolean | null
+          decision_b?: boolean | null
+          end_reason?: string | null
           ended_at?: string | null
+          event_id?: string | null
           id?: string
+          kind?: string
+          last_push_at?: string | null
           match_id?: string | null
+          post_id?: string | null
+          prompt_id?: string | null
           revealed_at?: string | null
+          revealed_from_start?: boolean
           started_at?: string
+          started_by?: string | null
           status?: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
+          status_id?: string | null
+          status_snapshot?: Json | null
         }
         Update: {
           a_revealed?: boolean
+          alias_a?: number
+          alias_b?: number
           b_revealed?: boolean
+          decided_at?: string | null
+          decision_a?: boolean | null
+          decision_b?: boolean | null
+          end_reason?: string | null
           ended_at?: string | null
+          event_id?: string | null
           id?: string
+          kind?: string
+          last_push_at?: string | null
           match_id?: string | null
+          post_id?: string | null
+          prompt_id?: string | null
           revealed_at?: string | null
+          revealed_from_start?: boolean
           started_at?: string
+          started_by?: string | null
           status?: Database['public']['Enums']['random_session_status']
           user_a?: string
           user_b?: string
+          status_id?: string | null
+          status_snapshot?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'random_chat_sessions_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'posts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_prompt_id_fkey'
+            columns: ['prompt_id']
+            isOneToOne: false
+            referencedRelation: 'daily_prompts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'random_chat_sessions_started_by_fkey'
+            columns: ['started_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'random_chat_sessions_match_id_fkey'
             columns: ['match_id']
@@ -1258,6 +2150,57 @@ export type Database = {
             foreignKeyName: 'referral_codes_user_id_fkey'
             columns: ['user_id']
             isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      referral_invites: {
+        Row: {
+          claimed_at: string | null
+          code: string
+          created_at: string
+          crush_answer: boolean | null
+          crush_answered_at: string | null
+          id: string
+          invitee_id: string | null
+          inviter_id: string
+          is_crush: boolean
+        }
+        Insert: {
+          claimed_at?: string | null
+          code: string
+          created_at?: string
+          crush_answer?: boolean | null
+          crush_answered_at?: string | null
+          id?: string
+          invitee_id?: string | null
+          inviter_id: string
+          is_crush?: boolean
+        }
+        Update: {
+          claimed_at?: string | null
+          code?: string
+          created_at?: string
+          crush_answer?: boolean | null
+          crush_answered_at?: string | null
+          id?: string
+          invitee_id?: string | null
+          inviter_id?: string
+          is_crush?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'referral_invites_invitee_id_fkey'
+            columns: ['invitee_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'referral_invites_inviter_id_fkey'
+            columns: ['inviter_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1627,6 +2570,59 @@ export type Database = {
           },
         ]
       }
+      user_statuses: {
+        Row: {
+          created_at: string
+          emoji: string
+          expires_at: string
+          held_kinds: string[]
+          id: string
+          moderation_state: string
+          plan_tag: string | null
+          replaced_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          expires_at?: string
+          held_kinds?: string[]
+          id?: string
+          moderation_state?: string
+          plan_tag?: string | null
+          replaced_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          expires_at?: string
+          held_kinds?: string[]
+          id?: string
+          moderation_state?: string
+          plan_tag?: string | null
+          replaced_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_statuses_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       verification_requests: {
         Row: {
           challenge: string
@@ -1736,6 +2732,10 @@ export type Database = {
       }
     }
     Functions: {
+      create_referral: { Args: { p_b: string; p_c: string; p_note?: string | null }; Returns: Json }
+      decide_referral: { Args: { p_id: string; p_interested: boolean }; Returns: Json }
+      get_referral_card: { Args: { p_id: string }; Returns: Json }
+      purge_matchmaker_referrals: { Args: never; Returns: number }
       accept_calls_notice: { Args: never; Returns: string }
       acknowledge_warning: { Args: { p_id: string }; Returns: undefined }
       admin_add_note: {
@@ -1789,6 +2789,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_delete_daily_prompt: {
+        Args: { p_admin: string; p_id: string }
+        Returns: undefined
+      }
       admin_delete_note: {
         Args: { p_admin: string; p_note: string }
         Returns: undefined
@@ -1803,6 +2807,14 @@ export type Database = {
       }
       admin_export_user: {
         Args: { p_admin: string; p_reference: string; p_user: string }
+        Returns: Json
+      }
+      admin_cancel_event: {
+        Args: { p_admin: string; p_event: string; p_reason?: string }
+        Returns: undefined
+      }
+      admin_event_stats: {
+        Args: { p_admin: string; p_event: string }
         Returns: Json
       }
       admin_find_users: {
@@ -1843,6 +2855,29 @@ export type Database = {
         Args: { p_admin: string; p_user: string }
         Returns: string
       }
+      admin_list_events: {
+        Args: { p_admin: string; p_limit?: number }
+        Returns: {
+          created_at: string
+          created_by: string
+          ended_at: string
+          ends_at: string
+          id: string
+          in_room: number
+          joined: number
+          matches: number
+          pairs: number
+          parent_id: string
+          recurrence: string
+          reminders: number
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
+        }[]
+      }
       admin_list_team: {
         Args: { p_admin: string }
         Returns: {
@@ -1863,6 +2898,10 @@ export type Database = {
           p_targets: string[]
           p_type: string
         }
+        Returns: undefined
+      }
+      admin_move_daily_prompt: {
+        Args: { p_admin: string; p_id: string; p_up: boolean }
         Returns: undefined
       }
       admin_open_call_recording: {
@@ -1925,6 +2964,36 @@ export type Database = {
           total: number
           verification_status: Database['public']['Enums']['verification_status']
           width: number
+        }[]
+      }
+      admin_promo_redemptions: {
+        Args: { p_admin: string; p_code: string }
+        Returns: {
+          display_name: string
+          granted_at: string
+          phone: string
+          redeemed_at: string
+          user_id: string
+          username: string
+        }[]
+      }
+      admin_promo_stats: {
+        Args: { p_admin: string }
+        Returns: {
+          benefits: Json
+          code: string
+          created_at: string
+          created_by: string
+          current_uses: number
+          expires_at: string
+          gender_restriction: Database['public']['Enums']['gender']
+          granted_count: number
+          id: string
+          is_active: boolean
+          max_uses: number
+          pending_count: number
+          requires_verified: boolean
+          updated_at: string
         }[]
       }
       admin_release_report: {
@@ -2083,6 +3152,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_set_promo_active: {
+        Args: { p_active: boolean; p_admin: string; p_id: string }
+        Returns: undefined
+      }
       admin_set_shadow_ban: {
         Args: {
           p_admin: string
@@ -2106,6 +3179,23 @@ export type Database = {
         Args: { p_admin: string; p_id: string; p_reason?: string }
         Returns: undefined
       }
+      admin_upsert_promo: {
+        Args: {
+          p_admin: string
+          p_benefits: Json
+          p_code: string
+          p_expires_at: string | null
+          p_gender: Database['public']['Enums']['gender'] | null
+          p_id: string | null
+          p_max_uses: number | null
+          p_requires_verified: boolean
+        }
+        Returns: string
+      }
+      admin_upsert_daily_prompt: {
+        Args: { p_admin: string; p_id?: string; p_options: Json; p_question: Json }
+        Returns: string
+      }
       admin_warn_user: {
         Args: {
           p_admin: string
@@ -2117,12 +3207,23 @@ export type Database = {
         Returns: string
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      answer_crush: {
+        Args: { p_yes: boolean }
+        Returns: {
+          inviter_id: string
+          match_id: string
+        }[]
+      }
       answer_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
       }
       array_is_distinct: { Args: { arr: unknown }; Returns: boolean }
       assert_admin: { Args: { p_admin: string }; Returns: undefined }
+      answer_daily_prompt: {
+        Args: { p_option: number; p_prompt: string }
+        Returns: Json
+      }
       assert_admin_role: {
         Args: {
           p_admin: string
@@ -2130,6 +3231,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      blind_block: { Args: { p_session: string }; Returns: undefined }
+      blind_decide: { Args: { p_connect: boolean; p_session: string }; Returns: Json }
       call_notify: {
         Args: {
           p_call: Database['public']['Tables']['calls']['Row']
@@ -2162,6 +3265,7 @@ export type Database = {
       claim_comment_push: { Args: { p_comment_id: string }; Returns: string }
       claim_referral: { Args: { p_code: string }; Returns: boolean }
       count_incoming_likes: { Args: never; Returns: number }
+      claim_session_push: { Args: { p_message: string }; Returns: Json }
       count_swipe_candidates: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -2171,6 +3275,8 @@ export type Database = {
         }
         Returns: number
       }
+      create_referral_invite: { Args: { p_crush?: boolean }; Returns: string }
+      crush_compatible: { Args: { a: string; b: string }; Returns: boolean }
       create_comment: {
         Args: { p_body: string; p_named?: boolean; p_post_id: string }
         Returns: string
@@ -2182,6 +3288,10 @@ export type Database = {
       delete_comment: { Args: { p_comment_id: string }; Returns: undefined }
       delete_message: { Args: { p_id: string }; Returns: string }
       delete_post: { Args: { p_post_id: string }; Returns: undefined }
+      daily_prompt_push_recipients: {
+        Args: { p_prompt: string }
+        Returns: string[]
+      }
       detect_message_risk: {
         Args: { p_text: string }
         Returns: {
@@ -2195,6 +3305,21 @@ export type Database = {
         Returns: Database['public']['Enums']['call_status']
       }
       end_user_activity: { Args: { p_user: string }; Returns: string[] }
+      admin_upsert_event: {
+        Args: {
+          p_admin: string
+          p_ends_at: string
+          p_id: string | null
+          p_recurrence: string | null
+          p_starts_at: string
+          p_status?: Database['public']['Enums']['event_status']
+          p_theme: string | null
+          p_title_en: string
+          p_title_ms: string
+          p_title_ru: string
+        }
+        Returns: string
+      }
       ensure_match: {
         Args: {
           a: string
@@ -2232,6 +3357,43 @@ export type Database = {
         Returns: undefined
       }
       generate_username: { Args: { p_name: string }; Returns: string }
+      clear_plan: { Args: never; Returns: undefined }
+      get_crossed_paths: {
+        Args: never
+        Returns: {
+          age: number
+          area: string | null
+          city: string | null
+          crossings: number
+          display_name: string
+          id: string
+          is_today: boolean
+          photo: Json
+        }[]
+      }
+      hide_crossed_path: { Args: { p_user: string }; Returns: undefined }
+      ping_location: { Args: { p_lat: number; p_lng: number }; Returns: boolean }
+      purge_referral_invites: { Args: never; Returns: undefined }
+      set_crossed_paths: { Args: { p_enabled: boolean }; Returns: boolean }
+      set_plan: { Args: { p_tag: string }; Returns: string }
+      event_push_due: {
+        Args: never
+        Returns: {
+          event_id: string
+          kind: string
+          starts_at: string
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
+          user_id: string
+        }[]
+      }
+      event_remind: {
+        Args: { p_event: string; p_on: boolean }
+        Returns: boolean
+      }
+      event_tick: { Args: never; Returns: Json }
       get_blocked_users: {
         Args: never
         Returns: {
@@ -2241,6 +3403,90 @@ export type Database = {
           photo: Json
         }[]
       }
+      get_blind_session: {
+        Args: { p_session?: string }
+        Returns: {
+          common_tags: string[]
+          event_id: string
+          context: Json
+          id: string
+          kind: string
+          match_id: string
+          my_alias: number
+          my_decision: boolean
+          my_messages: number
+          my_side: string
+          partner: Json
+          partner_alias: number
+          partner_messages: number
+          revealed_from_start: boolean
+          started_at: string
+          state: string
+        }[]
+      }
+      set_status: { Args: { p_emoji: string; p_text: string; p_plan_tag?: string }; Returns: Json }
+      clear_status: { Args: never; Returns: undefined }
+      get_my_status: { Args: never; Returns: Json }
+      get_live_statuses: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          user_id: string
+          display_name: string
+          age: number
+          photo: Json
+          emoji: string
+          text: string
+          plan_tag: string | null
+          created_at: string
+          expires_at: string
+        }[]
+      }
+      start_status_conversation: { Args: { p_status: string; p_body: string }; Returns: Json }
+      admin_status_queue: {
+        Args: { p_admin: string; p_filter?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          user_id: string
+          display_name: string
+          username: string
+          emoji: string
+          text: string
+          plan_tag: string | null
+          moderation_state: string
+          held_kinds: string[]
+          created_at: string
+          expires_at: string
+          replaced_at: string | null
+          reviewed_at: string | null
+          open_reports: number
+          banned: boolean
+          total: number
+        }[]
+      }
+      admin_moderate_status: {
+        Args: { p_admin: string; p_status: string; p_decision: string; p_reason?: string }
+        Returns: Json
+      }
+      purge_live_statuses: { Args: never; Returns: number }
+      get_current_event: {
+        Args: never
+        Returns: {
+          ends_at: string
+          id: string
+          in_room: number
+          joined: number
+          reminded: boolean
+          server_now: string
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          theme: string
+          title_en: string
+          title_ms: string
+          title_ru: string
+        }[]
+      }
+      get_daily_prompt: { Args: never; Returns: Json }
       get_incoming_likes: {
         Args: { p_limit?: number }
         Returns: {
@@ -2273,6 +3519,25 @@ export type Database = {
           invited: number
         }[]
       }
+      get_pending_crush: {
+        Args: never
+        Returns: {
+          age: number
+          compatible: boolean
+          display_name: string
+          inviter_id: string
+          photo: Json
+        }[]
+      }
+      get_prompt_matches: {
+        Args: { p_limit?: number; p_prompt: string }
+        Returns: {
+          age: number
+          display_name: string
+          id: string
+          photo: Json
+        }[]
+      }
       get_random_messages: {
         Args: { p_before?: string; p_limit?: number; p_session_id: string }
         Returns: {
@@ -2302,6 +3567,7 @@ export type Database = {
           p_max_age?: number
           p_max_km?: number
           p_min_age?: number
+          p_similar_plans?: boolean
         }
         Returns: {
           age: number
@@ -2318,6 +3584,7 @@ export type Database = {
           languages: Database['public']['Enums']['spoken_language'][]
           pets: Database['public']['Enums']['pets_status']
           photos: Json
+          plan: string | null
           prompts: Json
           relationship_goal: Database['public']['Enums']['relationship_goal']
           religion: Database['public']['Enums']['religion']
@@ -2326,6 +3593,7 @@ export type Database = {
           tags: string[]
         }[]
       }
+      has_vip_perk: { Args: { p_perk: string; p_user: string }; Returns: boolean }
       hook_before_user_created: { Args: { event: Json }; Returns: Json }
       incoming_like_ids: {
         Args: never
@@ -2339,7 +3607,24 @@ export type Database = {
       is_match_participant: { Args: { m: string }; Returns: boolean }
       is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
       is_verified: { Args: never; Returns: boolean }
+      is_vip: { Args: { p_user: string }; Returns: boolean }
       lift_expired_sanctions: { Args: never; Returns: number }
+      list_my_conversations: {
+        Args: never
+        Returns: {
+          context: Json
+          id: string
+          kind: string
+          last_at: string
+          last_body: string
+          last_mine: boolean
+          my_side: string
+          partner: Json
+          partner_alias: number
+          revealed_from_start: boolean
+          started_at: string
+        }[]
+      }
       log_moderation: {
         Args: {
           p_action: string
@@ -2374,6 +3659,7 @@ export type Database = {
           banned_until: string
         }[]
       }
+      my_has_password: { Args: never; Returns: boolean }
       my_sanctions: { Args: never; Returns: Json }
       my_username: {
         Args: never
@@ -2384,20 +3670,45 @@ export type Database = {
           username: string
         }[]
       }
+      my_vip: { Args: never; Returns: Json }
       new_people_alert_recipients: {
         Args: { p_profile: string }
         Returns: string[]
       }
+      normalize_promo_code: { Args: { p: string }; Returns: string }
       normalize_username: { Args: { u: string }; Returns: string }
+      password_login_check: {
+        Args: { p_ip: unknown; p_username: string }
+        Returns: {
+          limited: boolean
+          phone: string
+        }[]
+      }
+      password_login_record: {
+        Args: { p_ip: unknown; p_success: boolean; p_username: string }
+        Returns: undefined
+      }
       phone_e164: { Args: { p_phone: string }; Returns: string }
+      promo_benefits_valid: { Args: { b: Json }; Returns: boolean }
+      promo_grant: { Args: { p_benefits: Json; p_user: string }; Returns: Json }
       purge_old_calls: { Args: never; Returns: number }
       purge_old_feed_content: { Args: never; Returns: number }
       purge_old_message_flags: { Args: never; Returns: number }
       purge_old_random_messages: { Args: never; Returns: number }
       random_session_side: { Args: { s: string }; Returns: string }
       randomizer_end: { Args: { p_session_id: string }; Returns: undefined }
+      prompt_day: { Args: { p_at?: string }; Returns: string }
+      prompt_match_pool: {
+        Args: { p_me: string; p_prompt: string }
+        Returns: {
+          distance_m: number
+          id: string
+        }[]
+      }
+      prompt_window_end: { Args: { d: string }; Returns: string }
       randomizer_join: {
         Args: {
+          p_event_id?: string
           p_genders: Database['public']['Enums']['gender'][]
           p_max_age: number
           p_min_age: number
@@ -2413,7 +3724,9 @@ export type Database = {
         Returns: string
       }
       randomizer_stats: { Args: never; Returns: number }
+      redeem_promo: { Args: { p_code: string }; Returns: Json }
       refresh_user_risk: { Args: { p_user: string }; Returns: number }
+      remove_my_password: { Args: never; Returns: boolean }
       reorder_profile_photos: { Args: { p_ids: string[] }; Returns: undefined }
       report_claim_ttl: { Args: never; Returns: string }
       report_is_personal: {
@@ -2452,6 +3765,8 @@ export type Database = {
       risk_kind_weight: { Args: { p_kind: string }; Returns: number }
       risk_normalize: { Args: { p_text: string }; Returns: string }
       risk_score_threshold: { Args: never; Returns: number }
+      reveal_unlock_messages: { Args: never; Returns: number }
+      rotate_daily_prompt: { Args: { p_at?: string }; Returns: string }
       search_profiles_by_username: {
         Args: { lim?: number; q: string }
         Returns: {
@@ -2462,6 +3777,13 @@ export type Database = {
           photo: Json
           username: string
         }[]
+      }
+      session_context: {
+        Args: {
+          s: Database['public']['Tables']['random_chat_sessions']['Row']
+          viewer: string
+        }
+        Returns: Json
       }
       set_call_permission: {
         Args: { p_allowed: boolean; p_match: string }
@@ -2491,6 +3813,14 @@ export type Database = {
       }
       submit_appeal: { Args: { p_body: string }; Returns: string }
       suggest_username: { Args: { p_name: string }; Returns: string }
+      start_post_conversation: {
+        Args: { p_body: string; p_post: string }
+        Returns: Json
+      }
+      start_prompt_conversation: {
+        Args: { p_prompt: string; p_target: string }
+        Returns: Json
+      }
       swipe_candidate_pool: {
         Args: {
           p_genders: Database['public']['Enums']['gender'][]
@@ -2557,10 +3887,61 @@ export type Database = {
       toggle_post_like: { Args: { p_post_id: string }; Returns: boolean }
       touch_last_active: { Args: never; Returns: undefined }
       under_evidence_hold: { Args: { p_user: string }; Returns: boolean }
+      admin_held_duo_bios: { Args: { p_admin: string; p_limit?: number }; Returns: Json }
+      admin_open_group_media: {
+        Args: {
+          p_admin: string
+          p_message: string
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: string
+      }
+      admin_open_group_transcript: {
+        Args: {
+          p_admin: string
+          p_limit?: number
+          p_reporter: string
+          p_target: string
+          p_type: Database['public']['Enums']['report_target']
+        }
+        Returns: Json
+      }
+      admin_review_duo_bio: {
+        Args: { p_admin: string; p_approve: boolean; p_reason?: string; p_team: string }
+        Returns: undefined
+      }
+      duo_accept: { Args: { p_code?: string; p_team?: string }; Returns: string }
+      duo_decide: { Args: { p_like: boolean; p_team: string }; Returns: Json }
+      duo_decline: { Args: { p_team: string }; Returns: boolean }
+      duo_invite: { Args: { p_user?: string }; Returns: Json }
+      duo_leave: { Args: never; Returns: boolean }
+      duo_set_profile: {
+        Args: { p_bio: string; p_max_age?: number; p_max_km?: number; p_min_age?: number }
+        Returns: string
+      }
+      duo_undo_like: { Args: { p_team: string }; Returns: boolean }
+      get_duo_candidates: { Args: { p_limit?: number }; Returns: Json }
+      get_duo_inbox: { Args: never; Returns: Json }
+      get_group_chat: { Args: { p_group: string }; Returns: Json }
+      get_group_chats: { Args: never; Returns: Json }
+      get_my_duo: { Args: never; Returns: Json }
+      group_leave: { Args: { p_group: string }; Returns: boolean }
+      group_mark_read: { Args: { p_group: string }; Returns: undefined }
+      group_unread_count: { Args: never; Returns: number }
+      is_group_member: { Args: { g: string }; Returns: boolean }
+      purge_old_duo_data: { Args: never; Returns: number }
+      retention_group_media: {
+        Args: { p_limit?: number }
+        Returns: { message_id: string; path: string }[]
+      }
+      retention_mark_group_media_expired: { Args: { p_ids: string[] }; Returns: number }
       unread_message_count: { Args: never; Returns: number }
       username_base: { Args: { p_name: string }; Returns: string }
       username_error: { Args: { u: string }; Returns: string }
       username_status: { Args: { p_username: string }; Returns: string }
+      vip_ids: { Args: { p_ids: string[] }; Returns: string[] }
     }
     Enums: {
       admin_role: 'viewer' | 'moderator' | 'admin' | 'owner'
@@ -2569,9 +3950,10 @@ export type Database = {
       call_status: 'ringing' | 'active' | 'ended' | 'missed' | 'declined'
       children_plan: 'have' | 'want' | 'dont_want' | 'not_sure'
       education_level: 'secondary' | 'diploma' | 'bachelor' | 'master' | 'phd' | 'other'
+      event_status: 'draft' | 'scheduled' | 'live' | 'ended' | 'cancelled'
       gender: 'male' | 'female' | 'other'
       habit_frequency: 'never' | 'sometimes' | 'often'
-      match_source: 'swipe' | 'randomizer'
+      match_source: 'swipe' | 'randomizer' | 'matchmaker'
       pets_status: 'none' | 'cat' | 'dog' | 'both' | 'other'
       random_session_status: 'active' | 'ended'
       relationship_goal: 'serious' | 'long_term_open' | 'casual' | 'friends' | 'not_sure'
@@ -2585,7 +3967,17 @@ export type Database = {
         | 'other'
         | 'none'
         | 'prefer_not_to_say'
-      report_target: 'user' | 'post' | 'comment' | 'random_session' | 'message' | 'photo' | 'call'
+      report_target:
+        | 'user'
+        | 'post'
+        | 'comment'
+        | 'random_session'
+        | 'message'
+        | 'photo'
+        | 'call'
+        | 'group_message'
+        | 'group_member'
+        | 'status'
       spoken_language:
         | 'malay'
         | 'english'
@@ -2728,9 +4120,10 @@ export const Constants = {
       call_status: ['ringing', 'active', 'ended', 'missed', 'declined'],
       children_plan: ['have', 'want', 'dont_want', 'not_sure'],
       education_level: ['secondary', 'diploma', 'bachelor', 'master', 'phd', 'other'],
+      event_status: ['draft', 'scheduled', 'live', 'ended', 'cancelled'],
       gender: ['male', 'female', 'other'],
       habit_frequency: ['never', 'sometimes', 'often'],
-      match_source: ['swipe', 'randomizer'],
+      match_source: ['swipe', 'randomizer', 'matchmaker'],
       pets_status: ['none', 'cat', 'dog', 'both', 'other'],
       random_session_status: ['active', 'ended'],
       relationship_goal: ['serious', 'long_term_open', 'casual', 'friends', 'not_sure'],
@@ -2745,7 +4138,18 @@ export const Constants = {
         'none',
         'prefer_not_to_say',
       ],
-      report_target: ['user', 'post', 'comment', 'random_session', 'message', 'photo', 'call'],
+      report_target: [
+        'user',
+        'post',
+        'comment',
+        'random_session',
+        'message',
+        'photo',
+        'call',
+        'group_message',
+        'group_member',
+        'status',
+      ],
       spoken_language: [
         'malay',
         'english',

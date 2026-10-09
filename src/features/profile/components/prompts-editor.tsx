@@ -39,10 +39,7 @@ export function PromptsEditor({ value = [], onChange, errorFor }: Props) {
       {value.map((prompt, i) => {
         const error = errorFor(i)
         return (
-          <div
-            key={prompt.key}
-            className="bg-surface border-border flex flex-col gap-2 rounded-2xl border p-3"
-          >
+          <div key={prompt.key} className="card flex flex-col gap-2 border p-3">
             <div className="flex items-center gap-2">
               <select
                 aria-label={t.question}

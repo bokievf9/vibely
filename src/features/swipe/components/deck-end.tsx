@@ -8,8 +8,8 @@ import {
   MessagesSquare,
   RotateCw,
   SearchX,
-  Shuffle,
   SlidersHorizontal,
+  VenetianMask,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { fmt, type Locale } from '@/i18n/config'
@@ -66,12 +66,16 @@ export function DeckEnd({ filters, onWiden, onRefresh, onOpenFilters, onAlertCha
 
   return (
     <div className="animate-rise flex flex-col gap-4 py-4">
-      <div className="flex flex-col items-center gap-2 pt-2 pb-1 text-center">
-        <span className="bg-accent/10 text-accent mb-1 flex size-16 items-center justify-center rounded-full">
-          <SearchX className="size-8" aria-hidden />
+      <div className="flex flex-col items-center gap-2 pt-4 pb-2 text-center">
+        <span aria-hidden className="relative mb-3 flex size-24 items-center justify-center">
+          <span className="from-accent/25 to-accent/0 absolute -inset-3 rounded-full bg-radial" />
+          <span className="absolute inset-0 rounded-full border border-white/[0.07]" />
+          <span className="card-raised text-accent relative flex size-16 items-center justify-center rounded-[1.25rem]">
+            <SearchX className="size-8" />
+          </span>
         </span>
-        <h2 className="text-xl font-semibold text-balance">{t.emptyTitle}</h2>
-        <p className="text-muted max-w-xs text-sm text-pretty">{t.emptyText}</p>
+        <h2 className="text-title2 text-balance">{t.emptyTitle}</h2>
+        <p className="text-muted text-callout max-w-xs text-pretty">{t.emptyText}</p>
       </div>
       {/* The first real way out is the primary action; the rest stay secondary. */}
       {options.map(
@@ -96,10 +100,10 @@ export function DeckEnd({ filters, onWiden, onRefresh, onOpenFilters, onAlertCha
           <SlidersHorizontal className="size-5" aria-hidden /> {dict.swipe.filters}
         </Button>
       </div>
-      <p className="text-muted text-center text-xs">{t.secondChanceHint}</p>
+      <p className="text-muted text-footnote px-2 text-center">{t.secondChanceHint}</p>
       <LinkCard
-        href="/randomizer"
-        icon={Shuffle}
+        href="/blind-date"
+        icon={VenetianMask}
         title={t.random}
         text={info?.searching ? fmt(t.randomCount, { count: info.searching }) : t.randomIdle}
       />
@@ -127,14 +131,14 @@ function LinkCard({ href, icon: Icon, title, text }: LinkCardProps) {
   return (
     <LocaleLink
       href={href}
-      className="bg-surface border-border active:bg-border flex min-h-16 items-center gap-3 rounded-2xl border p-4 transition-[transform,scale,background-color] duration-150 ease-out select-none active:scale-[0.98]"
+      className="card active:bg-fill flex min-h-16 items-center gap-3.5 p-4 transition-[transform,scale,background-color] duration-150 ease-out select-none active:scale-[0.98]"
     >
-      <span className="bg-accent/10 text-accent flex size-10 shrink-0 items-center justify-center rounded-full">
+      <span className="bg-accent/[0.12] text-accent flex size-11 shrink-0 items-center justify-center rounded-[0.875rem] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]">
         <Icon className="size-5" aria-hidden />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-medium">{title}</span>
-        <span className="text-muted truncate text-sm">{text}</span>
+        <span className="text-headline">{title}</span>
+        <span className="text-muted text-callout truncate">{text}</span>
       </span>
       <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
     </LocaleLink>

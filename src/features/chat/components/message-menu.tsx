@@ -69,7 +69,7 @@ export function MessageMenu(props: Props) {
                   type="button"
                   onClick={() => onAction(action)}
                   className={cn(
-                    'active:bg-surface flex h-13 w-full items-center gap-3 px-4 text-left transition-colors duration-150',
+                    'active:bg-fill flex h-13 w-full items-center gap-3 px-4 text-left transition-colors duration-150',
                     // TODO(integration): text-danger once the shell tokens land.
                     DANGER.has(action) && 'text-danger',
                   )}
@@ -87,7 +87,7 @@ export function MessageMenu(props: Props) {
                   setReporting(message.id)
                   onClose()
                 }}
-                className="active:bg-surface text-danger flex h-13 w-full items-center gap-3 px-4 text-left transition-colors duration-150"
+                className="active:bg-fill text-danger flex h-13 w-full items-center gap-3 px-4 text-left transition-colors duration-150"
               >
                 <Flag className="size-5 shrink-0" aria-hidden />
                 <span className="min-w-0 truncate">{dict.reports.reportMessage}</span>

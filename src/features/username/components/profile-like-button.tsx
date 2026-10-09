@@ -8,7 +8,9 @@ import { useErrorText, useI18n, useLocaleRouter } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { swipe } from '@/features/swipe/actions'
 
-// Profile opened from search: like it like a Discover card. A mutual like opens the new chat.
+// Profile opened from people search or Crossed paths: a "secret like", which is exactly a
+// Discover like (same swipes insert): the other person learns of it only in "Who liked you" or
+// through the match. A mutual like opens the new chat.
 export function ProfileLikeButton({ userId, liked }: { userId: string; liked: boolean }) {
   const { dict } = useI18n()
   const t = dict.username
@@ -34,7 +36,7 @@ export function ProfileLikeButton({ userId, liked }: { userId: string; liked: bo
         <Heart className="size-5" fill={done ? 'currentColor' : 'none'} aria-hidden />
         {done ? t.liked : t.like}
       </Button>
-      {done && <p className="text-muted text-center text-sm">{t.likedHint}</p>}
+      <p className="text-muted text-center text-sm">{done ? t.likedHint : t.likeHint}</p>
     </div>
   )
 }

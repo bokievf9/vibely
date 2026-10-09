@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, fmt, hasLocale, localePath, type Locale } from '@/i18n/
 import { getDictionary } from '@/i18n/server'
 import type { Dictionary } from '@/i18n/dictionaries/en'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
+import { userCanSeeLikes } from '@/features/promo/queries'
 import type { NotificationType } from './prefs'
 import type { PushPayload } from './types'
 
@@ -127,33 +128,180 @@ export function notifyNewMessage(
   })
 }
 
-export function notifyRandomReveal(userId: string, matchId: string | null) {
+// Both people pressed Connect on a blind date. Sent to the one who connected first (the other
+// is the one who just completed it). Preference key stays 'random_reveal' (DB column).
+export function notifyBlindMatch(userId: string, matchId: string | null) {
   inBackground(() =>
     sendToUser(userId, 'random_reveal', (dict, locale) => ({
       title: dict.push.randomReveal,
       body: dict.push.randomRevealBody,
-      url: matchId ? chatUrl(locale, matchId) : localePath(locale, '/randomizer'),
+      url: matchId ? chatUrl(locale, matchId) : localePath(locale, '/blind-date'),
       tag: `reveal-${matchId ?? userId}`,
     })),
   )
 }
 
+// Blind Dating Night reminders for people who tapped "Remind me": 15 minutes before the start
+// and when it goes live (POST /api/cron/events-push, rows from event_push_due). Short TTL: a
+// reminder delivered after the night is pointless.
+export type EventPush = {
+  kind: 'reminder' | 'start'
+  eventId: string
+  title: Record<Locale, string>
+}
+
+export function notifyEvent(userId: string, push: EventPush): Promise<void> {
+  return sendToUser(
+    userId,
+    'events',
+    (dict, locale) => ({
+      title: fmt(push.kind === 'start' ? dict.events.pushLiveTitle : dict.events.pushSoonTitle, {
+        title: push.title[locale],
+      }),
+      body: push.kind === 'start' ? dict.events.pushLiveBody : dict.events.pushSoonBody,
+      url: localePath(locale, push.kind === 'start' ? '/blind-date?event=1' : '/blind-date'),
+      tag: `event-${push.eventId}`,
+    }),
+    { ttl: 20 * 60 },
+  )
+}
+
+// Secret crush (invite link): the invitee said yes, so it is a match. Sent to the inviter.
+export function notifyCrushMatch(inviterId: string, inviteeName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(inviterId, 'crush', (dict, locale) => ({
+      title: dict.crush.pushTitle,
+      body: fmt(dict.crush.pushBody, { name: inviteeName }),
+      url: chatUrl(locale, matchId),
+      tag: `match-${matchId}`,
+    })),
+  )
+}
+
 // A one-way like. Never the liker's name or photo: only that someone did. Skipped when the liker
-// is paused, because the recipient could not find them in "Who liked you" anyway.
-// One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
+// is paused or in Incognito mode, because the recipient could not find them in "Who liked you"
+// anyway. One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
 export function notifyNewLike(userId: string, likerId: string) {
   inBackground(async () => {
+    // '*': is_incognito (20261009000240) may not exist yet on this database.
     const { data: liker } = await createAdminClient()
       .from('profiles')
-      .select('discoverable')
+      .select('*')
       .eq('id', likerId)
       .maybeSingle()
-    if (!liker?.discoverable) return
+    if (!liker?.discoverable || liker.is_incognito === true) return
+    // A VIP with the see_likes perk (promo codes) gets the list even when the flag is off.
+    const visible = LIKES_VISIBLE_FREE || (await userCanSeeLikes(userId))
     await sendToUser(userId, 'likes', (dict, locale) => ({
       title: dict.likes.pushTitle,
-      body: LIKES_VISIBLE_FREE ? dict.likes.pushBody : dict.likes.pushBodyLocked,
-      url: localePath(locale, LIKES_VISIBLE_FREE ? '/likes' : '/swipe'),
+      body: visible ? dict.likes.pushBody : dict.likes.pushBodyLocked,
+      url: localePath(locale, visible ? '/likes' : '/swipe'),
       tag: 'likes',
     }))
+  })
+}
+
+// Matchmaker (20261009000240). "{name} wants to introduce you to someone": sent to B when A
+// creates the introduction and to C once B is interested. Never says who the other person is.
+export function notifyReferral(userId: string, matchmakerName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(userId, 'matchmaker', (dict, locale) => ({
+      title: fmt(dict.matchmaker.pushIntro, { name: matchmakerName }),
+      body: dict.matchmaker.pushIntroBody,
+      url: chatUrl(locale, matchId),
+      tag: `referral-${matchId}`,
+    })),
+  )
+}
+
+// Both people said yes: the matchmaker learns it worked (and about the VIP days).
+export function notifyReferralWorked(matchmakerId: string, bName: string, cName: string) {
+  inBackground(() =>
+    sendToUser(matchmakerId, 'matchmaker', (dict, locale) => ({
+      title: dict.matchmaker.pushWorked,
+      body: fmt(dict.matchmaker.pushWorkedBody, { b: bName, c: cName }),
+      url: localePath(locale, '/chats'),
+      tag: 'referral-worked',
+    })),
+  )
+}
+
+// ---------- Duo Dating (20261009000261): preference 'duo' ----------
+
+const groupUrl = (locale: Locale, groupId: string) => localePath(locale, `/chats/group/${groupId}`)
+
+// An invite by username: the invited friend is told who wants to team up.
+export function notifyDuoInvite(userId: string, fromName: string) {
+  inBackground(() =>
+    sendToUser(userId, 'duo', (dict, locale) => ({
+      title: dict.duo.pushInvite,
+      body: fmt(dict.duo.pushInviteBody, { name: fromName }),
+      url: localePath(locale, '/swipe?mode=duo'),
+      tag: 'duo-invite',
+    })),
+  )
+}
+
+// The partner liked a duo for the team: the other member can see it and undo it within an hour.
+export function notifyDuoPartnerLiked(likerId: string, likerName: string) {
+  inBackground(async () => {
+    const { data: team } = await createAdminClient()
+      .from('duo_teams')
+      .select('user_a, user_b')
+      .eq('status', 'active')
+      .or(`user_a.eq.${likerId},user_b.eq.${likerId}`)
+      .maybeSingle()
+    const partner = team && (team.user_a === likerId ? team.user_b : team.user_a)
+    if (!partner) return
+    await sendToUser(partner, 'duo', (dict, locale) => ({
+      title: fmt(dict.duo.pushPartnerLiked, { name: likerName }),
+      body: dict.duo.pushPartnerLikedBody,
+      url: localePath(locale, '/swipe?mode=duo&inbox=1'),
+      tag: 'duo-like',
+    }))
+  })
+}
+
+// Current members of a group, except one.
+async function groupRecipients(groupId: string, except: string) {
+  const { data } = await createAdminClient()
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .is('left_at', null)
+  return (data ?? []).map((m) => m.user_id).filter((id) => id !== except)
+}
+
+// A mutual duo like: the three others (the one who completed it sees the match screen).
+export function notifyDuoMatch(groupId: string, exceptUserId: string) {
+  inBackground(async () => {
+    const recipients = await groupRecipients(groupId, exceptUserId)
+    await Promise.all(
+      recipients.map((id) =>
+        sendToUser(id, 'duo', (dict, locale) => ({
+          title: dict.duo.pushMatch,
+          body: dict.duo.pushMatchBody,
+          url: groupUrl(locale, groupId),
+          tag: `group-${groupId}`,
+        })),
+      ),
+    )
+  })
+}
+
+// A group message. Never the text or the photo, nor who sent it (locked screens).
+export function notifyGroupMessage(groupId: string, senderId: string, kind: 'text' | 'image') {
+  inBackground(async () => {
+    const recipients = await groupRecipients(groupId, senderId)
+    await Promise.all(
+      recipients.map((id) =>
+        sendToUser(id, 'duo', (dict, locale) => ({
+          title: dict.duo.pushGroupMessage,
+          body: kind === 'image' ? dict.duo.pushGroupPhotoBody : dict.duo.pushGroupMessageBody,
+          url: groupUrl(locale, groupId),
+          tag: `group-${groupId}`,
+        })),
+      ),
+    )
   })
 }

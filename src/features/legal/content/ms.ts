@@ -1,4 +1,10 @@
 import { callsLegal } from './calls'
+import { nearbyLegal } from './nearby'
+import { matchmakerLegal } from './matchmaker'
+import { crushLegal } from './crush'
+import { duoLegal } from './duo'
+import { conversationsLegal } from './conversations'
+import { statusesLegal } from './statuses'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -21,7 +27,7 @@ export const ms: LegalContent = {
           'Foto yang anda muat naik ke profil.',
           'Lokasi anggaran: jika anda benarkan, lokasi peranti anda digunakan untuk mengira jarak anda dengan pengguna lain. Lokasi tepat anda tidak pernah ditunjukkan kepada sesiapa. Orang lain hanya melihat jarak yang dibundarkan, contohnya "5 km dari sini".',
           'Swafoto pengesahan: foto anda membuat isyarat tangan, hanya untuk memastikan anda sepadan dengan foto profil (lihat seksyen 3).',
-          'Aktiviti dalam aplikasi: suka dan langkau, padanan, mesej sembang (teks, foto, mesej suara dan mesej video), panggilan audio dan video (dirakam, lihat seksyen 3), hantaran, komen dan suka dalam suapan, mesej sembang rawak, sekatan dan laporan.',
+          'Aktiviti dalam aplikasi: suka dan langkau, padanan, mesej sembang (teks, foto, mesej suara dan mesej video), panggilan audio dan video (dirakam, lihat seksyen 3), hantaran, komen dan suka dalam suapan, mesej dan keputusan temu janji buta (Sambung atau Langkau), sekatan dan laporan.',
           'Data teknikal: kuki yang mengekalkan log masuk dan mengingati bahasa anda. Kami tidak menggunakan penjejak iklan.',
         ],
       },
@@ -35,7 +41,7 @@ export const ms: LegalContent = {
       {
         heading: '3. Rakaman keselamatan dan pengesahan swafoto',
         paragraphs: [
-          'Untuk memastikan semua orang selamat, semua yang berlaku dalam Vibely dirakam dan disimpan: mesej sembang, foto, mesej suara dan video, sembang rawak, kandungan suapan dan semua panggilan audio dan video (panggilan dirakam di pelayan kami, dan anda sentiasa melihat notis "Panggilan ini dirakam" semasa panggilan). Kami tidak pernah merakam apa-apa tanpa memberitahu anda.',
+          'Untuk memastikan semua orang selamat, semua yang berlaku dalam Vibely dirakam dan disimpan: mesej sembang, foto, mesej suara dan video, temu janji buta, kandungan suapan dan semua panggilan audio dan video (panggilan dirakam di pelayan kami, dan anda sentiasa melihat notis "Panggilan ini dirakam" semasa panggilan). Kami tidak pernah merakam apa-apa tanpa memberitahu anda.',
           'Rakaman ini disimpan sehingga 90 hari dan kemudian dipadam secara automatik. Bahan yang berkaitan dengan laporan atau kes moderasi yang masih terbuka disimpan sehingga kes itu selesai. Rakaman disimpan secara peribadi dan tidak pernah ditunjukkan kepada pengguna lain. Hanya moderator kami boleh membukanya, hanya semasa mengendalikan laporan, dan setiap akses direkodkan.',
           'Setiap profil mesti lulus semakan swafoto. Swafoto anda hanya disemak oleh moderator manusia dan tidak pernah diterbitkan atau ditunjukkan kepada pengguna lain. Fail swafoto disimpan sehingga 90 hari (supaya moderator boleh menyemaknya jika akaun dilaporkan) dan kemudian dipadam secara automatik; kami menyimpan keputusan (diluluskan atau ditolak, serta sebab penolakan).',
           'Swafoto pengesahan anda, bersama sehingga 3 foto profil anda, mungkin disemak oleh moderator kami melalui saluran moderasi peribadi di Telegram, dan foto ini dipadam daripada saluran tersebut selepas semakan atau selewat-lewatnya dalam masa 2 hari.',
@@ -49,20 +55,39 @@ export const ms: LegalContent = {
         ],
       },
       {
-        heading: '5. Sembang rawak',
+        heading: '5. Temu janji buta',
         paragraphs: [
-          'Sembang rawak adalah tanpa nama sehingga kedua-dua pihak bersetuju untuk mendedahkan profil. Mesej sembang rawak disimpan selama 90 hari dan kemudian dipadam secara automatik. Jika sesuatu sembang dilaporkan, ia disimpan sehingga laporan itu selesai.',
+          'Dalam temu janji buta anda bersembang dengan orang lain yang disahkan tanpa melihat satu sama lain: setiap seorang hanya ditunjukkan sebagai nama samaran (contohnya "Pasangan #402") dengan gambar abstrak. Foto, nama, umur dan profil anda tidak dihantar kepada orang itu melainkan kedua-dua anda menekan Sambung. Minat bersama mungkin ditunjukkan sebagai petunjuk. Jika salah seorang menekan Langkau, sembang tamat untuk kedua-dua pihak; orang yang satu lagi hanya melihat bahawa ia telah tamat.',
+          'Mesej temu janji buta disimpan selama 90 hari dan kemudian dipadam secara automatik. Jika temu janji buta dilaporkan, ia disimpan sehingga laporan itu selesai. Apabila kedua-dua anda menekan Sambung, anda menjadi padanan, profil anda ditunjukkan kepada satu sama lain dan mesej temu janji buta disalin ke dalam sembang biasa anda dengan orang itu, di mana ia disimpan seperti mesej sembang lain.',
         ],
       },
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.privacy,
       // --- end calls ---
+      // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
+      nearbyLegal.ms.privacy,
+      // --- end crossed paths & plans ---
+      // --- secret crush (src/features/legal/content/crush.ts) ---
+      crushLegal.ms.privacy,
+      // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ms.privacy,
+      // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.ms.privacy,
+      // --- end matchmaker & incognito ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.privacy,
+      // --- end duo dating ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.privacy,
+      // --- end live statuses ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
           'Apabila anda melaporkan seseorang, moderator kami melihat kandungan yang dilaporkan beserta konteksnya (contohnya sembang berkenaan). Orang yang anda laporkan tidak diberitahu siapa yang melaporkannya. Moderator boleh menyembunyikan kandungan atau menyekat akaun, dan setiap keputusan direkodkan.',
           'Apabila anda menyekat seseorang, anda berdua tidak lagi dapat melihat satu sama lain dan padanan antara anda dibuang.',
-          'Sistem kami menyemak mesej sembang dan sembang rawak secara automatik untuk tanda penipuan atau hubungan yang tidak selamat (contohnya nombor telefon, pautan ke aplikasi mesej lain atau permintaan wang). Ini tidak pernah menyekat atau mengubah mesej anda. Ia hanya menandakannya supaya moderator boleh menyemak, dan tanda tersebut dipadam selepas 90 hari.',
+          'Sistem kami menyemak mesej sembang dan temu janji buta secara automatik untuk tanda penipuan atau hubungan yang tidak selamat (contohnya nombor telefon, pautan ke aplikasi mesej lain atau permintaan wang). Ini tidak pernah menyekat atau mengubah mesej anda. Ia hanya menandakannya supaya moderator boleh menyemak, dan tanda tersebut dipadam selepas 90 hari.',
           'Jika anda melanggar peraturan kami, kami boleh memberi amaran, menghalang anda daripada menghantar mesej dan hantaran untuk sementara, mengehadkan siapa yang boleh melihat kandungan anda, atau menggantung atau menyekat akaun anda. Kami menyimpan rekod keputusan ini dan sebabnya. Jika akaun anda digantung atau disekat, anda boleh membuat rayuan dalam aplikasi dan moderator akan menyemaknya.',
           'Setiap kali moderator membuka swafoto, nombor telefon, perbualan, media atau rakaman panggilan, tindakan itu direkodkan. Jika anda membatalkan padanan atau menyekat seseorang semasa laporan antara anda masih terbuka, perbualan itu disimpan untuk moderator sehingga laporan diselesaikan.',
         ],
@@ -89,7 +114,7 @@ export const ms: LegalContent = {
       {
         heading: '9. Tempoh penyimpanan data',
         paragraphs: [
-          'Kami menyimpan data anda selagi akaun anda wujud, kecuali rakaman keselamatan: foto, mesej suara dan video yang dihantar dalam sembang, rakaman panggilan, swafoto pengesahan dan mesej sembang rawak dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih terbuka. Foto, mesej suara atau video sembang yang telah tamat tempoh ditunjukkan sebagai "tamat tempoh".',
+          'Kami menyimpan data anda selagi akaun anda wujud, kecuali rakaman keselamatan: foto, mesej suara dan video yang dihantar dalam sembang, rakaman panggilan, swafoto pengesahan dan mesej temu janji buta dipadam secara automatik selepas 90 hari, kecuali jika ia sebahagian daripada laporan yang masih terbuka. Foto, mesej suara atau video sembang yang telah tamat tempoh ditunjukkan sebagai "tamat tempoh".',
           'Apabila anda memadam akaun, kami serta-merta memadam profil, foto, swafoto, padanan, mesej, hantaran, komen, suka, sekatan dan laporan yang anda buat. Laporan yang dibuat oleh orang lain tentang anda dan rekod moderasi mungkin disimpan untuk mencegah penyalahgunaan, contohnya supaya orang yang disekat tidak kembali. Sandaran ditimpa dalam tempoh yang terhad.',
           'Kami mungkin menyimpan data tertentu lebih lama daripada 90 hari apabila ia diperlukan untuk menangani isu keselamatan yang serius, tuntutan undang-undang atau permintaan pihak berkuasa Malaysia. Dalam keadaan itu, data disimpan hanya selama yang perlu dan setiap akses kepadanya direkodkan.',
         ],
@@ -173,6 +198,15 @@ export const ms: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.terms,
       // --- end calls ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.ms.terms,
+      // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.terms,
+      // --- end live statuses ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.terms,
+      // --- end duo dating ---
       {
         heading: '6. Moderasi',
         paragraphs: [
@@ -192,6 +226,7 @@ export const ms: LegalContent = {
         heading: '8. Perkhidmatan',
         paragraphs: [
           'Vibely disediakan "seadanya". Kami berusaha memastikan ia sentiasa tersedia dan selamat, tetapi kami boleh mengubah, menjeda atau menghentikan ciri. Kami tidak menjanjikan anda akan menemui padanan.',
+          'Kod promo dan VIP: kami mungkin mengedarkan kod promo (contohnya di acara atau melalui rakan kongsi) yang membuka ciri VIP untuk tempoh terhad, seperti lencana VIP, dipaparkan dahulu di Discover, melihat siapa yang menyukai anda atau keutamaan dalam temu janji buta. Sesetengah kod terhad bilangannya, sah sehingga tarikh tertentu, dikhaskan untuk kumpulan tertentu (contohnya jantina yang disahkan melalui semakan swafoto) atau memerlukan swafoto yang diluluskan. Ciri adalah peribadi, tidak boleh dipindahkan atau ditukar dengan wang, dan kami boleh membatalkannya serta menyekat kod tersebut jika ia dikongsi, dijual semula atau digunakan untuk melanggar Syarat ini.',
         ],
       },
       {

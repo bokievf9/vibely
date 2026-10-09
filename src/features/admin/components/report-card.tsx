@@ -12,6 +12,7 @@ import type { ReportCase } from '../queries/reports'
 import { hasRole, type AdminRole } from '../roles'
 import { Badge, formatDate } from './badges'
 import { EvidencePanel } from './evidence-panel'
+import { GroupEvidencePanel } from './group-evidence-panel'
 import { ReasonDialog, textPresets } from './reason-dialog'
 import { ReportContextView } from './report-context-view'
 import { useModeration } from './use-moderation'
@@ -33,6 +34,8 @@ const PHOTO_PRESETS = textPresets([
 ])
 const BAN_PRESETS = presetsOf(BAN_CODES, BAN_LABELS)
 const PERSONAL = new Set(['user', 'message', 'photo', 'call'])
+// Duo Dating group chats: evidence is the 4-person transcript (admin_open_group_transcript).
+const GROUP = new Set(['group_message', 'group_member'])
 
 type Dialog = 'hide' | 'ban' | 'delete_photo' | null
 
@@ -155,6 +158,14 @@ export function ReportCard({
       </ul>
       {canAct && offender && PERSONAL.has(targetType) && (
         <EvidencePanel
+          targetType={targetType}
+          targetId={targetId}
+          offender={offender}
+          reporters={reporters.filter((r) => r.id !== offender.id)}
+        />
+      )}
+      {canAct && offender && GROUP.has(targetType) && (
+        <GroupEvidencePanel
           targetType={targetType}
           targetId={targetId}
           offender={offender}

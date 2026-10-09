@@ -62,7 +62,7 @@ export function AboutFields({ control, register, errors }: Props) {
           render={({ field }) => (
             <select
               id="heightCm"
-              className="bg-surface border-border focus:border-accent h-12 w-full rounded-2xl border px-4 text-base outline-none"
+              className="bg-surface-raised border-border focus:border-accent/70 h-[3.25rem] w-full rounded-2xl border px-4 text-base shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] outline-none"
               value={field.value ?? ''}
               onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
             >

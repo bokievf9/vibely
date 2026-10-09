@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUp, MapPin, Newspaper, PenLine } from 'lucide-react'
+import { ArrowUp, EyeOff, MapPin, Newspaper, PenLine } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/client'
+import { DailyPromptCard } from '@/features/prompts/components/daily-prompt-card'
+import type { DailyPrompt, PromptMatch } from '@/features/prompts/types'
 import { createPost, loadFeedPage } from '../actions'
 import type { FeedPage, FeedTab } from '../types'
 import { Composer } from './composer'
@@ -16,10 +18,19 @@ import { useNewPosts } from './use-new-posts'
 const COMPOSER_ID = 'feed-composer'
 // Start fetching the next page while the user is still ~1.5 screens away from the end.
 const PREFETCH_MARGIN = '0px 0px 1200px 0px'
-// Pinned below the sticky page header. TODO(ui/shell): --header-h lands with the shell branch.
-const BELOW_HEADER = 'top-[calc(var(--header-h,3.5rem)+0.5rem)]'
+// Pinned below the sticky page header.
+const BELOW_HEADER = 'top-[calc(var(--header-h)+0.5rem)]'
 
-export function FeedList({ initial }: { initial: FeedPage }) {
+type Props = {
+  initial: FeedPage
+  // Question of the day (null: none active, not verified, or the migration is not applied).
+  prompt?: DailyPrompt | null
+  promptMatches?: PromptMatch[]
+  // Live statuses carousel (rendered by the page; null when unavailable).
+  top?: ReactNode
+}
+
+export function FeedList({ initial, prompt = null, promptMatches = [], top }: Props) {
   const { dict } = useI18n()
   const [tab, setTab] = useState<FeedTab>('new')
   const [page, setPage] = useState(initial)
@@ -95,8 +106,9 @@ export function FeedList({ initial }: { initial: FeedPage }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-6">
-      <p className="text-muted text-xs">{dict.feed.anonymousNote}</p>
+    <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
+      {top}
+      {prompt && <DailyPromptCard prompt={prompt} matches={promptMatches} />}
       <Composer
         id={COMPOSER_ID}
         placeholder={dict.feed.placeholder}
@@ -105,6 +117,10 @@ export function FeedList({ initial }: { initial: FeedPage }) {
         onSubmit={createPost}
         onDone={() => void show('new')}
       />
+      <p className="text-muted text-footnote -mt-0.5 mb-1 flex items-start gap-1.5 px-1">
+        <EyeOff className="mt-px size-3.5 shrink-0" aria-hidden />
+        <span>{dict.feed.anonymousNote}</span>
+      </p>
       <FeedTabs tab={tab} onChange={(t) => void show(t)} />
       <AnimatePresence>
         {fresh.count > 0 && (
@@ -115,11 +131,7 @@ export function FeedList({ initial }: { initial: FeedPage }) {
             exit={{ opacity: 0, transform: 'translateY(-8px) scale(0.96)' }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           >
-            <Button
-              size="sm"
-              className="h-10 rounded-full px-4 shadow-lg shadow-black/40"
-              onClick={() => void show('new')}
-            >
+            <Button size="sm" className="h-10 rounded-full px-4" onClick={() => void show('new')}>
               <ArrowUp className="size-4" /> {dict.feed.newPosts} ({fresh.count})
             </Button>
           </motion.div>
@@ -141,7 +153,7 @@ export function FeedList({ initial }: { initial: FeedPage }) {
         )
       ) : (
         <>
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 pt-1">
             {page.posts.map((post) => (
               <li key={post.id}>
                 <PostCard post={post} onDeleted={() => remove(post.id)} />

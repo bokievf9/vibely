@@ -1,38 +1,25 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { ChevronLeft, Heart } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
 import { LikesGrid } from '@/features/likes/components/likes-grid'
 import { LikesSkeleton } from '@/features/likes/components/likes-skeleton'
 import { countIncomingLikes, getIncomingLikes } from '@/features/likes/queries'
-import { fmt, localePath } from '@/i18n/config'
-import { getDictionary, getLocale } from '@/i18n/server'
+import { viewerCanSeeLikes } from '@/features/promo/queries'
+import { fmt } from '@/i18n/config'
+import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).likes.title, robots: { index: false } }
 }
 
 export default async function LikesPage() {
-  const [dict, locale] = await Promise.all([getDictionary(), getLocale()])
+  const dict = await getDictionary()
   return (
     <>
-      <PageHeader
-        title={
-          <span className="flex min-w-0 items-center gap-1">
-            <Link
-              href={localePath(locale, '/swipe')}
-              aria-label={dict.common.back}
-              className="active:bg-surface -ml-3 flex size-11 shrink-0 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
-            >
-              <ChevronLeft className="size-6" />
-            </Link>
-            <span className="truncate">{dict.likes.title}</span>
-          </span>
-        }
-      />
+      <PageHeader title={dict.likes.title} back={{ href: '/swipe', label: dict.common.back }} />
       <Suspense fallback={<LikesSkeleton />}>
         <Likes />
       </Suspense>
@@ -41,8 +28,10 @@ export default async function LikesPage() {
 }
 
 async function Likes() {
-  // Without the free flag the list is never loaded: only the count reaches the browser.
-  if (LIKES_VISIBLE_FREE) return <LikesGrid initial={await getIncomingLikes()} />
+  // Without the free flag the list is never loaded: only the count reaches the browser. A VIP
+  // with the see_likes perk (promo codes) gets the list while the VIP lasts.
+  if (LIKES_VISIBLE_FREE || (await viewerCanSeeLikes()))
+    return <LikesGrid initial={await getIncomingLikes()} />
   const [count, dict] = await Promise.all([countIncomingLikes(), getDictionary()])
   return (
     <EmptyState

@@ -115,7 +115,7 @@ export function PhotoUploader({ userId, photos, nextHref }: Props) {
         ))}
         {uploading && preview && (
           <li
-            className="bg-surface relative aspect-[3/4] overflow-hidden rounded-2xl"
+            className="bg-surface-raised relative aspect-[3/4] overflow-hidden rounded-[1.125rem]"
             role="status"
             aria-label={dict.discoverui.uploading}
           >
@@ -138,14 +138,18 @@ export function PhotoUploader({ userId, photos, nextHref }: Props) {
               onClick={() => inputRef.current?.click()}
               disabled={pending}
               aria-label={dict.onboarding.addPhoto}
-              className="border-border text-muted active:bg-surface active:border-accent/60 active:text-accent flex size-full items-center justify-center rounded-2xl border-2 border-dashed transition-[transform,scale,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] disabled:opacity-50"
+              className="text-accent active:border-accent/60 flex size-full flex-col items-center justify-center gap-2 rounded-[1.125rem] border-[1.5px] border-dashed border-white/15 bg-white/[0.03] transition-[transform,scale,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] active:bg-white/[0.06] disabled:opacity-50"
             >
-              <Plus className="size-7" />
+              <span className="bg-accent/15 flex size-10 items-center justify-center rounded-full">
+                <Plus className="size-6" strokeWidth={2.5} />
+              </span>
             </button>
           </li>
         )}
       </ul>
-      {ordered.length > 1 && <p className="text-muted text-xs">{dict.avatar.reorderHint}</p>}
+      {ordered.length > 1 && (
+        <p className="text-muted text-footnote px-1">{dict.avatar.reorderHint}</p>
+      )}
       <input
         ref={inputRef}
         type="file"

@@ -13,7 +13,7 @@
 const TURNSTILE = 'https://challenges.cloudflare.com'
 // Umami Cloud serves its script from cloud.umami.is but sends events to its API gateway.
 const ANALYTICS_EXTRA_CONNECT: Record<string, string[]> = {
-  'https://cloud.umami.is': ['https://api-gateway.umami.dev'],
+  'https://cloud.umami.is': ['https://api-gateway.umami.dev', 'https://gateway.umami.is'],
 }
 
 type CspInput = { supabaseUrl: string; analyticsSrc?: string; rtcUrl?: string; isDev?: boolean }

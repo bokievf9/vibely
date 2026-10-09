@@ -140,11 +140,16 @@ export const TARGET_SHORT = {
   message: 'm',
   photo: 'f',
   call: 'k',
+  group_message: 'g',
+  group_member: 'n',
+  status: 't',
 } as const
 export type ReportTargetType = keyof typeof TARGET_SHORT
 const SHORT_TARGET = Object.fromEntries(
   Object.entries(TARGET_SHORT).map(([k, v]) => [v, k as ReportTargetType]),
 ) as Record<string, ReportTargetType>
+// Every short target code, so a new target cannot be encoded without being decodable.
+const TARGET_CLASS = `[${Object.values(TARGET_SHORT).join('')}]`
 
 export type CallbackAction =
   // selfies
@@ -205,7 +210,7 @@ const PATTERNS: [RegExp, (m: RegExpExecArray) => CallbackAction | null][] = [
   ).map(
     ([p, a]) =>
       [
-        new RegExp(`^${p}:([upcsmfk]):(${UUID})$`),
+        new RegExp(`^${p}:(${TARGET_CLASS}):(${UUID})$`),
         (m: RegExpExecArray) => {
           const t = SHORT_TARGET[m[1]!]
           return t ? { a, t, id: m[2]! } : null
@@ -220,7 +225,7 @@ const PATTERNS: [RegExp, (m: RegExpExecArray) => CallbackAction | null][] = [
   ).map(
     ([p, a]) =>
       [
-        new RegExp(`^${p}:([upcsmfk]):(${UUID}):(${CODE})$`),
+        new RegExp(`^${p}:(${TARGET_CLASS}):(${UUID}):(${CODE})$`),
         (m: RegExpExecArray) => {
           const t = SHORT_TARGET[m[1]!]
           return t ? { a, t, id: m[2]!, code: m[3]! } : null

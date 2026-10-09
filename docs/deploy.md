@@ -35,7 +35,7 @@ Telegram-бот модерации (опционально, см. раздел �
 | `VPS_USER` | `deploy` |
 | `VPS_SSH_KEY` | приватный ключ `/home/deploy/.ssh/gha_deploy` |
 | `VPS_KNOWN_HOSTS` | вывод `ssh-keyscan 68.183.177.183` |
-| `CRON_SECRET` | то же значение, что в `shared/.env.production` (`.github/workflows/retention.yml`, ежедневно; `.github/workflows/telegram.yml`, ежечасно и в 09:00 MYT) |
+| `CRON_SECRET` | то же значение, что в `shared/.env.production` (`.github/workflows/retention.yml`, ежедневно; `.github/workflows/telegram.yml`, ежечасно и в 09:00 MYT; `.github/workflows/events.yml`, каждые 5 минут: напоминания о вечерах свиданий вслепую, `POST /api/cron/events-push`) |
 
 Variables (публичные значения, вшиваются в бандл при сборке): `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
@@ -55,6 +55,13 @@ Variables (публичные значения, вшиваются в бандл
 - Realtime → private only (включено).
 - Капча: сначала задеплоить с `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, потом включить Turnstile в
   Auth → Bot and Abuse Protection (иначе отправка SMS сломается).
+- Вход по @username + паролю (`20261009000180_password_login.sql`): отдельного переключателя нет,
+  пароль для телефона входит в провайдер Phone (Auth → Sign In / Providers → Phone: включён).
+  Auth → Providers → Email (общие настройки паролей): **Secure password change** = on,
+  **Minimum password length** = 10, **Password requirements** = пусто (правила проверяет
+  приложение); **Leaked password protection** = on (только на Pro-плане, после апгрейда).
+  Капча Turnstile проверяется Supabase и на входе по паролю. Nginx должен передавать
+  `proxy_set_header X-Real-IP $remote_addr;` (лимит 20 неудачных попыток с IP за 15 минут).
 
 ## Telegram-бот модерации (`src/features/telegram`)
 

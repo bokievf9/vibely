@@ -1,13 +1,20 @@
 'use client'
 
 import {
+  CalendarHeart,
+  Handshake,
   Heart,
+  HeartHandshake,
+  Lightbulb,
   MessageCircle,
+  MessageSquareLock,
   Phone,
   Newspaper,
-  Shuffle,
+  Smile,
   Sparkles,
   UserPlus,
+  UsersRound,
+  VenetianMask,
   type LucideIcon,
 } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
@@ -24,18 +31,32 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   messages: MessageCircle,
   likes: Sparkles,
   feed_replies: Newspaper,
-  random_reveal: Shuffle,
+  random_reveal: VenetianMask,
   new_people: UserPlus,
   calls: Phone,
+  matchmaker: Handshake,
+  events: CalendarHeart,
+  crush: HeartHandshake,
+  duo: UsersRound,
+  post_replies: MessageSquareLock,
+  daily_prompt: Lightbulb,
+  status_replies: Smile,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).
-export function NotificationPrefsRows({ initial }: { initial: NotificationPrefs }) {
+export function NotificationPrefsRows({
+  initial,
+  hidden = [],
+}: {
+  initial: NotificationPrefs
+  // Types whose feature is not on this database yet (their column would not save).
+  hidden?: NotificationType[]
+}) {
   const { dict } = useI18n()
   return (
     <>
       <p className="text-muted px-4 pt-3 text-sm">{dict.settings.notifyTypesHint}</p>
-      {NOTIFICATION_TYPES.map((type) => (
+      {NOTIFICATION_TYPES.filter((type) => !hidden.includes(type)).map((type) => (
         <SwitchRow
           key={type}
           icon={ICONS[type]}

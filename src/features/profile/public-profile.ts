@@ -1,7 +1,10 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { ageFromBirthDate } from '@/lib/utils'
+import { getVipIds } from '@/features/promo/queries'
 import { signPhotoPaths } from './queries'
+import { getPlansFor } from '@/features/plans/queries'
+import type { PlanTag } from '@/features/plans/tags'
 import { aboutFromRow, promptsFromRows, type AboutInput, type ProfilePrompt } from './about-schemas'
 
 export type PublicProfile = {
@@ -19,9 +22,13 @@ export type PublicProfile = {
   matchId: string | null
   // The viewer's earlier swipe on this person (search profiles offer "Like" only when null).
   swiped: 'like' | 'pass' | null
+  // Active 24-hour plan, if any.
+  plan: PlanTag | null
+  // VIP right now (promo codes).
+  vip: boolean
 }
 
-// Full profile of someone the viewer has matched with (swipes or a mutual randomizer reveal),
+// Full profile of someone the viewer has matched with (swipes or a mutual blind date Connect),
 // or, opened from people search, of a discoverable profile the viewer may see. RLS
 // (can_view_profile) already hides banned, unverified and blocked profiles; a paused profile
 // (discoverable = false) stays visible to its matches only.
@@ -32,7 +39,7 @@ export async function getPublicProfile(
   if (userId === viewerId) return null
   const supabase = await createClient()
   const [a, b] = [userId, viewerId].sort()
-  const [{ data: match }, { data: p }, { data: swipe }] = await Promise.all([
+  const [{ data: match }, { data: p }, { data: swipe }, plans, vips] = await Promise.all([
     supabase
       .from('matches')
       .select('id')
@@ -52,6 +59,8 @@ export async function getPublicProfile(
       .eq('swiper_id', viewerId)
       .eq('swiped_id', userId)
       .maybeSingle(),
+    getPlansFor([userId]),
+    getVipIds([userId]),
   ])
   if (!p || (!match && !p.discoverable)) return null
 
@@ -73,5 +82,7 @@ export async function getPublicProfile(
     prompts: promptsFromRows(p.profile_prompts),
     matchId: match?.id ?? null,
     swiped: swipe?.direction ?? null,
+    plan: plans.get(userId) ?? null,
+    vip: vips.has(userId),
   }
 }

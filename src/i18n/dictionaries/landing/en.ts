@@ -2,7 +2,7 @@
 export const landingEn = {
   metaTitle: 'Vibely: dating with real, verified people in Malaysia',
   metaDescription:
-    'Swipes, an anonymous feed and random chats with mutual reveal. Every profile passes a selfie check by a human moderator. Malaysian numbers only.',
+    'Swipes, an anonymous feed and blind dates with a mutual reveal. Every profile passes a selfie check by a human moderator. Malaysian numbers only.',
   ogTagline: 'Dating with real, verified people in Malaysia',
   signIn: 'Sign in',
   hero: {
@@ -22,8 +22,8 @@ export const landingEn = {
       text: 'Share thoughts and questions without your name. Nobody sees who wrote a post.',
     },
     random: {
-      title: 'Random chat',
-      text: 'Talk to a random verified person. Profiles are revealed only if you both agree.',
+      title: 'Blind date',
+      text: 'Chat with a verified person before you see them. Photos and names are revealed only if you both connect.',
     },
   },
   safetyTitle: 'Why it is safe',

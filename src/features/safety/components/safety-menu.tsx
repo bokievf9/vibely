@@ -2,7 +2,16 @@
 
 import { useState, useTransition } from 'react'
 import Image from 'next/image'
-import { Ban, EllipsisVertical, Flag, HeartOff, ImageIcon, Phone, Video } from 'lucide-react'
+import {
+  Ban,
+  EllipsisVertical,
+  Flag,
+  HeartHandshake,
+  HeartOff,
+  ImageIcon,
+  Phone,
+  Video,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { fmt } from '@/i18n/config'
@@ -10,6 +19,7 @@ import { useI18n, useLocaleRouter } from '@/i18n/client'
 import { formatDay, formatTime } from '@/i18n/format'
 import { formatCallDuration } from '@/features/calls/timeline'
 import type { CallEntry } from '@/features/calls/types'
+import { IntroduceSheet } from '@/features/matchmaker/components/introduce-sheet'
 import { block } from '../actions'
 import { ReportDialog } from './report-dialog'
 
@@ -23,13 +33,15 @@ type Props = {
   photos?: ReportablePhoto[]
   // Chat: lets the user report one specific call with this person.
   calls?: CallEntry[]
+  // Chat: "Introduce to a friend" (Matchmaker) for this match.
+  introduce?: { partnerId: string; partnerName: string }
 }
 
-type Open = 'menu' | 'report' | 'block' | 'unmatch' | 'pickPhoto' | 'pickCall' | null
+type Open = 'menu' | 'report' | 'block' | 'unmatch' | 'pickPhoto' | 'pickCall' | 'introduce' | null
 type Target = { type: 'photo' | 'call'; id: string } | null
 
 // "⋮" menu on a matched profile or chat: report (the person, a photo or a call), block, unmatch.
-export function SafetyMenu({ userId, name, onUnmatch, photos, calls }: Props) {
+export function SafetyMenu({ userId, name, onUnmatch, photos, calls, introduce }: Props) {
   const { dict, locale } = useI18n()
   const t = dict.reports
   const router = useLocaleRouter()
@@ -57,6 +69,11 @@ export function SafetyMenu({ userId, name, onUnmatch, photos, calls }: Props) {
       </Button>
       <Modal open={open === 'menu'} onClose={() => setOpen(null)} title={name}>
         <div className="flex flex-col gap-2">
+          {introduce && (
+            <Button variant="secondary" fullWidth onClick={() => setOpen('introduce')}>
+              <HeartHandshake className="size-5" /> {dict.matchmaker.introduce}
+            </Button>
+          )}
           {onUnmatch && (
             <Button variant="secondary" fullWidth onClick={() => setOpen('unmatch')}>
               <HeartOff className="size-5" /> {dict.chats.unmatch}
@@ -86,6 +103,9 @@ export function SafetyMenu({ userId, name, onUnmatch, photos, calls }: Props) {
         targetType="user"
         targetId={userId}
       />
+      {introduce && (
+        <IntroduceSheet open={open === 'introduce'} onClose={() => setOpen(null)} {...introduce} />
+      )}
       <Modal open={open === 'pickPhoto'} onClose={() => setOpen(null)} title={t.pickPhoto}>
         <ul className="grid grid-cols-3 gap-2">
           {photos?.map((p, i) => (

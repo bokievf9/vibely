@@ -13,10 +13,21 @@ import { tagCategoriesRu, tagsRu } from './tags/ru'
 import { usernameRu, usernameErrorsRu } from './username/ru'
 import { flowsRu } from './flowsui/ru'
 import { reportsRu } from './reports/ru'
+import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
+import { crossedRu, plansRu } from './nearby/ru'
+import { statusErrorsRu, statusesRu } from './statuses/ru'
+import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from './matchmaker/ru'
+import { eventErrorsRu, eventsRu } from './events/ru'
+import { crushRu } from './crush/ru'
+import { promoRu, promoErrorsRu } from './promo/ru'
+import { duoRu, duoErrorsRu } from './duo/ru'
+import { conversationErrorsRu, conversationsRu } from './conversations/ru'
 
 export const ru: Dictionary = {
-  meta: { description: 'Только верифицированные люди: свайпы, анонимная лента и рандом-чат.' },
+  meta: {
+    description: 'Только верифицированные люди: свайпы, анонимная лента и свидания вслепую.',
+  },
   landing: landingRu,
   common: {
     continue: 'Продолжить',
@@ -35,7 +46,14 @@ export const ru: Dictionary = {
   errors: {
     ...callErrorsRu,
     ...usernameErrorsRu,
+    ...passwordErrorsRu,
     ...sanctionErrorsRu,
+    ...statusErrorsRu,
+    ...matchmakerErrorsRu,
+    ...eventErrorsRu,
+    ...promoErrorsRu,
+    ...duoErrorsRu,
+    ...conversationErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -90,7 +108,7 @@ export const ru: Dictionary = {
   gender: { male: 'Мужчина', female: 'Женщина', other: 'Другое' },
   auth: {
     title: 'Знакомства с настоящими людьми',
-    subtitle: 'Свайпы, анонимная лента и рандом-чат. Каждый профиль проходит проверку селфи.',
+    subtitle: 'Свайпы, анонимная лента и свидания вслепую. Каждый профиль проходит проверку селфи.',
     phoneLabel: 'Номер телефона',
     phoneHint: 'Только номера Малайзии (+60). Отправим SMS с кодом.',
     getCode: 'Получить код',
@@ -169,7 +187,7 @@ export const ru: Dictionary = {
     swipe: 'Знакомства',
     chats: 'Чаты',
     feed: 'Лента',
-    randomizer: 'Рандом',
+    randomizer: 'Вслепую',
     profile: 'Профиль',
     unread: 'Непрочитанных: {count}',
     label: 'Основная навигация',
@@ -263,41 +281,56 @@ export const ru: Dictionary = {
     blockConfirm: 'Заблокировать {name}? Вы больше не увидите друг друга, мэтч удалится.',
   },
   feed: feedRu,
-  random: {
-    title: 'Рандом-чат',
-    intro:
-      'Анонимный чат со случайным верифицированным человеком. Если оба согласны, можно раскрыть профили.',
+  blindDate: {
+    title: 'Свидание вслепую',
+    heroTitle: 'Познакомьтесь, прежде чем увидите друг друга',
+    heroText:
+      'Чат с верифицированным человеком без фото и имён. Если вы оба нажмёте «Познакомиться», профили откроются и будет мэтч.',
+    pointAnon: 'Вы оба анонимны: просто «Собеседник #123»',
+    pointPhotos: 'Никаких фото, имён и профилей, пока вы оба не согласитесь',
+    pointConnect: 'Оба согласны: это мэтч, а переписка переходит в «Чаты»',
+    pointPass: 'Не ваш человек? Пропустите в любой момент, чат тихо завершится',
     lookingFor: 'С кем общаться',
     age: 'Возраст: {min}-{max}',
     tags: 'Общие интересы (необязательно)',
-    start: 'Найти собеседника',
-    searching: 'Ищем собеседника…',
-    searchingHint: 'Не закрывайте этот экран.',
+    start: 'Начать свидание вслепую',
+    safetyNote:
+      'Ради безопасности сообщения свиданий вслепую хранятся 90 дней. Читать их могут только модераторы, рассматривающие жалобу.',
+    searching: 'Ищем вам пару…',
+    searchingHint: 'Не закрывайте этот экран. Мы соединяем только тех, кто подходит друг другу.',
     cancel: 'Остановить поиск',
-    connected: 'Вы общаетесь с незнакомцем',
+    partner: 'Собеседник #{n}',
+    anonymousHint: 'Анонимно, пока вы оба не согласитесь',
+    chatIntro:
+      'Поздоровайтесь! Вы пока не видите друг друга. Нажмите «Познакомиться», если нравится общение, или «Пропустить».',
     commonTags: 'Вам обоим нравится: {tags}',
-    stranger: 'Незнакомец',
     typing: 'печатает…',
-    reveal: 'Раскрыть профиль',
-    revealHint: 'Профили откроются, только если согласны оба.',
-    revealWaiting: 'Ждём согласия собеседника…',
-    partnerWantsReveal: 'Собеседник хочет раскрыть профили!',
-    revealed: 'Профили раскрыты! Это мэтч.',
-    openChat: 'Открыть чат',
-    end: 'Завершить чат',
-    endConfirm: 'Завершить чат? Вернуться в него будет нельзя.',
-    ended: 'Чат завершён.',
+    connect: 'Познакомиться',
+    pass: 'Пропустить',
+    waiting: 'Вы нажали «Познакомиться». Ждём ответа…',
+    passTitle: 'Пропустить это свидание?',
+    passConfirm: 'Чат завершится для обоих. Собеседник никогда не узнает, кто вы.',
+    passed: 'Вы пропустили',
+    passedHint: 'Чат завершён. Найдём кого-то нового?',
+    movedOn: 'Собеседник решил идти дальше',
+    movedOnHint: 'Ничего страшного. Впереди ещё много знакомств.',
+    blocked: 'Заблокировано',
     next: 'Найти нового',
+    changeFilters: 'Изменить параметры',
+    revealTitle: 'Это мэтч!',
+    revealText: 'Вы оба нажали «Познакомиться».',
+    revealChatHint: 'Ваша переписка продолжится в «Чатах».',
+    openChat: 'Открыть чат',
+    more: 'Действия',
+    block: 'Заблокировать',
+    blockConfirm:
+      'Заблокировать этого человека? Чат завершится, и вас больше никогда не соединят. Он не узнает, кто вы.',
+    reportNote: 'Модераторы увидят эту переписку, чтобы рассмотреть жалобу.',
     searchingNow: 'Сейчас в поиске: {count}',
-    timeoutTitle: 'Сейчас никто не подходит под ваши фильтры',
-    timeoutHint: 'Попробуйте расширить фильтры или подождите ещё.',
-    widenFilters: 'Расширить фильтры',
+    timeoutTitle: 'Сейчас никто не подходит под ваши параметры',
+    timeoutHint: 'Попробуйте расширить параметры или подождите ещё.',
+    widenFilters: 'Расширить параметры',
     keepWaiting: 'Подождать ещё',
-    skip: 'Следующий',
-    skipConfirm: 'Завершить этот чат и найти нового собеседника?',
-    changeFilters: 'Изменить фильтры',
-    minAge: 'Минимальный возраст',
-    maxAge: 'Максимальный возраст',
   },
   legal: {
     privacy: 'Политика конфиденциальности',
@@ -355,8 +388,8 @@ export const ru: Dictionary = {
     newMessage: 'Новое сообщение от {name}',
     newMessageBody: 'Откройте Vibely, чтобы прочитать.',
     newPhotoBody: 'Прислал(а) вам фото. Откройте Vibely, чтобы посмотреть.',
-    randomReveal: 'Собеседник из рандом-чата открыл свой профиль',
-    randomRevealBody: 'Это совпадение! Напишите привет.',
+    randomReveal: 'Ваше свидание вслепую тоже согласилось! 💘',
+    randomRevealBody: 'Вы оба нажали «Познакомиться». Посмотрите, кто это, и напишите привет.',
   },
   soon: { title: 'Скоро', text: 'Этот раздел в разработке.' },
   tagPicker: {
@@ -370,7 +403,18 @@ export const ru: Dictionary = {
   tagCategories: tagCategoriesRu,
   avatar: avatarRu,
   username: usernameRu,
+  password: passwordRu,
   flows: flowsRu,
   reports: reportsRu,
   sanctions: sanctionsRu,
+  crossed: crossedRu,
+  plans: plansRu,
+  statuses: statusesRu,
+  matchmaker: matchmakerRu,
+  incognito: incognitoRu,
+  events: eventsRu,
+  crush: crushRu,
+  promo: promoRu,
+  duo: duoRu,
+  conversations: conversationsRu,
 }

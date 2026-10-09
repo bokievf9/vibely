@@ -16,6 +16,7 @@ import { PhotoCarousel } from '@/features/profile/components/photo-carousel'
 import { SwipeCardInfo } from '@/features/swipe/components/swipe-card-info'
 import { project } from '@/features/swipe/components/swipe-physics'
 import type { Candidate } from '@/features/swipe/schemas'
+import { Immersive } from '@/components/layout/immersive'
 
 type Props = {
   person: Candidate
@@ -71,6 +72,7 @@ export function LikeSheet({ person, busy, onDecide, onClose }: Props) {
       data-immersive
       className="fixed inset-0 z-50 flex justify-center"
     >
+      <Immersive />
       <motion.div
         aria-hidden
         className="absolute inset-0 bg-black/70"
@@ -106,15 +108,15 @@ export function LikeSheet({ person, busy, onDecide, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label={dict.common.back}
-            className="active:bg-surface -ml-2 flex size-11 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
+            className="active:bg-fill -ml-2 flex size-11 items-center justify-center rounded-full transition-[transform,scale,background-color] duration-150 ease-out active:scale-[0.94]"
           >
             <ChevronDown className="size-6" />
           </button>
-          <span aria-hidden className="bg-border h-1.5 w-10 rounded-full" />
+          <span aria-hidden className="bg-fill h-1.5 w-10 rounded-full" />
           <span aria-hidden className="size-11" />
         </div>
         <article
-          className="bg-surface relative min-h-0 flex-1 touch-none overflow-hidden rounded-3xl shadow-xl"
+          className="bg-surface relative min-h-0 flex-1 touch-none overflow-hidden rounded-[1.75rem] shadow-[0_2px_6px_rgb(0_0_0/0.35),0_28px_56px_-28px_rgb(255_77_125/0.3)]"
           onPointerDownCapture={() => {
             dragged.current = false
           }}

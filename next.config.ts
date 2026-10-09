@@ -55,6 +55,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // "Random chat" became Blind Dating: old links, bookmarks and push notifications keep working.
+  async redirects() {
+    return [
+      {
+        source: '/:lang(en|ms|ru)/randomizer',
+        destination: '/:lang/blind-date',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },

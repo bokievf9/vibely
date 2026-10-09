@@ -64,7 +64,7 @@ export function CallsSheet(props: Props) {
               onClick={props.onToggle}
               className={cn(
                 'relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50',
-                settings.meAllowed ? 'bg-accent' : 'bg-border',
+                settings.meAllowed ? 'bg-accent' : 'bg-white/[0.14]',
               )}
             >
               <span

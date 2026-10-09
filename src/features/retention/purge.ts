@@ -11,6 +11,9 @@ type Admin = ReturnType<typeof createAdminClient>
 const BATCH = 100
 // Per kind and run: a backlog is worked off over several daily runs instead of one long request.
 const MAX_BATCHES = 20
+// PostgREST: the function does not exist (the Duo Dating migration 20261009000261 is not applied
+// yet). Those steps are skipped so the job keeps working before the migration.
+const MISSING_RPC = 'PGRST202'
 
 export type RetentionReport = {
   chatMediaExpired: number
@@ -18,6 +21,9 @@ export type RetentionReport = {
   deletedMessages: number
   selfies: number
   liftedBans: number
+  // null: the Duo Dating functions are not deployed yet (step skipped).
+  groupMediaExpired: number | null
+  duoRowsPurged: number | null
 }
 
 async function removeFiles(db: Admin, bucket: string, paths: string[]): Promise<number> {
@@ -49,6 +55,38 @@ async function expireChatMedia(db: Admin): Promise<number> {
     if (!marked || data.length < BATCH) break
   }
   return expired
+}
+
+// Duo group chat photos older than 90 days (20261009000261), same as expireChatMedia. Runs
+// before the orphan sweep; group photos are never orphans there.
+async function expireGroupMedia(db: Admin): Promise<number | null> {
+  let expired = 0
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const { data, error } = await db.rpc('retention_group_media', { p_limit: BATCH })
+    if (error?.code === MISSING_RPC) return null
+    if (error) throw new Error(`retention: list group media failed: ${error.message}`)
+    if (!data.length) break
+    await removeFiles(
+      db,
+      CHAT_MEDIA_BUCKET,
+      data.map((d) => d.path),
+    )
+    const { data: marked, error: markError } = await db.rpc('retention_mark_group_media_expired', {
+      p_ids: data.map((d) => d.message_id),
+    })
+    if (markError) throw new Error(`retention: mark group media failed: ${markError.message}`)
+    expired += marked
+    if (!marked || data.length < BATCH) break
+  }
+  return expired
+}
+
+// Dissolved duos, old decided likes and empty group chats (also scheduled by pg_cron).
+async function purgeDuoData(db: Admin): Promise<number | null> {
+  const { data, error } = await db.rpc('purge_old_duo_data')
+  if (error?.code === MISSING_RPC) return null
+  if (error) throw new Error(`retention: purge duo data failed: ${error.message}`)
+  return data
 }
 
 // Lists due paths with `rpc` and removes them until nothing is left (or no progress is made).
@@ -97,8 +135,18 @@ export async function runRetention(): Promise<RetentionReport> {
   const { data: liftedBans, error: liftError } = await db.rpc('lift_expired_sanctions')
   if (liftError) throw new Error(`retention: lift sanctions failed: ${liftError.message}`)
   const chatMediaExpired = await expireChatMedia(db)
+  const groupMediaExpired = await expireGroupMedia(db)
   const chatMediaOrphans = await purgeListed(db, CHAT_MEDIA_BUCKET, 'retention_orphan_chat_media')
   const deletedMessages = await purgeDeletedMessages(db)
   const selfies = await purgeListed(db, 'selfies', 'retention_selfies')
-  return { chatMediaExpired, chatMediaOrphans, deletedMessages, selfies, liftedBans }
+  const duoRowsPurged = await purgeDuoData(db)
+  return {
+    chatMediaExpired,
+    chatMediaOrphans,
+    deletedMessages,
+    selfies,
+    liftedBans,
+    groupMediaExpired,
+    duoRowsPurged,
+  }
 }

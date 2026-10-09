@@ -12,6 +12,7 @@ import { AuthorLine } from './author-line'
 import { Composer } from './composer'
 import { ContentMenu } from './content-menu'
 import { PostCard } from './post-card'
+import { Immersive } from '@/components/layout/immersive'
 
 // A post and its comments. Immersive: the tab bar steps aside and the comment bar is pinned to
 // the bottom edge (above the home indicator), like a chat.
@@ -32,6 +33,7 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
 
   return (
     <div data-immersive className="flex flex-1 flex-col">
+      <Immersive />
       <div className="flex flex-1 flex-col gap-4 px-4 pb-4">
         <PostCard post={post} linkToThread={false} onDeleted={() => router.replace('/feed')} />
         <section aria-labelledby="comments" className="flex flex-col gap-3">
@@ -48,7 +50,12 @@ export function PostThread({ post, comments }: { post: FeedPost; comments: FeedC
             {comments.map((c) => (
               <li
                 key={c.id}
-                className={cn('rounded-2xl px-4 py-3', c.isOp ? 'bg-accent/10' : 'bg-surface')}
+                className={cn(
+                  'rounded-2xl px-4 py-3',
+                  c.isOp
+                    ? 'bg-accent/10 border-accent/20 border'
+                    : 'bg-surface-raised border-border border',
+                )}
               >
                 <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                   <AuthorLine

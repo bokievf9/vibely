@@ -20,7 +20,7 @@ export function StepProgress({ step }: { step: number }) {
       aria-valuemax={SIGNUP_STEPS}
       aria-valuenow={step}
       aria-label={fmt(dict.flows.step, { n: step, total: SIGNUP_STEPS })}
-      className="bg-surface h-1 w-full overflow-hidden rounded-full"
+      className="bg-fill h-1 w-full overflow-hidden rounded-full"
     >
       <motion.div
         className="bg-accent h-full origin-left rounded-full"

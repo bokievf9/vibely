@@ -3,7 +3,7 @@ import type { LandingDictionary } from './en'
 export const landingMs: LandingDictionary = {
   metaTitle: 'Vibely: temu janji dengan orang sebenar yang disahkan di Malaysia',
   metaDescription:
-    'Swipe, suapan tanpa nama dan sembang rawak dengan pendedahan bersama. Setiap profil disemak melalui swafoto oleh moderator manusia. Nombor Malaysia sahaja.',
+    'Swipe, suapan tanpa nama dan temu janji buta dengan pendedahan bersama. Setiap profil disemak melalui swafoto oleh moderator manusia. Nombor Malaysia sahaja.',
   ogTagline: 'Temu janji dengan orang sebenar yang disahkan di Malaysia',
   signIn: 'Log masuk',
   hero: {
@@ -23,8 +23,8 @@ export const landingMs: LandingDictionary = {
       text: 'Kongsi fikiran dan soalan tanpa nama anda. Tiada siapa tahu siapa yang menulis.',
     },
     random: {
-      title: 'Sembang rawak',
-      text: 'Bersembang dengan orang rawak yang disahkan. Profil didedahkan hanya jika kedua-dua bersetuju.',
+      title: 'Temu janji buta',
+      text: 'Bersembang dengan orang yang disahkan sebelum melihat mereka. Foto dan nama didedahkan hanya jika kedua-dua bersambung.',
     },
   },
   safetyTitle: 'Kenapa ia selamat',

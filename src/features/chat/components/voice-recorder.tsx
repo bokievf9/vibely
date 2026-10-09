@@ -122,7 +122,7 @@ export function VoiceRecorder({ disabled, onActiveChange, onDone, onError }: Pro
           type="button"
           onClick={discard}
           aria-label={dict.media.cancel}
-          className="text-muted active:bg-surface flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90"
+          className="text-muted active:bg-fill flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform,scale] duration-150 ease-out active:scale-90"
         >
           <Trash2 className="size-5" />
         </button>
@@ -185,7 +185,7 @@ export function VoiceRecorder({ disabled, onActiveChange, onDone, onError }: Pro
           title={dict.media.holdHint}
           className={cn(
             'relative flex size-11 touch-none items-center justify-center rounded-full transition-[background-color,color] duration-150 ease-out select-none [-webkit-touch-callout:none] disabled:opacity-50',
-            recording ? 'bg-accent text-accent-foreground' : 'text-muted active:bg-surface',
+            recording ? 'bg-accent text-accent-foreground' : 'text-muted active:bg-fill',
           )}
         >
           {locked ? <SendHorizontal className="size-5" /> : <Mic className="size-6" />}

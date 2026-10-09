@@ -42,7 +42,7 @@ export function PhotoCarousel({
 
   return (
     <div
-      className="bg-surface relative size-full"
+      className="bg-surface relative isolate size-full"
       role="group"
       aria-roledescription="carousel"
       aria-label={alt}
@@ -78,9 +78,17 @@ export function PhotoCarousel({
       })}
       {photos.length > 1 && (
         <>
-          <div className="absolute inset-x-2 top-2 z-[2] flex gap-1" aria-hidden>
+          {/* Top scrim so the progress bars read on bright photos. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-black/35 to-transparent"
+          />
+          <div className="absolute inset-x-3 top-2.5 z-[2] flex gap-1" aria-hidden>
             {photos.map((p, i) => (
-              <span key={p.url} className="h-1 flex-1 overflow-hidden rounded-full bg-white/35">
+              <span
+                key={p.url}
+                className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30 shadow-[0_1px_2px_rgb(0_0_0/0.25)]"
+              >
                 <span
                   className={cn(
                     'block h-full origin-left rounded-full bg-white transition-transform duration-200 ease-out',

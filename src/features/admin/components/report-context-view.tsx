@@ -4,6 +4,12 @@ import type { ReportContext } from '../queries/report-context'
 import { Badge, BannedBadge, formatDate } from './badges'
 import { CallRecordings } from './call-recordings'
 
+const LEFT_REASONS: Record<string, string> = {
+  left: 'вышел(а) сам(а)',
+  block: 'удалён(а) после блокировки',
+  ban: 'удалён(а) после бана',
+}
+
 const MESSAGE_KINDS: Record<string, string> = {
   text: 'Текстовое сообщение',
   image: 'Фото в чате',
@@ -89,6 +95,56 @@ export function ReportContextView({ context }: { context: ReportContext | null }
             reportTarget={context.offender.id}
             open
           />
+        </div>
+      )
+    case 'group_message':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <p className="text-muted text-sm">
+            {context.image ? 'Фото в дуо-чате' : 'Сообщение в дуо-чате'}
+            {context.sentAt && ` · отправлено ${formatDate(context.sentAt)}`}
+          </p>
+          <p className="text-muted text-xs">
+            Текст сообщения виден в переписке дуо-чата ниже (открытие фиксируется в журнале).
+          </p>
+        </div>
+      )
+    case 'group_member':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <p className="text-muted text-sm">
+            Участник дуо-чата
+            {context.leftAt &&
+              ` · ${LEFT_REASONS[context.leftReason ?? ''] ?? 'вышел(а)'} ${formatDate(context.leftAt)}`}
+          </p>
+          <p className="text-muted text-xs">
+            Переписка дуо-чата открывается ниже (открытие фиксируется в журнале).
+          </p>
+        </div>
+      )
+    case 'status':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <blockquote className="border-border rounded-xl border-l-4 bg-black/20 px-3 py-2 break-words">
+            <span aria-hidden className="mr-2">
+              {context.emoji}
+            </span>
+            {context.text}
+          </blockquote>
+          <p className="text-muted text-sm">
+            {context.state === 'removed'
+              ? 'Уже удалён'
+              : context.state === 'held'
+                ? 'Ждёт проверки'
+                : `Виден до ${formatDate(context.expiresAt)}`}
+            {' · '}
+            <Link href="/admin/statuses?filter=reported" className="text-accent hover:underline">
+              Одобрить или удалить в разделе «Статусы»
+            </Link>
+          </p>
         </div>
       )
     case 'random_session':

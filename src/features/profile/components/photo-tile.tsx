@@ -55,7 +55,7 @@ export function PhotoTile({
       transition={REORDER}
       data-photo-index={index}
       className={cn(
-        'bg-surface relative aspect-[3/4] overflow-hidden rounded-2xl',
+        'bg-surface-raised relative aspect-[3/4] overflow-hidden rounded-[1.125rem] shadow-[0_8px_20px_-12px_rgb(0_0_0/0.8)]',
         dragging && 'z-10 opacity-90 shadow-2xl shadow-black/50',
         target && 'ring-accent ring-2',
         index === 0 && !drag && 'ring-accent/60 ring-2',
@@ -90,7 +90,7 @@ export function PhotoTile({
         <X className="size-4" />
       </Control>
       {index === 0 && (
-        <span className="bg-accent text-accent-foreground pointer-events-none absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+        <span className="bg-accent-gradient text-accent-foreground pointer-events-none absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-[0_2px_8px_rgb(0_0_0/0.35)]">
           {t.main}
         </span>
       )}
@@ -127,7 +127,7 @@ function Control({ label, className, children, ...props }: ControlProps) {
       )}
       {...props}
     >
-      <span className="flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-[transform,scale,background-color] duration-150 ease-out group-active:scale-90 group-active:bg-black/80">
+      <span className="glass-dark flex size-7 items-center justify-center rounded-full text-white transition-[transform,scale,background-color] duration-150 ease-out group-active:scale-90 group-active:bg-black/80">
         {children}
       </span>
     </button>

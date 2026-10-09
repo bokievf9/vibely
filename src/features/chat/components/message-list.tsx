@@ -11,6 +11,8 @@ import { dayKey, daysAgo, formatDay } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { groupMessages, type Outgoing } from '../chat-state'
 import type { ChatMessage, Reaction, ReplyPreview } from '../types'
+import { ReferralCard } from '@/features/matchmaker/components/referral-card'
+import { SystemNote } from '@/features/matchmaker/components/system-note'
 import { MessageBubble, type BubbleAction, type ListMessage } from './message-bubble'
 import { TypingBubble } from './typing-bubble'
 
@@ -21,6 +23,7 @@ type Props = {
   calls?: CallEntry[]
   reactions: Map<string, Reaction[]>
   viewerId: string
+  partnerId: string
   partnerName: string
   partnerTyping: boolean
   hasMore: boolean
@@ -73,6 +76,7 @@ export function MessageList({
   calls = NO_CALLS,
   reactions,
   viewerId,
+  partnerId,
   partnerName,
   partnerTyping,
   hasMore,
@@ -104,6 +108,8 @@ export function MessageList({
           reply: original ? toPreview(original) : null,
           media: null,
           expiredMedia: null,
+          kind: 'text' as const,
+          referralId: null,
           local: o.status,
         }
       }),
@@ -141,7 +147,7 @@ export function MessageList({
               // Sticks right under the translucent header (its height includes the notch).
               className="pointer-events-none sticky top-[calc(var(--header-h)+0.5rem)] z-20 flex justify-center py-2"
             >
-              <span className="bg-surface/85 text-muted rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur">
+              <span className="glass-dark text-foreground/75 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.01em]">
                 {dayLabel(item.at)}
               </span>
             </li>
@@ -149,6 +155,28 @@ export function MessageList({
         }
         const m = item.message
         const mine = m.senderId === viewerId
+        // Introduction cards and pinned notes are full-width, non-interactive items.
+        if (m.kind !== 'text' && m.referralId) {
+          return (
+            <li
+              key={m.id}
+              id={`msg-${m.id}`}
+              className="mt-3 flex w-full scroll-mt-[calc(var(--header-h)+1rem)] flex-col"
+            >
+              {m.kind === 'referral' ? (
+                <ReferralCard
+                  referralId={m.referralId}
+                  partnerId={partnerId}
+                  partnerName={partnerName}
+                  mine={mine}
+                  at={m.createdAt}
+                />
+              ) : (
+                <SystemNote referralId={m.referralId} body={m.body} />
+              )}
+            </li>
+          )
+        }
         const original = m.replyTo ? byId.get(m.replyTo) : undefined
         const quote = original ? toPreview(original) : m.reply
         return (
@@ -159,9 +187,9 @@ export function MessageList({
               if (el && fresh.current.delete(m.id)) rise(el, mine)
             }}
             className={cn(
-              'flex max-w-[85%] min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] flex-col',
+              'flex max-w-[80%] min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] flex-col',
               mine ? 'self-end' : 'self-start',
-              item.groupStart ? 'mt-2' : 'mt-0.5',
+              item.groupStart ? 'mt-3' : 'mt-[3px]',
             )}
           >
             <MessageBubble
@@ -170,6 +198,7 @@ export function MessageList({
               quote={quote}
               quoteAuthor={quote?.senderId === viewerId ? dict.chats.yourself : partnerName}
               tail={item.groupEnd}
+              first={item.groupStart}
               seen={m.id === lastOwn?.id && !!m.readAt}
               highlighted={highlightId === m.id}
               lifted={liftedId === m.id}

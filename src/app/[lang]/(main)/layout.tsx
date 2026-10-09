@@ -4,6 +4,7 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer, nextStepFor } from '@/features/auth/session'
 import { CallLayerGate } from '@/features/calls/components/call-layer-gate'
+import { CrossedPathsPinger } from '@/features/crossed-paths/components/crossed-paths-pinger'
 import { InstallPrompt } from '@/features/pwa/components/install-prompt'
 import { SanctionNotice } from '@/features/sanctions/components/sanction-notice'
 
@@ -16,8 +17,11 @@ export default function MainLayout({ children }: LayoutProps<'/[lang]'>) {
           <VerifiedGate>{children}</VerifiedGate>
         </Suspense>
       </main>
-      <InstallPrompt />
+      <Suspense fallback={null}>
+        <InstallPrompt />
+      </Suspense>
       <BottomNav />
+      <CrossedPathsPinger />
       <Suspense fallback={null}>
         <CallLayerGate />
       </Suspense>

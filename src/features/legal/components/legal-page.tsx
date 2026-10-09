@@ -57,7 +57,7 @@ export async function LegalPage({ id }: { id: LegalDocumentId }) {
           )}
         </section>
       ))}
-      <footer className="bg-surface rounded-2xl p-4 text-sm">
+      <footer className="card p-4 text-sm">
         {dict.legal.contact}{' '}
         <a href={`mailto:${PRIVACY_EMAIL}`} className="text-accent font-medium underline">
           {PRIVACY_EMAIL}

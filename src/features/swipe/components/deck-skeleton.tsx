@@ -7,11 +7,11 @@ export function DeckSkeleton() {
       <div className="relative min-h-[420px] flex-1">
         <Skeleton className="absolute inset-0 rounded-3xl" />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-5">
-          <Skeleton className="bg-border h-8 w-1/2 rounded-full" />
-          <Skeleton className="bg-border h-4 w-1/3 rounded-full" />
+          <Skeleton className="bg-fill h-8 w-1/2 rounded-full" />
+          <Skeleton className="bg-fill h-4 w-1/3 rounded-full" />
           <div className="flex gap-1.5 pt-1">
-            <Skeleton className="bg-border h-5 w-20 rounded-full" />
-            <Skeleton className="bg-border h-5 w-16 rounded-full" />
+            <Skeleton className="bg-fill h-5 w-20 rounded-full" />
+            <Skeleton className="bg-fill h-5 w-16 rounded-full" />
           </div>
         </div>
       </div>

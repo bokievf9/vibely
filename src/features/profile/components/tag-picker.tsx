@@ -97,7 +97,7 @@ export function TagPicker({ tags, value, onChange }: Props) {
           placeholder={dict.tagPicker.search}
           aria-label={dict.tagPicker.search}
           enterKeyHint="search"
-          className="bg-surface border-border placeholder:text-muted focus:border-accent h-11 w-full rounded-2xl border pr-10 pl-10 text-base outline-none [&::-webkit-search-cancel-button]:hidden"
+          className="bg-surface-raised border-border placeholder:text-muted focus:border-accent/70 h-11 w-full rounded-2xl border pr-10 pl-10 text-base outline-none [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button

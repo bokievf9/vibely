@@ -12,14 +12,14 @@ export function StepHeader({
   step?: number
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-2">
+    <div className="mb-8 flex flex-col gap-3">
       {step !== undefined && (
         <div className="mb-3">
           <StepProgress step={step} />
         </div>
       )}
-      <h1 className="text-3xl font-bold tracking-tight text-balance">{title}</h1>
-      {subtitle && <p className="text-muted text-pretty">{subtitle}</p>}
+      <h1 className="text-display text-balance">{title}</h1>
+      {subtitle && <p className="text-muted text-body text-pretty">{subtitle}</p>}
     </div>
   )
 }

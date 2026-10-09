@@ -26,7 +26,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ lan
         justifyContent: 'center',
         padding: 96,
         color: '#ffffff',
-        background: 'linear-gradient(135deg, #ff4d7d 0%, #c2185b 55%, #0b0b10 100%)',
+        background: 'linear-gradient(135deg, #ff4d7d 0%, #c2185b 55%, #0e0b10 100%)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>

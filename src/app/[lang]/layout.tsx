@@ -34,7 +34,7 @@ export const viewport: Viewport = {
   // The keyboard shrinks the layout on Android too, so bottom-pinned composers stay visible.
   interactiveWidget: 'resizes-content',
   // Same color as the header material at rest, so the status bar and header read as one surface.
-  themeColor: '#0b0b10',
+  themeColor: '#0e0b10',
   colorScheme: 'dark',
 }
 

@@ -46,7 +46,7 @@ export function MessageReactions({ reactions, viewerId, onToggle }: Props) {
               <span
                 className={cn(
                   'border-background flex h-7 items-center gap-0.5 rounded-full border-2 px-1.5 text-sm leading-none transition-transform duration-150 ease-out group-active/chip:scale-90',
-                  mine ? 'bg-accent/30' : 'bg-surface',
+                  mine ? 'bg-accent/30' : 'bg-surface-raised',
                 )}
               >
                 <span aria-hidden>{emoji}</span>

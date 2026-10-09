@@ -1,13 +1,23 @@
 @import 'tailwindcss';
 
+/* Visual system (design pass 2026-10). Warm, faintly plum-tinted neutrals instead of flat grey,
+   three elevations (background < surface < surface-raised), translucent hairlines that work on any
+   elevation, and one accent (#ff4d7d) that deepens into rose for primary actions. */
 :root {
-  --background: #0b0b10;
-  --foreground: #f4f4f6;
-  --muted: #8b8b98;
-  --surface: #16161e;
-  --border: #26262f;
+  --background: #0e0b10;
+  --foreground: #f7f3f6;
+  /* 6.9:1 on background, 5.8:1 on surface-raised. */
+  --muted: #9d95a2;
+  --surface: #18141b;
+  --surface-raised: #221d26;
+  /* Hairline: white/8 reads as a 1px edge on every elevation. */
+  --border: rgb(255 255 255 / 0.08);
+  /* Neutral fill for tracks, pressed rows and placeholders. */
+  --fill: rgb(255 255 255 / 0.1);
   --accent: #ff4d7d;
+  --accent-deep: #d42a63;
   --accent-foreground: #ffffff;
+  --accent-gradient: linear-gradient(155deg, #ff6b93 0%, #ff4d7d 38%, #d42a63 100%);
 
   /* Semantic colors, tuned for the near-black background next to the rose accent: slightly
      desaturated so status reads clearly without glowing. Danger is a true red (no pink) so it never
@@ -18,9 +28,10 @@
   --danger-strong: #cf3b40;
   --warning: #f2b54b;
   --verified: #4f9df7;
+  --vip: #d9b45a;
 
   /* Shell geometry. Sticky children of a page header use top-[var(--header-h)]. */
-  --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
+  --header-h: calc(3.25rem + env(safe-area-inset-top, 0px));
   --tabbar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
 
   color-scheme: dark;
@@ -31,15 +42,60 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
+  --color-fill: var(--fill);
   --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-danger-strong: var(--danger-strong);
   --color-warning: var(--warning);
   --color-verified: var(--verified);
+  --color-vip: var(--vip);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Type scale (iOS-like): size, leading, tracking and weight travel together. Large type tightens,
+   small type opens up. Use `text-display` for large titles, `text-headline` for row titles, etc. */
+@theme {
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.032em;
+  --text-display--font-weight: 700;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.028em;
+  --text-title--font-weight: 700;
+  --text-title2: 1.375rem;
+  --text-title2--line-height: 1.2;
+  --text-title2--letter-spacing: -0.022em;
+  --text-title2--font-weight: 700;
+  --text-headline: 1.0625rem;
+  --text-headline--line-height: 1.3;
+  --text-headline--letter-spacing: -0.014em;
+  --text-headline--font-weight: 600;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.47;
+  --text-body--letter-spacing: -0.012em;
+  --text-callout: 0.9375rem;
+  --text-callout--line-height: 1.4;
+  --text-callout--letter-spacing: -0.006em;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.35;
+  --text-footnote--letter-spacing: 0;
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1.2;
+  --text-caption--letter-spacing: 0.012em;
+
+  /* Radii: cards 24px, controls 16px, pills full. */
+  --radius-card: 1.5rem;
+  --radius-control: 1rem;
+
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.25), 0 12px 32px -18px rgb(0 0 0 / 0.8);
+  --shadow-float: 0 2px 6px rgb(0 0 0 / 0.3), 0 24px 48px -20px rgb(0 0 0 / 0.85);
+  --shadow-glow: 0 10px 28px -10px rgb(255 77 125 / 0.6);
 }
 
 /* Motion tokens (.claude/skills/emil-design-eng). The built-in CSS curves are too weak:
@@ -91,6 +147,12 @@
   }
 }
 
+/* A <fieldset> defaults to min-inline-size: min-content, so a horizontally scrolling row inside
+   it (interest chips) widens the whole page instead of scrolling. */
+fieldset {
+  min-inline-size: 0;
+}
+
 /* Mobile baseline (.claude/skills/mobile-native). */
 html {
   -webkit-tap-highlight-color: transparent;
@@ -103,6 +165,13 @@ html {
 body {
   font-family: var(--font-sans);
   overscroll-behavior: none;
+  /* A faint warm bloom at the top of every screen, so the canvas is not a flat slab of black. */
+  background-image: radial-gradient(
+    120% 40rem at 50% -12rem,
+    rgb(255 77 125 / 0.075),
+    rgb(255 77 125 / 0) 70%
+  );
+  background-repeat: no-repeat;
 }
 
 /* Fast taps, and long-press must not select a control's label. Content text stays selectable. */
@@ -134,11 +203,85 @@ button,
   }
 }
 
+/* Surfaces. `card` is the default container (surface + hairline + 1px top highlight, light catching
+   the edge), `card-raised` sits one level up (sheets, popovers, grouped rows on a card), `glass` is for
+   controls over photos, `btn-accent` is the primary CTA fill. They set box-shadow themselves, so do
+   not combine them with Tailwind shadow utilities. */
+@utility card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 1px 1px rgb(0 0 0 / 0.2),
+    0 16px 32px -24px rgb(0 0 0 / 0.9);
+}
+@utility card-raised {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 2px 4px rgb(0 0 0 / 0.25),
+    0 20px 40px -24px rgb(0 0 0 / 0.9);
+}
+@utility highlight {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+@utility glass {
+  background-color: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+@utility glass-dark {
+  background-color: rgb(14 11 16 / 0.45);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+@utility btn-accent {
+  color: var(--accent-foreground);
+  background-color: var(--accent);
+  background-image: var(--accent-gradient);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -1px 0 rgb(0 0 0 / 0.12),
+    0 10px 28px -12px rgb(255 77 125 / 0.65);
+}
+/* iOS Settings-style icon tile in front of a row label. */
+@utility icon-tile {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 0.5625rem;
+  background-color: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+@utility bg-accent-gradient {
+  background-color: var(--accent);
+  background-image: var(--accent-gradient);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-dark {
+    background-color: var(--surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* Floating chrome (tab bar, page header): a translucent material instead of an opaque strip.
    Users who ask for less transparency get a solid surface. */
 @layer components {
   .material-bar {
-    background-color: rgb(11 11 16 / 0.78);
+    background-color: rgb(14 11 16 / 0.74);
     -webkit-backdrop-filter: blur(20px) saturate(170%);
     backdrop-filter: blur(20px) saturate(170%);
   }
@@ -270,10 +413,10 @@ body:has([data-install-prompt]) [data-main] {
 
 /* Immersive screens (chat room, call, full-screen viewers) render an element with [data-immersive]:
    the tab bar, its bottom padding and the install banner go away while it is mounted. */
-body:has([data-immersive]) [data-tabbar],
-body:has([data-immersive]) [data-install-prompt] {
+body[data-immersive] [data-tabbar],
+body[data-immersive] [data-install-prompt] {
   display: none;
 }
-body:has([data-immersive]) [data-main] {
+body[data-immersive] [data-main] {
   padding-bottom: 0;
 }

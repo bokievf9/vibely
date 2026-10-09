@@ -15,7 +15,10 @@ export default async function EditProfilePage() {
   const dict = await getDictionary()
   return (
     <>
-      <PageHeader title={dict.profile.editTitle} />
+      <PageHeader
+        title={dict.profile.editTitle}
+        back={{ href: '/profile', label: dict.common.back }}
+      />
       <Suspense fallback={<EditProfileSkeleton />}>
         <Edit />
       </Suspense>

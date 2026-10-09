@@ -1,0 +1,56 @@
+import type { StatusErrorsDictionary, StatusesDictionary } from './en'
+
+export const statusesMs: StatusesDictionary = {
+  title: 'Status langsung',
+  vibe: 'Apa vibe anda?',
+  you: 'Anda',
+  add: 'Tambah status',
+  hint: 'Satu emoji dan beberapa perkataan. Orang berdekatan nampak selama 3 jam.',
+  emptyHint: 'Kongsi vibe anda. Orang berdekatan nampak selama 3 jam.',
+  textLabel: 'Status anda',
+  textPlaceholder: 'Kopi di Bangsar, siapa nak join?',
+  emojiLabel: 'Pilih emoji',
+  quickPicks: 'Pilihan pantas',
+  quickPicksHint:
+    'Pilihan pantas juga menjadi rancangan anda selama 24 jam: ia dipaparkan pada kad anda di Teroka.',
+  planLinked: 'Juga rancangan anda selama 24 jam: {plan}',
+  planUnlink: 'Status sahaja',
+  currentPlan: 'Rancangan anda: {plan}',
+  clearPlan: 'Padam rancangan',
+  post: 'Kongsi',
+  update: 'Kemas kini',
+  clear: 'Padam status',
+  change: 'Tukar',
+  posted: 'Status anda dipaparkan selama 3 jam.',
+  underReview: 'Sedang disemak',
+  underReviewHint:
+    'Pasukan kami sedang menyemak status anda. Buat masa ini hanya anda yang nampak.',
+  timeLeft: '{h} j {m} min lagi',
+  minutesLeft: '{m} min lagi',
+  open: 'Buka status {name}',
+  viewer: 'Status {name}',
+  previous: 'Status sebelumnya',
+  next: 'Status seterusnya',
+  replyPlaceholder: 'Balas kepada {name}',
+  replyHint:
+    'Mereka akan nampak nama dan foto anda. Jika anda berdua tekan Sambung, ia menjadi padanan dan sembang berpindah ke Sembang.',
+  replySent: 'Dihantar! Perbualan ada di Sembang.',
+  openChat: 'Buka perbualan',
+  report: 'Laporkan status ini',
+  reportNote: 'Moderator akan melihat status ini dan profilnya.',
+  pinned: 'Status',
+  theirStatus: 'Status mereka',
+  yourStatusPinned: 'Status anda',
+  statusRemoved: 'Status ini telah dibuang.',
+  chatHint: 'Membalas status. Tekan Sambung jika anda suka vibe ini.',
+  pushReply: '{name} membalas status anda',
+  pushMessage: 'Mesej baharu daripada {name}',
+  pushBody: 'Buka Vibely untuk membacanya.',
+}
+
+export const statusErrorsMs: StatusErrorsDictionary = {
+  statusTooLong: 'Maksimum 60 aksara',
+  statusEmojiRequired: 'Pilih emoji',
+  statusGone: 'Status ini tidak lagi tersedia.',
+  statusReplyLimit: 'Anda telah mencapai had 10 balasan hari ini. Cuba lagi esok.',
+}

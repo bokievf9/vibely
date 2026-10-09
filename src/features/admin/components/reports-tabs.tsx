@@ -37,13 +37,17 @@ export function FilterChips<V extends string>({
   href: (value: V | null) => string
 }) {
   return (
-    <nav aria-label={label} className="flex flex-wrap items-center gap-2">
-      <span className="text-muted text-xs">{label}:</span>
+    // One scrolling row per filter on phones, so the queue starts on the first screen.
+    <nav
+      aria-label={label}
+      className="-mx-4 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto overscroll-x-contain px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+    >
+      <span className="text-muted shrink-0 text-xs">{label}:</span>
       {options.map((o) => (
         <Link
           key={o.value ?? 'all'}
           href={href(o.value)}
-          className={chipClassName(o.value === value)}
+          className={chipClassName(o.value === value, 'shrink-0')}
         >
           {o.label}
         </Link>

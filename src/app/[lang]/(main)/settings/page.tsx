@@ -1,21 +1,30 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { DeleteAccount } from '@/features/account/components/delete-account'
+import { PasswordSettingsRows } from '@/features/auth/components/password-settings'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
+import { getHasPassword } from '@/features/auth/password-queries'
 import { getViewer } from '@/features/auth/session'
+import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
+import { CrossedPathsToggle } from '@/features/crossed-paths/components/crossed-paths-toggle'
 import { LanguageSwitcher } from '@/features/profile/components/language-switcher'
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { PushToggle } from '@/features/push/components/push-toggle'
 import { BlockedUsers } from '@/features/settings/components/blocked-users'
+import { IncognitoToggle } from '@/features/settings/components/incognito-toggle'
 import { NotificationPrefsRows } from '@/features/settings/components/notification-prefs'
+import { duoAvailable } from '@/features/duo/queries'
 import { PauseToggle } from '@/features/settings/components/pause-toggle'
+import { PromoSettingsRow } from '@/features/promo/components/promo-settings'
+import { getVipStatus } from '@/features/promo/queries'
 import { SettingsSection } from '@/features/settings/components/settings-section'
 import { SettingsSkeleton } from '@/features/settings/components/settings-skeleton'
 import {
   getBlockedUsers,
+  getIncognito,
   getNotificationPrefs,
   getPrivacySettings,
 } from '@/features/settings/queries'
@@ -29,23 +38,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SettingsPage() {
-  const [dict, locale] = await Promise.all([getDictionary(), getLocale()])
+  const dict = await getDictionary()
   return (
     <>
       <PageHeader
-        title={
-          <span className="flex min-w-0 items-center">
-            {/* 44px target; the title's overflow clips a background, so press feedback is opacity. */}
-            <Link
-              href={localePath(locale, '/profile')}
-              aria-label={dict.common.back}
-              className="-ml-2.5 flex size-11 shrink-0 items-center justify-center transition-opacity active:opacity-50"
-            >
-              <ChevronLeft className="size-6" />
-            </Link>
-            <span className="truncate">{dict.settings.title}</span>
-          </span>
-        }
+        title={dict.settings.title}
+        back={{ href: '/profile', label: dict.common.back }}
       />
       <Suspense fallback={<SettingsSkeleton label={dict.common.loading} />}>
         <Settings />
@@ -57,28 +55,49 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username] = await Promise.all([
-    getPrivacySettings(viewer.id),
-    getNotificationPrefs(viewer.id),
-    getBlockedUsers(),
-    getUsernameSettings(),
-  ])
+  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito, duo] =
+    await Promise.all([
+      getPrivacySettings(viewer.id),
+      getNotificationPrefs(viewer.id),
+      getBlockedUsers(),
+      getUsernameSettings(),
+      getHasPassword(),
+      crossedPathsEnabled(),
+      // Null until the promo migration (20261009000230) is applied: the row is hidden then.
+      getVipStatus(),
+      getIncognito(viewer.id),
+      // False until the Duo Dating migration (20261009000261): its switch is hidden then.
+      duoAvailable(),
+    ])
 
   return (
-    <div className="flex flex-col gap-8 px-4 pb-6">
+    <div className="flex flex-col gap-7 px-4 pt-1 pb-8">
       {username && (
         <SettingsSection title={dict.username.section}>
           <UsernameSettingsRows initial={username} />
         </SettingsSection>
       )}
+      <SettingsSection title={dict.password.section}>
+        <PasswordSettingsRows
+          initial={hasPassword}
+          username={username?.username ?? viewer.profile.username}
+        />
+      </SettingsSection>
       <SettingsSection title={dict.settings.notifications}>
         <PushToggle />
-        <NotificationPrefsRows initial={prefs} />
+        <NotificationPrefsRows initial={prefs} hidden={duo ? [] : ['duo']} />
       </SettingsSection>
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
+        {incognito !== null && <IncognitoToggle initial={incognito} />}
+        {crossed !== null && <CrossedPathsToggle initial={crossed} />}
       </SettingsSection>
+      {vip && (
+        <SettingsSection title={dict.promo.section}>
+          <PromoSettingsRow initial={vip} />
+        </SettingsSection>
+      )}
       <SettingsSection title={dict.settings.blocked}>
         <BlockedUsers initial={blocked} />
       </SettingsSection>
@@ -90,7 +109,7 @@ async function Settings() {
           <Link
             key={doc}
             href={localePath(locale, `/${doc}`)}
-            className="active:bg-border/60 flex min-h-12 items-center justify-between gap-3 px-4 py-3 transition-colors"
+            className="active:bg-fill flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-3 text-[16px] font-medium tracking-[-0.01em] transition-colors"
           >
             <span className="min-w-0">{dict.legal[doc]}</span>
             <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />

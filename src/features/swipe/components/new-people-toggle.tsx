@@ -51,7 +51,7 @@ function Toggle({ initialOn, filters, onChange }: Props) {
           : (errorText(error) ?? dict.discover.notifyHint)
 
   return (
-    <div className="bg-surface border-border flex flex-col gap-2 rounded-2xl border p-4">
+    <div className="card flex flex-col gap-2 border p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 font-medium">
           <BellPlus className="text-accent size-5" aria-hidden /> {dict.discover.notify}
@@ -65,7 +65,7 @@ function Toggle({ initialOn, filters, onChange }: Props) {
           onClick={() => void toggle()}
           className={cn(
             'relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50',
-            on ? 'bg-accent' : 'bg-border',
+            on ? 'bg-accent' : 'bg-white/[0.14]',
           )}
         >
           <span

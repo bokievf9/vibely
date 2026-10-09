@@ -1,5 +1,9 @@
 export type MediaKind = 'image' | 'voice' | 'video'
 
+// 'referral': an introduction card (Matchmaker), 'system': a note pinned by the app. Both carry
+// the referral id and are rendered from get_referral_card(), never from the row alone.
+export type MessageKind = 'text' | 'referral' | 'system'
+
 export type ChatImage = {
   kind: 'image'
   path: string
@@ -39,6 +43,8 @@ export type ChatMessage = {
   media: ChatMedia | null
   // Kind of a media file purged after 90 days (retention): shown as a placeholder.
   expiredMedia: MediaKind | null
+  kind: MessageKind
+  referralId: string | null
 }
 
 export const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'] as const
@@ -56,7 +62,7 @@ export type Partner = {
   photo: { url: string; width: number; height: number } | null
 }
 
-export type PreviewKind = 'text' | 'photo' | 'voice' | 'video' | 'expired' | 'deleted'
+export type PreviewKind = 'text' | 'photo' | 'voice' | 'video' | 'expired' | 'deleted' | 'referral'
 
 export type ChatPreview = {
   matchId: string
