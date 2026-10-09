@@ -6,8 +6,6 @@ export const plansEn = {
   limitTitle: 'Limit reached',
   limitBody: 'You have used all {limit} for this {period}. {plan} gives you more.',
   limitBodyShort: 'You have used everything for now. {plan} gives you more.',
-  partnerTitle: 'Calls are not available',
-  partnerBody: 'Calls need VIP on both sides. This person cannot take calls right now.',
   periods: { day: 'day', week: 'week', month: '30 days' },
   unlocks: '{plan} also unlocks',
   howToGet: 'Plus and VIP come with promo codes and rewards, for example the matchmaker reward.',
@@ -32,7 +30,7 @@ export const plansEn = {
     chat_photos: 'Send photos in chats',
     voice_messages: 'Send voice messages',
     video_messages: 'Send video messages',
-    calls: 'Audio and video calls',
+    calls: 'Start audio and video calls',
     feed_post: 'Write posts in the feed',
     feed_comment: 'Comment in the feed',
     feed_like: 'Like posts in the feed',
@@ -62,7 +60,6 @@ export const plansEn = {
 export const planErrorsEn = {
   planRequired: 'This is available in Plus or VIP.',
   planLimit: 'You have reached the limit for now.',
-  planPartner: 'This person cannot take calls on their plan.',
 }
 
 export type PlansDictionary = typeof plansEn

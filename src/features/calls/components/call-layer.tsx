@@ -122,7 +122,8 @@ export function CallLayer({ viewerId }: { viewerId: string }) {
     startTransition(async () => {
       const result = await answerCall(call.callId)
       setIncoming(null)
-      if (!result.ok) return upgradeOr(result) ? undefined : showError(result.error)
+      // The callee never sees an upgrade: only the caller needs the calls feature.
+      if (!result.ok) return showError(result.error)
       setAnswered(true)
       setSession(result.data)
     })

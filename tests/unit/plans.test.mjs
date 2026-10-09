@@ -101,10 +101,8 @@ test('VP402 becomes an upgrade, anything else does not', () => {
     feature: 'likes_per_day',
     reason: 'limit',
   })
-  assert.deepEqual(upgradeFromError({ code: 'VP402', details: 'calls', hint: 'partner' }), {
-    feature: 'calls',
-    reason: 'partner',
-  })
+  // 'partner' (caller downgraded while ringing) is never an upgrade for the callee.
+  assert.equal(upgradeFromError({ code: 'VP402', details: 'calls', hint: 'partner' }), null)
   assert.equal(upgradeFromError({ code: 'VP402', details: null, hint: 'feature' }), null)
   assert.equal(upgradeFromError({ code: 'VP402', details: 'Bad Key!', hint: 'feature' }), null)
   assert.equal(upgradeFromError({ code: 'P0429', details: 'calls' }), null)
@@ -123,7 +121,7 @@ test('plans copy: every feature has a line in every language, no em or en dashes
     assert.doesNotMatch(JSON.stringify(dict), /[–—]/)
   }
   for (const errors of [planErrorsEn, planErrorsMs, planErrorsRu]) {
-    assert.deepEqual(Object.keys(errors).sort(), ['planLimit', 'planPartner', 'planRequired'])
+    assert.deepEqual(Object.keys(errors).sort(), ['planLimit', 'planRequired'])
     assert.doesNotMatch(JSON.stringify(errors), /[–—]/)
   }
 })

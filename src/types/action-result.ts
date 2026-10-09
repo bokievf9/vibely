@@ -8,5 +8,5 @@ export type ActionResult<T = void, E extends string = string> =
       ok: false
       error: E
       fieldErrors?: Record<string, string[]>
-      upgrade?: { feature: string; reason: 'feature' | 'limit' | 'partner' }
+      upgrade?: { feature: string; reason: 'feature' | 'limit' }
     }

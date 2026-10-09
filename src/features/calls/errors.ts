@@ -7,6 +7,8 @@ const CODES: Record<string, ErrorKey> = {
   VC003: 'callBusy',
   P0429: 'rateLimited',
   '42501': 'callUnavailable',
+  // Plan gate on accept: the caller lost the calls feature while ringing (20261009000280).
+  VP402: 'callUnavailable',
 }
 
 export const callErrorKey = (code: string | undefined): ErrorKey =>

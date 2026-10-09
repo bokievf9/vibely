@@ -6,8 +6,6 @@ export const plansRu: PlansDictionary = {
   limitTitle: 'Лимит исчерпан',
   limitBody: 'Вы использовали все {limit} за этот период ({period}). В {plan} больше.',
   limitBodyShort: 'Пока лимит исчерпан. В {plan} больше.',
-  partnerTitle: 'Звонок недоступен',
-  partnerBody: 'Для звонков нужен VIP у обоих. Этот человек сейчас не может принимать звонки.',
   periods: { day: 'день', week: 'неделя', month: '30 дней' },
   unlocks: 'Что ещё даёт {plan}',
   howToGet:
@@ -29,7 +27,7 @@ export const plansRu: PlansDictionary = {
     chat_photos: 'Фото в чатах',
     voice_messages: 'Голосовые сообщения',
     video_messages: 'Видеосообщения',
-    calls: 'Аудио- и видеозвонки',
+    calls: 'Звонить: аудио и видео',
     feed_post: 'Посты в ленте',
     feed_comment: 'Комментарии в ленте',
     feed_like: 'Лайки постов в ленте',
@@ -58,5 +56,4 @@ export const plansRu: PlansDictionary = {
 export const planErrorsRu: typeof planErrorsEn = {
   planRequired: 'Доступно в Plus или VIP.',
   planLimit: 'Лимит пока исчерпан.',
-  planPartner: 'Этот человек не может принимать звонки в своём плане.',
 }

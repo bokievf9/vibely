@@ -6,9 +6,6 @@ export const plansMs: PlansDictionary = {
   limitTitle: 'Had dicapai',
   limitBody: 'Anda telah guna kesemua {limit} untuk {period} ini. {plan} memberi anda lebih.',
   limitBodyShort: 'Anda telah guna semuanya buat masa ini. {plan} memberi anda lebih.',
-  partnerTitle: 'Panggilan tidak tersedia',
-  partnerBody:
-    'Panggilan memerlukan VIP pada kedua-dua pihak. Orang ini tidak boleh menerima panggilan sekarang.',
   periods: { day: 'hari', week: 'minggu', month: 'tempoh 30 hari' },
   unlocks: '{plan} juga membuka',
   howToGet: 'Plus dan VIP datang melalui kod promo dan ganjaran, contohnya ganjaran mak andam.',
@@ -29,7 +26,7 @@ export const plansMs: PlansDictionary = {
     chat_photos: 'Hantar foto dalam sembang',
     voice_messages: 'Hantar mesej suara',
     video_messages: 'Hantar mesej video',
-    calls: 'Panggilan audio dan video',
+    calls: 'Buat panggilan audio dan video',
     feed_post: 'Tulis hantaran dalam suapan',
     feed_comment: 'Komen dalam suapan',
     feed_like: 'Suka hantaran dalam suapan',
@@ -59,5 +56,4 @@ export const plansMs: PlansDictionary = {
 export const planErrorsMs: typeof planErrorsEn = {
   planRequired: 'Ini tersedia dalam Plus atau VIP.',
   planLimit: 'Anda telah mencapai had buat masa ini.',
-  planPartner: 'Orang ini tidak boleh menerima panggilan dengan pelan mereka.',
 }

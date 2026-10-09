@@ -3693,6 +3693,7 @@ export type Database = {
           tags: string[]
         }[]
       }
+      has_vip_badge: { Args: { p_user: string }; Returns: boolean }
       has_vip_perk: { Args: { p_perk: string; p_user: string }; Returns: boolean }
       has_feature: { Args: { p_key: string; p_user: string }; Returns: boolean }
       hook_before_user_created: { Args: { event: Json }; Returns: Json }

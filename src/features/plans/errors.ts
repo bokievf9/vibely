@@ -2,12 +2,13 @@ import type { ErrorKey } from '@/i18n/dictionaries/en'
 import type { FeatureKey } from './access'
 
 // Every plan gate in the database raises SQLSTATE VP402 with detail = feature key and hint =
-// 'feature' (not in the plan), 'limit' (quota of the period used up) or 'partner' (the other
-// person's plan, calls only). Server Actions return it as an ErrorKey plus `upgrade`, which the
-// client turns into <UpgradeCard>.
+// 'feature' (not in the plan) or 'limit' (quota of the period used up); both become an ErrorKey
+// plus `upgrade`, which the client turns into <UpgradeCard>. Hint 'partner' (accepting a call whose
+// caller lost the feature while ringing) is not an upgrade for the viewer: it maps to null here
+// and the calls actions treat it as "call unavailable".
 export const PLAN_SQLSTATE = 'VP402'
 
-export type UpgradeReason = 'feature' | 'limit' | 'partner'
+export type UpgradeReason = 'feature' | 'limit'
 export type Upgrade = { feature: FeatureKey; reason: UpgradeReason }
 
 type DbError = { code?: string; details?: string | null; hint?: string | null } | null | undefined
@@ -20,15 +21,14 @@ export function upgradeFromError(error: DbError): Upgrade | null {
   if (!error || error.code !== PLAN_SQLSTATE || !error.details || !KEY_RE.test(error.details)) {
     return null
   }
-  const reason: UpgradeReason =
-    error.hint === 'limit' ? 'limit' : error.hint === 'partner' ? 'partner' : 'feature'
+  if (error.hint === 'partner') return null
+  const reason: UpgradeReason = error.hint === 'limit' ? 'limit' : 'feature'
   return { feature: error.details as FeatureKey, reason }
 }
 
 const REASON_KEYS: Record<UpgradeReason, ErrorKey> = {
   feature: 'planRequired',
   limit: 'planLimit',
-  partner: 'planPartner',
 }
 
 // The failure to return from a Server Action when the database said "plan required", else null.

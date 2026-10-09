@@ -35,20 +35,13 @@ export function UpgradeCard({
   const Icon = plan === 'vip' ? Crown : Sparkles
   const f = access.features[feature]
 
-  const title =
-    reason === 'limit'
-      ? t.limitTitle
-      : reason === 'partner'
-        ? t.partnerTitle
-        : fmt(t.availableIn, { plan: planName })
+  const title = reason === 'limit' ? t.limitTitle : fmt(t.availableIn, { plan: planName })
   const body =
-    reason === 'partner'
-      ? t.partnerBody
-      : reason === 'limit'
-        ? f?.limit !== null && f?.limit !== undefined && f.period
-          ? fmt(t.limitBody, { limit: f.limit, period: t.periods[f.period], plan: planName })
-          : fmt(t.limitBodyShort, { plan: planName })
-        : t.features[feature]
+    reason === 'limit'
+      ? f?.limit !== null && f?.limit !== undefined && f.period
+        ? fmt(t.limitBody, { limit: f.limit, period: t.periods[f.period], plan: planName })
+        : fmt(t.limitBodyShort, { plan: planName })
+      : t.features[feature]
 
   const icon = (
     <span
@@ -86,7 +79,7 @@ export function UpgradeCard({
           <p className="text-muted text-callout text-pretty">{body}</p>
         </div>
       </div>
-      {reason !== 'partner' && more.length > 0 && (
+      {more.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-footnote text-muted px-1 font-medium">
             {fmt(t.unlocks, { plan: planName })}
@@ -101,14 +94,12 @@ export function UpgradeCard({
           </ul>
         </div>
       )}
-      {reason !== 'partner' && (
-        <p className="text-muted text-footnote px-1 text-pretty">
-          {t.howToGet}{' '}
-          <LocaleLink href="/settings" className="text-accent font-medium">
-            {t.enterCode}
-          </LocaleLink>
-        </p>
-      )}
+      <p className="text-muted text-footnote px-1 text-pretty">
+        {t.howToGet}{' '}
+        <LocaleLink href="/settings" className="text-accent font-medium">
+          {t.enterCode}
+        </LocaleLink>
+      </p>
     </div>
   )
 }

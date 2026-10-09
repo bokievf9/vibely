@@ -6,6 +6,7 @@ export const callsEn = {
   allow: 'Allow calls in this chat',
   allowHint:
     'You can call each other only when both of you allow it. You can turn it off any time.',
+  acceptOnly: 'You can accept calls in this chat. Starting a call is part of VIP.',
   waitingPartner: 'Waiting for {name} to allow calls',
   bothAllowed: 'Calls are on in this chat',
   noticeTitle: 'Calls are recorded',

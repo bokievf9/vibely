@@ -48,7 +48,7 @@ export async function startCall(
     p_match: matchId,
     p_kind: kind,
   })
-  // VP402: calls need VIP on both sides (20261009000280).
+  // VP402: only the caller needs the calls feature (20261009000280).
   if (error || !callId) return planFail(error) ?? fail(callErrorKey(error?.code))
   const { data: call } = await supabase.from('calls').select('callee_id').eq('id', callId).single()
   const peer = await loadPeer(call?.callee_id ?? null)
@@ -80,7 +80,8 @@ export async function answerCall(callId: string): Promise<UserResult<CallSession
 
   const supabase = await createClient()
   const { data: status, error } = await supabase.rpc('answer_call', { p_call: id.data })
-  if (error) return planFail(error) ?? fail(callErrorKey(error.code))
+  // Never an upgrade for the callee: a caller downgraded mid-ring is just "unavailable".
+  if (error) return fail(callErrorKey(error.code))
   if (status !== 'active') return fail('callUnavailable')
   const { data: call } = await supabase
     .from('calls')

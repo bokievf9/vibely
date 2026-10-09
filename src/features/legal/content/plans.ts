@@ -15,7 +15,7 @@ export const plansLegal: Record<Locale, { privacy: LegalSection; terms: LegalSec
     terms: {
       heading: '5e. Plus and VIP plans',
       paragraphs: [
-        'Vibely has three levels: free, Plus and VIP. Some features are limited or need Plus or VIP. For example, sending photos, voice messages and video messages in chat and posting or commenting in the feed need Plus, audio and video calls need VIP, and likes in Discover and Blind Dating have daily limits on the free level. The app always shows which level a feature needs.',
+        'Vibely has three levels: free, Plus and VIP. Some features are limited or need Plus or VIP. For example, sending photos, voice messages and video messages in chat and posting or commenting in the feed need Plus, starting audio and video calls needs VIP (anyone can accept a call), and likes in Discover and Blind Dating have daily limits on the free level. The app always shows which level a feature needs.',
         'A plan can come from a promo code, a reward (introducing two people who then match gives you Plus for 7 days) or the Vibely team. Paid plans may be offered later; the price will always be shown before any purchase. Plans are personal and cannot be transferred or exchanged for money.',
         'We may change which features belong to which level and the limits of each level. When a plan ends, everything you created stays visible; limits only apply to new actions.',
       ],
@@ -32,7 +32,7 @@ export const plansLegal: Record<Locale, { privacy: LegalSection; terms: LegalSec
     terms: {
       heading: '5e. Pelan Plus dan VIP',
       paragraphs: [
-        'Vibely mempunyai tiga tahap: percuma, Plus dan VIP. Sesetengah ciri terhad atau memerlukan Plus atau VIP. Contohnya, menghantar foto, mesej suara dan mesej video dalam sembang serta menyiarkan atau mengulas dalam suapan memerlukan Plus, panggilan suara dan video memerlukan VIP, dan suka dalam Teroka serta Blind Dating mempunyai had harian pada tahap percuma. Aplikasi sentiasa menunjukkan tahap yang diperlukan oleh sesuatu ciri.',
+        'Vibely mempunyai tiga tahap: percuma, Plus dan VIP. Sesetengah ciri terhad atau memerlukan Plus atau VIP. Contohnya, menghantar foto, mesej suara dan mesej video dalam sembang serta menyiarkan atau mengulas dalam suapan memerlukan Plus, membuat panggilan suara dan video memerlukan VIP (sesiapa sahaja boleh menerima panggilan), dan suka dalam Teroka serta Blind Dating mempunyai had harian pada tahap percuma. Aplikasi sentiasa menunjukkan tahap yang diperlukan oleh sesuatu ciri.',
         'Pelan boleh datang daripada kod promo, ganjaran (mengenalkan dua orang yang kemudian berpadanan memberi anda Plus selama 7 hari) atau pasukan Vibely. Pelan berbayar mungkin ditawarkan kemudian; harga akan sentiasa dipaparkan sebelum sebarang pembelian. Pelan adalah peribadi dan tidak boleh dipindahkan atau ditukar dengan wang.',
         'Kami boleh mengubah ciri yang termasuk dalam setiap tahap dan had setiap tahap. Apabila pelan tamat, semua yang anda cipta kekal kelihatan; had hanya digunakan pada tindakan baharu.',
       ],
@@ -49,7 +49,7 @@ export const plansLegal: Record<Locale, { privacy: LegalSection; terms: LegalSec
     terms: {
       heading: '5e. Тарифы Plus и VIP',
       paragraphs: [
-        'В Vibely три уровня: бесплатный, Plus и VIP. Некоторые функции ограничены или требуют Plus или VIP. Например, фото, голосовые и видеосообщения в чате, а также посты и комментарии в ленте требуют Plus, аудио- и видеозвонки требуют VIP, а лайки в разделе Знакомства и Blind Dating на бесплатном уровне ограничены в день. Приложение всегда показывает, какой уровень нужен для функции.',
+        'В Vibely три уровня: бесплатный, Plus и VIP. Некоторые функции ограничены или требуют Plus или VIP. Например, фото, голосовые и видеосообщения в чате, а также посты и комментарии в ленте требуют Plus, чтобы звонить (аудио и видео), нужен VIP, а принять звонок может любой, а лайки в разделе Знакомства и Blind Dating на бесплатном уровне ограничены в день. Приложение всегда показывает, какой уровень нужен для функции.',
         'Тариф можно получить по промокоду, в награду (если вы познакомили двух людей и у них случился мэтч, вы получаете Plus на 7 дней) или от команды Vibely. Платные тарифы могут появиться позже; цена всегда будет показана до покупки. Тариф личный, его нельзя передать или обменять на деньги.',
         'Мы можем менять, какие функции входят в какой уровень, и ограничения каждого уровня. Когда тариф заканчивается, всё, что вы создали, остаётся видимым; ограничения действуют только для новых действий.',
       ],
