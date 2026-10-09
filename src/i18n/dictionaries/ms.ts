@@ -15,6 +15,7 @@ import { flowsMs } from './flowsui/ms'
 import { reportsMs } from './reports/ms'
 import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
+import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -38,6 +39,7 @@ export const ms: Dictionary = {
     ...usernameErrorsMs,
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
+    ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -395,4 +397,5 @@ export const ms: Dictionary = {
   flows: flowsMs,
   reports: reportsMs,
   sanctions: sanctionsMs,
+  conversations: conversationsMs,
 }

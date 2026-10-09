@@ -13,6 +13,8 @@ export const settingsRu: SettingsDictionary = {
     random_reveal: 'Мэтчи на свиданиях вслепую',
     new_people: 'Новые люди рядом',
     calls: 'Входящие звонки',
+    post_replies: 'Личные ответы на ваши посты',
+    daily_prompt: 'Вопрос дня',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

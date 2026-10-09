@@ -1809,7 +1809,7 @@ export async function run(db) {
     ok('blind: aliases stable per session', (await bs(M1, s1)).partner_alias === m1v.partner_alias)
     ok('blind: fresh session is active, undecided', m1v.state === 'active' && m1v.my_decision === null && m1v.id === s1)
     ok('blind: get_blind_session columns', JSON.stringify(Object.keys(m1v).sort()) ===
-       '["common_tags","id","match_id","my_alias","my_decision","my_side","partner","partner_alias","started_at","state"]', JSON.stringify(Object.keys(m1v)))
+       '["common_tags","context","id","kind","match_id","my_alias","my_decision","my_messages","my_side","partner","partner_alias","partner_messages","revealed_from_start","started_at","state"]', JSON.stringify(Object.keys(m1v)))
     const leaks = (row) => { const j = JSON.stringify(row); return j.includes(F1) || j.includes(M1) || j.includes('Nurul') || j.includes('Hafiz') }
     ok('blind: no profile data or ids before connect', m1v.partner === null && m1v.match_id === null && !leaks(m1v) && !leaks(f1v))
     const old = (await as(M1, `select * from get_random_session()`)).rows[0]
@@ -1955,6 +1955,264 @@ export async function run(db) {
   })()
 
   // ===== end blind dating =====
+
+  // ===== feed conversations (20261009000220): reply privately + daily question =====
+  // Anonymity of the post author and the replier, limits, the 5-message reveal unlock, rotation at
+  // 19:00 MYT, same-option matching filters, rate limits, pushes, admin queue. Own users.
+  await (async () => {
+    const F = (i) => `fc000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    const P = F(1), R = F(2), R2 = F(3), P2 = F(4), FAR = F(5), Z = F(6), X = F(7), A = F(8)
+    const M = Array.from({ length: 10 }, (_, i) => F(20 + i))
+    const people = [[P, 'Aisyah', 'female', '{male}', 101.70, 3.14], [R, 'Daniel', 'male', '{female}', 101.71, 3.15],
+      [R2, 'Farid', 'male', '{female}', 101.72, 3.13], [P2, 'Zara', 'female', '{male}', 101.69, 3.12],
+      [FAR, 'Jamal', 'male', '{female}', 110.35, 1.55], [Z, 'Lina', 'female', '{male}', 101.68, 3.16],
+      [X, 'Outsider', 'male', '{female}', 101.70, 3.10], [A, 'Mod', 'male', '{female}', 101.70, 3.11],
+      ...M.map((u, i) => [u, 'Guy' + i, 'male', '{female}', 101.70 + i * 0.001, 3.14])]
+    for (const [i, [u]] of people.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '60137790' + String(i).padStart(3, '0')])
+    for (const [u, name, g, w, lon, lat] of people)
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1997-07-07',$2,$3,'Kuala Lumpur','SRID=4326;POINT(${lon} ${lat})')`, [name, g, w])
+    await su(`update profiles set verification_status='approved' where id::text like 'fc000000-%'`)
+    await su(`delete from random_chat_queue`)
+    const leaks = (row, ...needles) => { const j = JSON.stringify(row); return needles.some((n) => j.includes(n)) }
+    const bs = async (u, s) => (await as(u, `select * from get_blind_session($1)`, [s])).rows[0]
+    const decide = async (u, s, c) => (await as(u, `select blind_decide($1, $2) r`, [s, c])).rows[0].r
+    const start = async (u, post, body = 'hi') => (await as(u, `select start_post_conversation($1, $2) r`, [post, body])).rows[0].r
+    const conv = async (u) => (await as(u, `select * from list_my_conversations()`)).rows
+    const newPost = async (author, body) => (await su(`insert into posts (author_id, body) values ($1, $2) returning id`, [author, body])).rows[0].id
+
+    // --- reply privately: anonymity both ways
+    const post = (await as(P, `select create_post('Anyone up for a mamak run tonight?') id`)).rows[0].id
+    const r1 = await start(R, post, 'count me in')
+    ok('fc: reply privately starts a conversation', r1.created === true && !!r1.session_id && !!r1.message_id && r1.state === 'active', JSON.stringify(r1))
+    const sid = r1.session_id
+    const rv = await bs(R, sid)
+    const pseud = (await su(`select feed_pseudonym($1, 0) v`, [post])).rows[0].v
+    ok('fc: replier sees the post and the author pseudonym', rv.kind === 'post' && rv.my_side === 'b' && rv.context.body === 'Anyone up for a mamak run tonight?' &&
+       JSON.stringify(rv.context.author_pseudonym) === JSON.stringify(pseud) && rv.context.author === null && rv.context.i_am_author === false, JSON.stringify(rv))
+    ok('fc: replier gets no author id, name or profile', rv.partner === null && rv.match_id === null && !leaks(rv, P, 'Aisyah'))
+    ok('fc: replier message counts', rv.my_messages === 1 && rv.partner_messages === 0 && rv.revealed_from_start === false)
+    const pv = await bs(P, sid)
+    ok('fc: author sees own side, nothing about the replier', pv.my_side === 'a' && pv.context.i_am_author === true && pv.context.author === null && pv.context.author_pseudonym === null &&
+       pv.partner === null && pv.partner_alias >= 100 && pv.partner_alias <= 999 && !leaks(pv, R, 'Daniel'), JSON.stringify(pv))
+    ok('fc: no common tags hint on post conversations', JSON.stringify(pv.common_tags) === '[]' && JSON.stringify(rv.common_tags) === '[]')
+    const hist = (await as(P, `select * from get_random_messages($1)`, [sid])).rows
+    ok('fc: author reads the first message without sender id', hist.length === 1 && hist[0].body === 'count me in' && hist[0].is_mine === false && !leaks(hist, R))
+    ok('fc: first message broadcast on the session topic', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='message'`, ['random:' + sid])).rows[0].c === 1)
+    ok('fc: outsider sees nothing', (await as(X, `select * from get_blind_session($1)`, [sid])).rows.length === 0 && (await as(X, `select * from get_random_messages($1)`, [sid])).rows.length === 0)
+    const pl = await conv(P), rl = await conv(R)
+    ok('fc: conversation list for the author', pl.length === 1 && pl[0].id === sid && pl[0].kind === 'post' && pl[0].last_body === 'count me in' && pl[0].last_mine === false && pl[0].partner === null && !leaks(pl, R, 'Daniel'), JSON.stringify(pl))
+    ok('fc: conversation list for the replier', rl.length === 1 && rl[0].last_mine === true && rl[0].context.body.startsWith('Anyone') && rl[0].partner === null && !leaks(rl, P, 'Aisyah'), JSON.stringify(rl))
+    ok('fc: blind dating screen does not resume a post conversation', (await as(R, `select * from get_blind_session()`)).rows.length === 0)
+    ok('fc: sessions table still closed', !!(await fails(() => as(R, `select kind from random_chat_sessions`))))
+
+    // --- rules
+    ok('fc: cannot reply to own post', !!(await fails(() => start(P, post))))
+    ok('fc: empty message rejected', !!(await fails(() => start(R2, post, '  '))))
+    const again = await start(R, post, 'still in?')
+    ok('fc: same post + author reuses the conversation', again.created === false && again.session_id === sid && (await bs(R, sid)).my_messages === 2)
+    await su(`update posts set is_hidden = true where id=$1`, [post])
+    ok('fc: hidden post cannot be replied to', (await fails(() => start(R2, post)))?.includes('Post not found'))
+    ok('fc: hidden post shows no body in the context', (await bs(R, sid)).context.body === null)
+    await su(`update posts set is_hidden = false where id=$1`, [post])
+    await as(P, `insert into blocks (blocked_id) values ($1)`, [R2])
+    ok('fc: blocked pair cannot start', (await fails(() => start(R2, post)))?.includes('Post not found'))
+    await su(`delete from blocks where blocker_id=$1`, [P])
+    await su(`update profiles set shadow_banned = true where id=$1`, [P])
+    ok('fc: shadow-banned author cannot be reached', !!(await fails(() => start(R2, post))))
+    await su(`update profiles set shadow_banned = false where id=$1`, [P])
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [R2])
+    ok('fc: muted user cannot start', (await fails(() => start(R2, post)))?.includes('muted'))
+    await su(`update profiles set muted_until = null where id=$1`, [R2])
+    ok('fc: post session rows need a starter', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind) values ($1, $2, 'post')`, [P, R2]))))
+    ok('fc: blind session rows carry no context', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, post_id) values ($1, $2, 'blind', $3)`, [P, R2, post]))))
+
+    // --- 10 new conversations per day
+    const posts = []
+    for (let i = 0; i < 11; i++) posts.push(await newPost(P2, 'post ' + i))
+    for (let i = 0; i < 10; i++) await start(R2, posts[i], 'reply ' + i)
+    ok('fc: 10 conversations per day', (await conv(R2)).length === 10)
+    ok('fc: 11th conversation in 24h rejected (P0429)', (await fails(() => start(R2, posts[10])))?.includes('Too many'))
+    ok('fc: an existing conversation still accepts messages at the limit', (await start(R2, posts[0], 'more')).created === false)
+    await su(`update random_chat_sessions set started_at = now() - interval '25 hours' where started_by=$1`, [R2])
+    ok('fc: limit is a rolling 24 hours', (await start(R2, posts[10], 'late')).created === true)
+
+    // --- "As me" post: the replier sees the author as the post shows them, never the reverse
+    const named = (await as(P, `select create_post('Named post: coffee buddies?', true) id`)).rows[0].id
+    const n1 = await start(R, named, 'coffee!')
+    const nv = await bs(R, n1.session_id)
+    ok('fc: named post shows the author card to the replier', nv.context.author?.id === P && nv.context.author.display_name === 'Aisyah' && nv.context.author_pseudonym === null, JSON.stringify(nv.context))
+    const npv = await bs(P, n1.session_id)
+    ok('fc: named post still hides the replier from the author', npv.context.author === null && npv.partner === null && !leaks(npv, R, 'Daniel'))
+    ok('fc: replier\'s list row shows the author card, author\'s row does not leak', (await conv(R)).some((c) => c.id === n1.session_id && c.context.author?.id === P) &&
+       !leaks((await conv(P)).find((c) => c.id === n1.session_id), R, 'Daniel'))
+
+    // --- reveal unlock: 5 messages from each side
+    ok('fc: reveal locked before 5 messages each', (await fails(() => decide(R, sid, true)))?.includes('Reveal locked'))
+    for (let i = 0; i < 3; i++) await as(R, `select randomizer_send($1, $2)`, [sid, 'r' + i])
+    for (let i = 0; i < 4; i++) await as(P, `select randomizer_send($1, $2)`, [sid, 'p' + i])
+    const rv2 = await bs(R, sid)
+    ok('fc: still locked when one side has 4', rv2.my_messages === 5 && rv2.partner_messages === 4 && !!(await fails(() => decide(R, sid, true))))
+    await as(P, `select randomizer_send($1, 'p4')`, [sid])
+    const w = await decide(R, sid, true)
+    ok('fc: reveal unlocks at 5 each', w.state === 'waiting' && (await bs(R, sid)).my_decision === true)
+    const pw = await bs(P, sid)
+    ok('fc: author learns nothing about the pending reveal', pw.my_decision === null && pw.partner === null && pw.state === 'active')
+    const mm = await decide(P, sid, true)
+    ok('fc: mutual reveal matches and copies the transcript', mm.state === 'matched' && !!mm.match_id &&
+       (await su(`select count(*)::int c from messages where match_id=$1`, [mm.match_id])).rows[0].c === 10)
+    ok('fc: profiles revealed after the match', (await bs(P, sid)).partner?.id === R && (await bs(R, sid)).partner?.id === P)
+    ok('fc: matched conversation leaves the list', !(await conv(P)).some((c) => c.id === sid))
+    // The pair is matched now; later checks (same-option matching excludes existing matches) need them unmatched.
+    await su(`delete from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [P, R])
+
+    // --- pass ends it for both
+    const pp = await newPost(P2, 'pass me')
+    const ps = (await start(R, pp)).session_id
+    ok('fc: author can pass while locked', (await decide(P2, ps, false)).state === 'passed')
+    ok('fc: replier sees only "ended"', (await bs(R, ps)).state === 'ended' && (await bs(R, ps)).partner === null)
+    ok('fc: cannot send after pass', !!(await fails(() => as(R, `select randomizer_send($1,'x')`, [ps]))))
+    const after = await start(R, pp, 'again?')
+    ok('fc: no new conversation after a pass, state returned', after.created === false && after.session_id === ps && after.message_id === null && after.state === 'ended', JSON.stringify(after))
+    ok('fc: ended conversation leaves the list', !(await conv(R)).some((c) => c.id === ps))
+
+    // --- blind dating is not blocked by an open private reply
+    const openPost = await newPost(P2, 'open thread')
+    await start(R, openPost)
+    ok('fc: randomizer_join ignores post conversations', (await as(R, `select randomizer_join('{female}',18,99) s`)).rows[0].s === null)
+    ok('fc: randomizer_join definition carries the kind filter', (await su(`select pg_get_functiondef('public.randomizer_join'::regproc) d`)).rows[0].d.includes("kind = 'blind'"))
+    await as(R, `select randomizer_leave()`)
+
+    // --- pushes: claim per session, throttled, names only when revealed from the start
+    const pr = await start(R2, await newPost(P, 'push post'), 'first')
+    const c1 = (await svc(`select claim_session_push($1) r`, [pr.message_id])).rows[0].r
+    ok('fc: push claim names the author as recipient, no sender name', c1?.recipient === P && c1.kind === 'post' && c1.is_first === true && c1.sender_name === null && c1.session_id === pr.session_id, JSON.stringify(c1))
+    const m2 = (await as(R2, `select randomizer_send($1, 'second') id`, [pr.session_id])).rows[0].id
+    ok('fc: push throttled to one per 10 minutes', (await svc(`select claim_session_push($1) r`, [m2])).rows[0].r === null)
+    await su(`update random_chat_sessions set last_push_at = now() - interval '11 minutes' where id=$1`, [pr.session_id])
+    const c2 = (await svc(`select claim_session_push($1) r`, [m2])).rows[0].r
+    ok('fc: push allowed again after 10 minutes, not first', c2?.recipient === P && c2.is_first === false)
+    const blindMsg = (await su(`select m.id from random_chat_messages m join random_chat_sessions s on s.id = m.session_id where s.kind='blind' limit 1`)).rows[0]
+    ok('fc: blind date messages never claim a push', !!blindMsg && (await svc(`select claim_session_push($1) r`, [blindMsg.id])).rows[0].r === null)
+    ok('fc: push claim is server only', !!(await fails(() => as(R2, `select claim_session_push($1)`, [m2]))))
+
+    // --- daily question: rotation at 19:00 MYT
+    const pd = (await su(`select prompt_day('2026-10-09 10:59:59+00')::text a, prompt_day('2026-10-09 11:00:00+00')::text b, prompt_day('2026-10-10 02:00:00+00')::text c`)).rows[0]
+    ok('fc: prompt day flips at 19:00 MYT', pd.a === '2026-10-08' && pd.b === '2026-10-09' && pd.c === '2026-10-09', JSON.stringify(pd))
+    ok('fc: window ends at 19:00 MYT next day', new Date((await su(`select prompt_window_end('2026-10-09'::date) e`)).rows[0].e).toISOString() === '2026-10-10T11:00:00.000Z')
+    ok('fc: 60 questions seeded, none shown', (await su(`select count(*)::int c, count(show_date)::int s from daily_prompts`)).rows[0].c === 60 && (await su(`select count(show_date)::int s from daily_prompts`)).rows[0].s === 0)
+    ok('fc: no question before rotation', (await as(P, `select get_daily_prompt() r`)).rows[0].r === null)
+    ok('fc: rotation is server only', !!(await fails(() => as(P, `select rotate_daily_prompt()`))))
+    const q1 = (await svc(`select rotate_daily_prompt() r`)).rows[0].r
+    ok('fc: rotation activates the first queued question', q1 === (await su(`select id from daily_prompts where sort_order=1`)).rows[0].id)
+    ok('fc: rotation is idempotent within a day', (await svc(`select rotate_daily_prompt() r`)).rows[0].r === q1)
+    const q2 = (await svc(`select rotate_daily_prompt(now() + interval '1 day') r`)).rows[0].r
+    ok('fc: next day takes the next question, today unchanged', q2 === (await su(`select id from daily_prompts where sort_order=2`)).rows[0].id && (await svc(`select rotate_daily_prompt() r`)).rows[0].r === q1)
+    const dp = (await as(P, `select get_daily_prompt() r`)).rows[0].r
+    ok('fc: today\'s question in three languages, unanswered', dp.id === q1 && dp.question.en && dp.question.ms && dp.question.ru && dp.options.en.length === 2 && dp.my_option === null && dp.counts === null, JSON.stringify(dp))
+    await su(`update profiles set verification_status='pending' where id=$1`, [X])
+    ok('fc: unverified gets no question', (await as(X, `select get_daily_prompt() r`)).rows[0].r === null)
+    await su(`update profiles set verification_status='approved' where id=$1`, [X])
+
+    // --- answers, percentages, same-option matching filters
+    ok('fc: option out of range rejected', !!(await fails(() => as(P, `select answer_daily_prompt($1, 2)`, [q1]))))
+    ok('fc: cannot answer tomorrow\'s question', !!(await fails(() => as(P, `select answer_daily_prompt($1, 0)`, [q2]))))
+    const an = (await as(P, `select answer_daily_prompt($1, 0) r`, [q1])).rows[0].r
+    ok('fc: answer returns counts', an.my_option === 0 && JSON.stringify(an.counts) === '[1,0]', JSON.stringify(an))
+    await as(R, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(R2, `select answer_daily_prompt($1, 1)`, [q1])
+    await as(FAR, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(Z, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(X, `select answer_daily_prompt($1, 0)`, [q1])
+    for (const u of M) await as(u, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(P, `insert into blocks (blocked_id) values ($1)`, [X])
+    ok('fc: counts update', JSON.stringify((await as(P, `select get_daily_prompt() r`)).rows[0].r.counts) === '[15,1]')
+    const pm = (await as(P, `select * from get_prompt_matches($1, 3)`, [q1])).rows
+    ok('fc: matches: same option, mutual interest, distance, not blocked, limit', pm.length === 3 && pm.every((x) => [R, ...M].includes(x.id)) && !pm.some((x) => [R2, FAR, Z, X].includes(x.id)) && pm[0].display_name && pm[0].age >= 18, JSON.stringify(pm))
+    ok('fc: matches: at most 8', (await as(P, `select * from get_prompt_matches($1, 50)`, [q1])).rows.length === 8)
+    ok('fc: matches: nearest first', (await as(P, `select id from get_prompt_matches($1)`, [q1])).rows[0].id === M[0])
+    ok('fc: matches for a man: women with the same option', JSON.stringify((await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.map((x) => x.id).sort()) === JSON.stringify([P, Z].sort()))
+    ok('fc: no matches before answering', (await as(A, `select * from get_prompt_matches($1)`, [q1])).rows.length === 0)
+    await su(`update profiles set last_active_at = now() - interval '31 days' where id=$1`, [Z])
+    ok('fc: inactive 30 days excluded', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === Z))
+    await su(`update profiles set last_active_at = now(), discoverable = false where id=$1`, [Z])
+    ok('fc: paused profile excluded', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === Z))
+    await su(`update profiles set discoverable = true where id=$1`, [Z])
+    await as(R, `select set_new_people_alert(true, '{female}', 30, 40, 50)`)
+    ok('fc: saved age filter applies both ways', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === P) && !(await as(P, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === R))
+    await as(R, `select set_new_people_alert(false)`)
+    ok('fc: match rows carry only name, age, photo', JSON.stringify(Object.keys(pm[0]).sort()) === '["age","display_name","id","photo"]')
+    const ch = (await as(P, `select answer_daily_prompt($1, 1) r`, [q1])).rows[0].r
+    ok('fc: answer can change', ch.my_option === 1 && JSON.stringify(ch.counts) === '[14,2]')
+    await as(P, `select answer_daily_prompt($1, 0)`, [q1])
+
+    // --- say hi: prompt conversations show names from the start, Connect = match
+    const h1 = (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r
+    ok('fc: say hi creates a prompt conversation', h1.created === true && !!h1.session_id && h1.state === 'active', JSON.stringify(h1))
+    const hv = await bs(P, h1.session_id)
+    ok('fc: prompt conversation reveals the partner from the start', hv.kind === 'prompt' && hv.revealed_from_start === true && hv.partner?.id === R && hv.partner.display_name === 'Daniel' && hv.state === 'active')
+    ok('fc: question and both answers pinned', hv.context.prompt_id === q1 && hv.context.question.en === dp.question.en && hv.context.my_option === 0 && hv.context.partner_option === 0, JSON.stringify(hv.context))
+    const hr = await bs(R, h1.session_id)
+    ok('fc: the other side sees the initiator too', hr.partner?.id === P && hr.my_side === 'a' && hr.context.partner_option === 0)
+    ok('fc: target notified on its own topic', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='conversation'`, ['randomizer:' + R])).rows[0].c === 1)
+    ok('fc: say hi to someone not on the card fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, R2]))))
+    ok('fc: say hi to a blocked person fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, X]))))
+    ok('fc: say hi to yourself fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, P]))))
+    ok('fc: say hi reuses the pair\'s conversation from either side', (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r.session_id === h1.session_id &&
+       (await as(R, `select start_prompt_conversation($1, $2) r`, [q1, P])).rows[0].r.created === false)
+    const lp = (await conv(P)).find((c) => c.id === h1.session_id)
+    ok('fc: prompt conversation listed with the partner card', lp?.kind === 'prompt' && lp.partner?.id === R && lp.partner.display_name === 'Daniel' && !!lp.context.question.ms, JSON.stringify(lp))
+    const hm = (await as(R, `select randomizer_send($1, 'hi Aisyah') id`, [h1.session_id])).rows[0].id
+    const hc = (await svc(`select claim_session_push($1) r`, [hm])).rows[0].r
+    ok('fc: prompt push carries the sender name', hc?.recipient === P && hc.kind === 'prompt' && hc.sender_name === 'Daniel')
+    for (let i = 0; i < 9; i++) await as(P, `select start_prompt_conversation($1, $2)`, [q1, M[i]])
+    ok('fc: 11th say hi in 24h rejected', (await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, M[9]])))?.includes('Too many'))
+    ok('fc: existing prompt conversation still reachable at the limit', (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r.created === false)
+    ok('fc: prompt connect needs no unlock', (await decide(P, h1.session_id, true)).state === 'waiting' && (await decide(R, h1.session_id, true)).state === 'matched')
+    ok('fc: prompt match exists', (await su(`select count(*)::int c from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [P, R])).rows[0].c === 1)
+
+    // --- daily push recipients
+    await as(P, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/p', 'k', 'a', 'ms')`)
+    await as(R, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/r', 'k', 'a', 'en')`)
+    await as(R2, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/r2', 'k', 'a', 'en')`)
+    await as(R2, `insert into notification_prefs (daily_prompt) values (false)`)
+    ok('fc: users can toggle the new preferences', (await as(R2, `select daily_prompt, post_replies from notification_prefs`)).rows[0].daily_prompt === false && !(await fails(() => as(R2, `update notification_prefs set post_replies = false`))))
+    ok('fc: tomorrow\'s question has no recipients yet', (await svc(`select * from daily_prompt_push_recipients($1)`, [q2])).rows.length === 0)
+    const rec = (await svc(`select daily_prompt_push_recipients($1) u`, [q1])).rows.map((r) => r.u).filter((u) => u.startsWith('fc000000')).sort()
+    ok('fc: recipients: subscribed, verified, preference on', JSON.stringify(rec) === JSON.stringify([P, R].sort()), JSON.stringify(rec))
+    ok('fc: recipients claimed once', (await svc(`select * from daily_prompt_push_recipients($1)`, [q1])).rows.length === 0)
+    ok('fc: recipients list is server only', !!(await fails(() => as(P, `select * from daily_prompt_push_recipients($1)`, [q1]))))
+
+    // --- retention: answers older than 90 days go with the next rotation
+    await su(`insert into prompt_answers (prompt_id, user_id, option_idx, created_at) values ($1, $2, 0, now() - interval '91 days')`, [q2, X])
+    await svc(`select rotate_daily_prompt()`)
+    ok('fc: old answers purged', (await su(`select count(*)::int c from prompt_answers where prompt_id=$1`, [q2])).rows[0].c === 0)
+
+    // --- admin queue (service role + assert_admin_role)
+    await su(`insert into admins (user_id, role) values ($1, 'moderator')`, [A])
+    const qs = { en: 'Kopi o or kopi c?', ms: 'Kopi o atau kopi c?', ru: 'Копи о или копи си?' }
+    const os = { en: ['Kopi o', 'Kopi c'], ms: ['Kopi o', 'Kopi c'], ru: ['Копи о', 'Копи си'] }
+    const nid = (await svc(`select admin_upsert_daily_prompt($1, $2, $3) id`, [A, JSON.stringify(qs), JSON.stringify(os)])).rows[0].id
+    ok('fc: admin adds a question at the end of the queue', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 61)
+    ok('fc: admin add is logged', (await su(`select count(*)::int c from moderation_actions where action='prompt.add' and target_id=$1`, [nid])).rows[0].c === 1)
+    ok('fc: admin rejects a single option', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify({ en: ['x'], ms: ['x'], ru: ['x'] })]))))
+    ok('fc: admin rejects mismatched option counts', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify({ en: ['a', 'b'], ms: ['a', 'b', 'c'], ru: ['a', 'b'] })]))))
+    await svc(`select admin_upsert_daily_prompt($1, $2, $3, $4)`, [A, JSON.stringify({ ...qs, en: 'Kopi o or kopi c today?' }), JSON.stringify(os), nid])
+    ok('fc: admin edits a question', (await su(`select question_en q from daily_prompts where id=$1`, [nid])).rows[0].q === 'Kopi o or kopi c today?')
+    await svc(`select admin_move_daily_prompt($1, $2, true)`, [A, nid])
+    ok('fc: admin moves a question up', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 60 && (await su(`select count(*)::int c from daily_prompts where sort_order=61`)).rows[0].c === 1)
+    await svc(`select admin_move_daily_prompt($1, $2, false)`, [A, nid])
+    ok('fc: admin moves it back down', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 61)
+    ok('fc: shown question cannot be moved or deleted', !!(await fails(() => svc(`select admin_move_daily_prompt($1, $2, true)`, [A, q1]))) && !!(await fails(() => svc(`select admin_delete_daily_prompt($1, $2)`, [A, q1]))))
+    await svc(`select admin_delete_daily_prompt($1, $2)`, [A, nid])
+    ok('fc: admin deletes an unused question', (await su(`select count(*)::int c from daily_prompts where id=$1`, [nid])).rows[0].c === 0)
+    ok('fc: non-admin cannot manage questions', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [P, JSON.stringify(qs), JSON.stringify(os)]))))
+    ok('fc: admin RPCs not callable by users', !!(await fails(() => as(A, `select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify(os)]))))
+    ok('fc: anon cannot call the RPCs', (await su(`select bool_or(has_function_privilege('anon', f, 'execute')) a from unnest(array[
+       'public.start_post_conversation(uuid, text)', 'public.start_prompt_conversation(uuid, uuid)', 'public.list_my_conversations()',
+       'public.get_daily_prompt()', 'public.answer_daily_prompt(uuid, int)', 'public.get_prompt_matches(uuid, int)']) f`)).rows[0].a === false)
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end feed conversations =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail

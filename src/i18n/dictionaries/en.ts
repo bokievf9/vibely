@@ -14,6 +14,7 @@ import { flowsEn } from './flowsui/en'
 import { reportsEn } from './reports/en'
 import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
+import { conversationErrorsEn, conversationsEn } from './conversations/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -37,6 +38,7 @@ export const en = {
     ...usernameErrorsEn,
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
+    ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -388,6 +390,7 @@ export const en = {
   flows: flowsEn,
   reports: reportsEn,
   sanctions: sanctionsEn,
+  conversations: conversationsEn,
 }
 
 export type Dictionary = typeof en

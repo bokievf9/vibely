@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Ban, Flag, Heart, MoreHorizontal, X } from 'lucide-react'
+import { useState, useTransition, type ReactNode } from 'react'
+import { Ban, ChevronLeft, Flag, Heart, MoreHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
-import { HeaderEdge, headerBarClassName } from '@/components/layout/header-styles'
+import { HeaderEdge, headerActionClassName, headerBarClassName } from '@/components/layout/header-styles'
 import { fmt } from '@/i18n/config'
-import { useI18n } from '@/i18n/client'
+import { LocaleLink, useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import { ReportDialog } from '@/features/safety/components/report-dialog'
 import type { BlindSession } from '../types'
@@ -18,11 +18,26 @@ type Props = {
   onConnect: () => void
   onPass: () => Promise<void>
   onBlock: () => Promise<void>
+  /** Back chevron on the left (conversations opened from Chats). */
+  back?: { href: string; label: string }
+  /** Who is shown instead of the alias (private replies, prompt conversations). */
+  identity?: { avatar: ReactNode; title: string; subtitle: string }
+  /** Connect button wording; `lockedHint` disables it and explains why. */
+  connect?: { label: string; lockedHint?: string; waitingText?: string }
 }
 
-// Who you are talking to (alias + abstract avatar), report/block, and the Connect / Pass bar that
-// stays reachable under the header for the whole conversation.
-export function SessionHeader({ session, pending, onConnect, onPass, onBlock }: Props) {
+// Who you are talking to (alias + abstract avatar by default), report/block, and the Connect / Pass
+// bar that stays reachable under the header for the whole conversation.
+export function SessionHeader({
+  session,
+  pending,
+  onConnect,
+  onPass,
+  onBlock,
+  back,
+  identity,
+  connect,
+}: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
   const [dialog, setDialog] = useState<'menu' | 'pass' | 'block' | 'report' | null>(null)
@@ -33,16 +48,26 @@ export function SessionHeader({ session, pending, onConnect, onPass, onBlock }: 
         tags: session.commonTags.map((tag) => dict.tags[tag] ?? tag).join(', '),
       })
     : t.anonymousHint
+  const locked = Boolean(connect?.lockedHint)
 
   return (
     <>
-      <header className={cn(headerBarClassName, 'gap-3 px-4')}>
-        <AliasAvatar alias={session.partnerAlias} size={36} />
+      <header className={cn(headerBarClassName, 'gap-3', back ? 'pr-4 pl-1' : 'px-4')}>
+        {back && (
+          <LocaleLink
+            href={back.href}
+            aria-label={back.label}
+            className={cn(headerActionClassName, '-mr-1')}
+          >
+            <ChevronLeft className="size-7" strokeWidth={2.2} />
+          </LocaleLink>
+        )}
+        {identity?.avatar ?? <AliasAvatar alias={session.partnerAlias} size={36} />}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base leading-tight font-semibold">
-            {fmt(t.partner, { n: session.partnerAlias })}
+            {identity?.title ?? fmt(t.partner, { n: session.partnerAlias })}
           </h1>
-          <p className="text-muted truncate text-xs">{hint}</p>
+          <p className="text-muted truncate text-xs">{identity?.subtitle ?? hint}</p>
         </div>
         <Button
           size="icon"
@@ -64,25 +89,39 @@ export function SessionHeader({ session, pending, onConnect, onPass, onBlock }: 
                 <span className="bg-accent absolute inline-flex size-full animate-ping rounded-full opacity-60" />
                 <span className="bg-accent relative inline-flex size-2.5 rounded-full" />
               </span>
-              <p className="min-w-0 flex-1 text-sm">{t.waiting}</p>
+              <p className="min-w-0 flex-1 text-sm">{connect?.waitingText ?? t.waiting}</p>
               <Button size="sm" variant="ghost" onClick={() => setDialog('pass')}>
                 {t.pass}
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-[1fr_1.4fr] gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-11"
-                disabled={pending}
-                onClick={() => setDialog('pass')}
-              >
-                <X className="size-4" /> {t.pass}
-              </Button>
-              <Button size="sm" className="h-11" loading={pending} onClick={onConnect}>
-                <Heart className="size-4 fill-current" /> {t.connect}
-              </Button>
+            <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-[1fr_1.4fr] gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-11"
+                  disabled={pending}
+                  onClick={() => setDialog('pass')}
+                >
+                  <X className="size-4" /> {t.pass}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-11"
+                  loading={pending}
+                  disabled={locked}
+                  aria-describedby={locked ? 'connect-locked' : undefined}
+                  onClick={onConnect}
+                >
+                  <Heart className="size-4 fill-current" /> {connect?.label ?? t.connect}
+                </Button>
+              </div>
+              {locked && (
+                <p id="connect-locked" className="text-muted text-footnote text-center" role="status">
+                  {connect?.lockedHint}
+                </p>
+              )}
             </div>
           )}
         </div>

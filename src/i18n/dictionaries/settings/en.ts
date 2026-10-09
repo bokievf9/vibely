@@ -12,6 +12,8 @@ export const settingsEn = {
     random_reveal: 'Blind date matches',
     new_people: 'New people nearby',
     calls: 'Incoming calls',
+    post_replies: 'Private replies to your posts',
+    daily_prompt: 'Question of the day',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',
