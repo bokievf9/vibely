@@ -16,6 +16,7 @@ import { reportsRu } from './reports/ru'
 import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 import { crossedRu, plansRu } from './nearby/ru'
+import { statusErrorsRu, statusesRu } from './statuses/ru'
 import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from './matchmaker/ru'
 import { eventErrorsRu, eventsRu } from './events/ru'
 import { crushRu } from './crush/ru'
@@ -47,6 +48,7 @@ export const ru: Dictionary = {
     ...usernameErrorsRu,
     ...passwordErrorsRu,
     ...sanctionErrorsRu,
+    ...statusErrorsRu,
     ...matchmakerErrorsRu,
     ...eventErrorsRu,
     ...promoErrorsRu,
@@ -407,6 +409,7 @@ export const ru: Dictionary = {
   sanctions: sanctionsRu,
   crossed: crossedRu,
   plans: plansRu,
+  statuses: statusesRu,
   matchmaker: matchmakerRu,
   incognito: incognitoRu,
   events: eventsRu,

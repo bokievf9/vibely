@@ -22,8 +22,9 @@ export type RevealedPartner = {
 export type BlindState = 'active' | 'matched' | 'passed' | 'ended'
 
 // blind: a blind date · post: "Reply privately" on a feed post · prompt: "Say hi" from the
-// question of the day (names and photos shown from the start).
-export type SessionKind = 'blind' | 'post' | 'prompt'
+// question of the day · status: a reply to a live status (20261009000271). Prompt and status
+// conversations show names and photos from the start.
+export type SessionKind = 'blind' | 'post' | 'prompt' | 'status'
 
 // The author of a post as the post shows them to the replier ("As me" posts only).
 export type ContextAuthor = {
@@ -55,7 +56,19 @@ export type PromptContext = {
   partnerOption: number | null
 }
 
-export type SessionContext = PostContext | PromptContext | null
+// The live status replied to, as the replier saw it (a snapshot: the status itself expires).
+export type StatusContext = {
+  kind: 'status'
+  statusId: string | null
+  emoji: string
+  // Null once a moderator removed the status.
+  text: string | null
+  planTag: string | null
+  expiresAt: string | null
+  iAmAuthor: boolean
+}
+
+export type SessionContext = PostContext | PromptContext | StatusContext | null
 
 export type BlindSession = {
   id: string
@@ -94,7 +107,7 @@ export type ConversationPreview = {
   kind: Exclude<SessionKind, 'blind'>
   partnerAlias: number
   context: SessionContext
-  // Only for prompt conversations (revealed from the start).
+  // Only for prompt and status conversations (revealed from the start).
   partner: { id: string; name: string; age: number; photo: RevealedPartner['photo'] } | null
   lastBody: string | null
   lastAt: string | null

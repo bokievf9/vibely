@@ -10,6 +10,8 @@ import { EventWidget } from '@/features/events/components/event-widget'
 import { getCurrentEvent } from '@/features/events/queries'
 import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
+import { StatusCarousel } from '@/features/statuses/components/status-carousel'
+import { getStatuses } from '@/features/statuses/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
 import { SearchButton } from '@/features/username/components/search-button'
 import { getDictionary } from '@/i18n/server'
@@ -31,10 +33,16 @@ export default function SwipePage({ searchParams }: PageProps<'/[lang]/swipe'>) 
 
 async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchParams'>) {
   const [viewer, query] = await Promise.all([getViewer(), searchParams])
-  const [profile, plan, duo] = viewer
-    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id), getMyDuo()])
-    : [null, undefined, undefined]
+  const [profile, plan, duo, statuses] = viewer
+    ? await Promise.all([
+        getOwnProfile(viewer.id),
+        getOwnPlan(viewer.id),
+        getMyDuo(),
+        getStatuses(),
+      ])
+    : [null, undefined, undefined, null]
   // Duo mode (?mode=duo) once Duo Dating exists on this database (migration 20261009000261).
+  // Live statuses are a Solo thing: the Duo deck has no carousel.
   if (viewer && duo && query.mode === 'duo') {
     return (
       <DuoDiscover
@@ -59,7 +67,9 @@ async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchPa
         plansAvailable={plan !== undefined}
         headerActions={
           <>
-            {plan !== undefined && <PlanButton initial={plan} variant="icon" />}
+            {/* With live statuses the own bubble of the carousel opens the one "What's your
+                vibe?" sheet (status + plan); without them the plan keeps its own picker. */}
+            {plan !== undefined && !statuses && <PlanButton initial={plan} variant="icon" />}
             <SearchButton />
             <Suspense fallback={null}>
               <LikesButton />
@@ -69,6 +79,7 @@ async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchPa
         banner={
           <>
             {duo && <DiscoverModeToggle mode="solo" />}
+            {statuses && <StatusCarousel initial={statuses} plan={plan} className="-mx-3" />}
             <Suspense fallback={null}>
               <NightBanner />
             </Suspense>

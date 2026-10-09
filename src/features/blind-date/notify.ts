@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const claimSchema = z.object({
   recipient: z.uuid(),
-  kind: z.enum(['post', 'prompt']),
+  kind: z.enum(['post', 'prompt', 'status']),
   session_id: z.uuid(),
   sender_name: z.string().nullable(),
   is_first: z.boolean(),
@@ -29,13 +29,31 @@ export function notifyConversationMessage(messageId: string) {
       if (error) throw new Error(error.message)
       const claim = claimSchema.safeParse(data)
       if (!claim.success) return
-      const { recipient, kind, session_id: sessionId, sender_name: senderName, is_first } = claim.data
+      const {
+        recipient,
+        kind,
+        session_id: sessionId,
+        sender_name: senderName,
+        is_first,
+      } = claim.data
       const url = (locale: Parameters<typeof localePath>[0]) =>
         localePath(locale, `/blind-date/${sessionId}`)
       if (kind === 'post') {
         await sendToUser(recipient, 'post_replies', (dict, locale) => ({
           title: is_first ? dict.conversations.pushReply : dict.conversations.pushReplyMessage,
-          body: is_first ? dict.conversations.pushReplyBody : dict.conversations.pushReplyMessageBody,
+          body: is_first
+            ? dict.conversations.pushReplyBody
+            : dict.conversations.pushReplyMessageBody,
+          url: url(locale),
+          tag: `conversation-${sessionId}`,
+        }))
+      } else if (kind === 'status') {
+        // A reply to a live status: the first message says so, later ones read like a chat.
+        await sendToUser(recipient, 'status_replies', (dict, locale) => ({
+          title: fmt(is_first ? dict.statuses.pushReply : dict.statuses.pushMessage, {
+            name: senderName ?? 'Vibely',
+          }),
+          body: dict.statuses.pushBody,
           url: url(locale),
           tag: `conversation-${sessionId}`,
         }))

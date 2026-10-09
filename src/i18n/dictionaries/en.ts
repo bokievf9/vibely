@@ -15,6 +15,7 @@ import { reportsEn } from './reports/en'
 import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
+import { statusErrorsEn, statusesEn } from './statuses/en'
 import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from './matchmaker/en'
 import { eventErrorsEn, eventsEn } from './events/en'
 import { crushEn } from './crush/en'
@@ -44,6 +45,7 @@ export const en = {
     ...usernameErrorsEn,
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
+    ...statusErrorsEn,
     ...matchmakerErrorsEn,
     ...eventErrorsEn,
     ...promoErrorsEn,
@@ -402,6 +404,7 @@ export const en = {
   sanctions: sanctionsEn,
   crossed: crossedEn,
   plans: plansEn,
+  statuses: statusesEn,
   matchmaker: matchmakerEn,
   incognito: incognitoEn,
   events: eventsEn,

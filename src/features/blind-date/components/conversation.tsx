@@ -26,9 +26,10 @@ const TYPING_VISIBLE_MS = 4_000
 const SYNC_MS = 10_000
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
-// A private reply (post) or "Say hi" (prompt) conversation on the Blind Dating chat UI: the post
-// or question pinned on top, Connect renamed "Reveal identity" and locked until each side wrote
-// REVEAL_UNLOCK_MESSAGES messages (post), names shown from the start (prompt).
+// A private reply (post), "Say hi" (prompt) or status reply (status) conversation on the Blind
+// Dating chat UI: the post, question or status pinned on top, Connect renamed "Reveal identity"
+// and locked until each side wrote REVEAL_UNLOCK_MESSAGES messages (post), names shown from the
+// start (prompt, status).
 export function Conversation({ userId, initialSession, initialMessages }: Props) {
   const { dict } = useI18n()
   const t = dict.blindDate
@@ -124,11 +125,14 @@ export function Conversation({ userId, initialSession, initialMessages }: Props)
           waitingText: c.revealWaiting,
           lockedHint:
             progress && !progress.unlocked
-              ? `${fmt(c.revealLocked, { n: REVEAL_UNLOCK_MESSAGES })} · ${fmt(c.revealLockedProgress, {
-                  mine: REVEAL_UNLOCK_MESSAGES - progress.mineLeft,
-                  theirs: REVEAL_UNLOCK_MESSAGES - progress.theirsLeft,
-                  n: REVEAL_UNLOCK_MESSAGES,
-                })}`
+              ? `${fmt(c.revealLocked, { n: REVEAL_UNLOCK_MESSAGES })} · ${fmt(
+                  c.revealLockedProgress,
+                  {
+                    mine: REVEAL_UNLOCK_MESSAGES - progress.mineLeft,
+                    theirs: REVEAL_UNLOCK_MESSAGES - progress.theirsLeft,
+                    n: REVEAL_UNLOCK_MESSAGES,
+                  },
+                )}`
               : undefined,
         }
       : undefined
@@ -231,12 +235,12 @@ function headerIdentity(session: BlindSession, dict: Dict) {
       subtitle: fmt(c.replierHint, { alias: myAlias }),
     }
   }
-  if (ctx?.kind === 'prompt' && session.partner) {
+  if ((ctx?.kind === 'prompt' || ctx?.kind === 'status') && session.partner) {
     const p = session.partner
     return {
       avatar: <Avatar photo={p.photo} alt="" size={36} />,
       title: `${p.name}, ${p.age}`,
-      subtitle: c.promptHint,
+      subtitle: ctx.kind === 'status' ? dict.statuses.chatHint : c.promptHint,
     }
   }
   return {

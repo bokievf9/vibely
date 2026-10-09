@@ -2099,6 +2099,7 @@ export async function run(db) {
     ok('plans: clear removes the plan', (await su(`select count(*)::int c from user_plans where user_id=$1`, [A])).rows[0].c === 0)
   })()
   // ===== end crossed paths & plans =====
+
   // ===== Blind Dating Night (20261009000210) =====
   // State transitions by the clock, event-only pairing, relaxed filters, auto re-queue after a
   // Pass, reminders and the push job, admin roles and logging; non-event joins unchanged.
@@ -3108,6 +3109,225 @@ export async function run(db) {
     await su(`delete from crossed_paths where user_a = any($1) or user_b = any($1)`, [[E, S]])
   })()
   // ===== end matchmaker & incognito =====
+  // ===== live statuses (20261009000270 / 271) =====
+  // Set / replace / clear, hold per risk kind, carousel visibility, status conversations (kind
+  // 'status' on the feed-conversations engine of 220: limits, context, Connect), report target,
+  // pushes, retention. Own users.
+  await (async () => {
+    const ids = Array.from({ length: 22 }, (_, i) => `57a70000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, E, F, G, H, I, J, MOD, VIEW, ...L] = ids
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601466600' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) {
+      const male = u === A || u === G || u === MOD || u === VIEW
+      // C lives in Penang (far from everyone else in Bangsar, KL).
+      const point = u === C ? 'POINT(100.33 5.41)' : 'POINT(101.671 3.13)'
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,'Kuala Lumpur','SRID=4326;${point}')`, ['St' + i, male ? 'male' : 'female', male ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1) and id <> $2`, [ids, J])
+    await su(`delete from random_chat_queue`)
+    const set = async (u, emoji, text, tag = null) => (await as(u, `select set_status($1, $2, $3) r`, [emoji, text, tag])).rows[0].r
+    const mine = async (u) => (await as(u, `select get_my_status() r`)).rows[0].r
+    const feed = async (u) => (await as(u, `select * from get_live_statuses()`)).rows
+    const sees = async (viewer, author) => (await feed(viewer)).some((r) => r.user_id === author)
+    const reply = async (u, status, body) => (await as(u, `select start_status_conversation($1, $2) r`, [status, body])).rows[0].r
+    const bs = async (u, s = null) => (await as(u, `select * from get_blind_session($1)`, [s])).rows[0]
+    const log = async (action, target) => (await su(`select count(*)::int c from moderation_actions where action=$1 and target_id=$2`, [action, target])).rows[0].c
+
+    // ----- set / replace / clear -----
+    const first = await set(B, '☕', 'Coffee at Bangsar?')
+    const hrs = (new Date(first.expires_at) - Date.now()) / 3600000
+    ok('status: visible, expires after 3 h', first.moderation_state === 'visible' && hrs > 2.9 && hrs <= 3.01, JSON.stringify(first))
+    const second = await set(B, '🏸', 'Badminton later', 'badminton')
+    ok('status: new one replaces the old (one current per user)',
+       (await su(`select count(*)::int c from user_statuses where user_id=$1 and replaced_at is null`, [B])).rows[0].c === 1 &&
+       (await mine(B))?.text === 'Badminton later' && second.plan_tag === 'badminton')
+    ok('status: a preset also sets the 24 h plan', (await su(`select tag from user_plans where user_id=$1`, [B])).rows[0]?.tag === 'badminton')
+    ok('status: replaced row kept for retention', (await su(`select count(*)::int c from user_statuses where user_id=$1`, [B])).rows[0].c === 2)
+    ok('status: text required and at most 60 characters', !!(await fails(() => set(B, '☕', '   '))) && !!(await fails(() => set(B, '☕', 'x'.repeat(61)))) && !!(await fails(() => set(B, '', 'hi'))))
+    ok('status: preset tags only', !!(await fails(() => set(B, '☕', 'hi', 'anything'))))
+    ok('status: unverified cannot set or read', !!(await fails(() => set(J, '☕', 'hi'))) && !!(await fails(() => feed(J))))
+    ok('status: table closed to clients', !!(await fails(() => as(B, `select * from user_statuses`))) &&
+       !!(await fails(() => as(B, `insert into user_statuses (user_id, emoji, text) values ($1,'x','y')`, [B]))))
+    await as(B, `select clear_status()`)
+    ok('status: clear hides it', (await mine(B)) === null)
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [B])
+    ok('status: muted people cannot post a status', (await fails(() => set(B, '☕', 'hi')))?.includes('muted'))
+    await su(`update profiles set muted_until = null where id=$1`, [B])
+
+    // ----- moderation hold per risk kind -----
+    await su(`insert into risk_keywords (keyword, weight) values ('sugar daddy', 5)`)
+    const risky = [['phone', 'call me 0123456789'], ['link', 'see bit.ly/offer'], ['messenger', 'add me on telegram'],
+      ['money', 'send rm50 first'], ['keyword', 'looking for a sugar daddy']]
+    for (const [kind, text] of risky) {
+      const r = await set(B, '👀', text)
+      ok(`status: ${kind} puts it on hold`, r.moderation_state === 'held' &&
+         (await su(`select held_kinds from user_statuses where id=$1`, [r.id])).rows[0].held_kinds.includes(kind), JSON.stringify(r))
+    }
+    ok('status: held one visible to the author as under review', (await mine(B))?.moderation_state === 'held')
+    ok('status: held one hidden from others', !(await sees(A, B)))
+    ok('status: clean text is not held', (await set(B, '🎬', 'Movie night, anyone?')).moderation_state === 'visible')
+
+    // ----- carousel visibility -----
+    for (const [u, text] of [[C, 'Far away'], [D, 'Blocked'], [E, 'Banned'], [F, 'Shadow'], [G, 'Same gender'], [H, 'Paused'], [I, 'Incognito']])
+      await set(u, '✨', text)
+    await as(A, `insert into blocks (blocked_id) values ($1)`, [D])
+    await su(`update profiles set banned_at = now(), ban_reason = 'x', is_active = false where id=$1`, [E])
+    await su(`update profiles set shadow_banned = true where id=$1`, [F])
+    await su(`update profiles set discoverable = false where id=$1`, [H])
+    await su(`update profiles set is_incognito = true where id=$1`, [I])
+    const seen = await feed(A)
+    ok('status: compatible person nearby is shown with name, age, emoji and text',
+       seen.some((r) => r.user_id === B && r.display_name === 'St1' && r.age === 30 && r.emoji === '🎬' && r.text === 'Movie night, anyone?'), JSON.stringify(seen))
+    ok('status: far, blocked, banned, shadow-banned, same gender, paused and incognito stay out',
+       ![C, D, E, F, G, H, I].some((u) => seen.some((r) => r.user_id === u)), JSON.stringify(seen.map((r) => r.text)))
+    ok('status: own status is not in the carousel', !(await sees(B, B)))
+    ok('status: the author is hidden from the blocked person too', !(await sees(D, A)))
+    ok('status: no location data in the carousel', !Object.keys(seen[0] ?? {}).some((k) => /location|distance|lat|lng/.test(k)))
+    await su(`insert into new_people_alerts (user_id, genders, min_age, max_age, max_km) values ($1, '{female}', 40, 60, 50)`, [A])
+    ok('status: saved Discover age range applies', !(await sees(A, B)))
+    await su(`delete from new_people_alerts where user_id=$1`, [A])
+    const bStatus = (await mine(B)).id
+    await su(`update user_statuses set expires_at = now() - interval '1 second' where id=$1`, [bStatus])
+    ok('status: expired one hidden everywhere', !(await sees(A, B)) && (await mine(B)) === null)
+    await su(`update user_statuses set expires_at = now() + interval '3 hours' where id=$1`, [bStatus])
+    await su(`update user_statuses set moderation_state = 'removed' where id=$1`, [bStatus])
+    ok('status: removed one hidden everywhere', !(await sees(A, B)) && (await mine(B)) === null)
+    await su(`update user_statuses set moderation_state = 'visible' where id=$1`, [bStatus])
+
+    // ----- reply: a status conversation -----
+    ok('status: cannot reply to your own status', !!(await fails(() => reply(B, bStatus, 'hi me'))))
+    ok('status: cannot reply without a message', !!(await fails(() => reply(A, bStatus, '  '))))
+    const dStatus = (await mine(D)).id
+    ok('status: cannot reply across a block', !!(await fails(() => reply(A, dStatus, 'hi'))))
+    const r1 = await reply(A, bStatus, 'Movie sounds great')
+    ok('status: reply starts a conversation and sends the first message', r1.created === true && r1.state === 'active' && !!r1.message_id, JSON.stringify(r1))
+    const sess = (await su(`select * from random_chat_sessions where id=$1`, [r1.session_id])).rows[0]
+    ok('status: conversation kind, snapshot and sides', sess.kind === 'status' && sess.revealed_from_start === true && sess.status_id === bStatus &&
+       sess.started_by === A && sess.user_a === B && sess.user_b === A && sess.status_snapshot.text === 'Movie night, anyone?' && sess.status_snapshot.emoji === '🎬' &&
+       sess.post_id === null && sess.prompt_id === null && sess.event_id === null, JSON.stringify(sess))
+    ok('status: kind constraint rejects a status session without its snapshot', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, started_by) values ($1, $2, 'status', $2)`, [C, G]))))
+    ok('status: kind constraint rejects a blind date carrying a status', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, status_id, status_snapshot) values ($1, $2, $3, '{}')`, [C, G, bStatus]))))
+    ok('status: author is told on their own channel', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='conversation'`, ['randomizer:' + B])).rows[0].c === 1)
+    const bView = await bs(B, r1.session_id)
+    const aView = await bs(A, r1.session_id)
+    ok('status: both see names from the start, with the status pinned',
+       bView.kind === 'status' && bView.revealed_from_start === true && bView.partner?.display_name === 'St0' && bView.context?.text === 'Movie night, anyone?' &&
+       bView.context?.i_am_author === true && aView.context?.i_am_author === false && aView.context?.status_id === bStatus &&
+       bView.my_side === 'a' && aView.partner?.display_name === 'St1' && aView.my_side === 'b' && aView.partner_messages === 0 && aView.my_messages === 1, JSON.stringify([bView, aView]))
+    ok('status: a status conversation never hijacks the Blind Dating screen', (await bs(A)) === undefined && (await bs(B)) === undefined)
+    ok('status: outsider cannot read it', (await bs(C, r1.session_id)) === undefined)
+    // push: claimed once per 10 minutes, to the other side, with the sender's name
+    const push = (await svc(`select claim_session_push($1) r`, [r1.message_id])).rows[0].r
+    ok('status: push goes to the author with kind and sender name', push?.recipient === B && push?.kind === 'status' && push?.sender_name === 'St0' && push?.is_first === true && push?.session_id === r1.session_id, JSON.stringify(push))
+    ok('status: push throttled per conversation', (await svc(`select claim_session_push($1) r`, [r1.message_id])).rows[0].r === null)
+    await as(A, `insert into notification_prefs (status_replies) values (false)`)
+    ok('status: status_replies preference stored', (await as(A, `select status_replies from notification_prefs`)).rows[0].status_replies === false)
+    const r2 = await reply(A, bStatus, 'Second message')
+    ok('status: a second reply continues the same conversation', r2.created === false && r2.session_id === r1.session_id &&
+       (await su(`select count(*)::int c from random_chat_messages where session_id=$1`, [r1.session_id])).rows[0].c === 2)
+    const list = (await as(B, `select * from list_my_conversations()`)).rows.filter((r) => r.kind === 'status')
+    ok('status: author lists the conversation with partner, pinned status and last message',
+       list.length === 1 && list[0].context?.i_am_author === true && list[0].revealed_from_start === true && list[0].partner?.display_name === 'St0' &&
+       list[0].last_body === 'Second message' && list[0].last_mine === false && list[0].context?.text === 'Movie night, anyone?', JSON.stringify(list))
+    // a moderator removing the status hides its text in the pinned context (the chat stays)
+    await su(`update user_statuses set moderation_state = 'removed' where id=$1`, [bStatus])
+    const hidden = await bs(A, r1.session_id)
+    ok('status: removed status text is hidden in the conversation', hidden.context?.text === null && hidden.context?.emoji === '🎬' && hidden.state === 'active', JSON.stringify(hidden.context))
+    await su(`update user_statuses set moderation_state = 'visible' where id=$1`, [bStatus])
+    // the open status reply does not block a blind date
+    await su(`delete from random_chat_queue`)
+    ok('status: an open status conversation does not block randomizer_join', (await as(A, `select randomizer_join('{female}',18,99) s`)).rows[0].s === null)
+    await as(A, `select randomizer_leave()`)
+    // Connect / Pass as in Blind Dating
+    const d1 = (await as(B, `select blind_decide($1, true) r`, [r1.session_id])).rows[0].r
+    const d2 = (await as(A, `select blind_decide($1, true) r`, [r1.session_id])).rows[0].r
+    ok('status: mutual Connect = match + transcript', d1.state === 'waiting' && d2.state === 'matched' && !!d2.match_id &&
+       (await su(`select count(*)::int c from messages where match_id=$1`, [d2.match_id])).rows[0].c === 2)
+    ok('status: reply after the match returns its state', (await reply(A, bStatus, 'again')).state === 'matched')
+    // held / expired statuses cannot be replied to; one per status per replier; 10 per day
+    const held = await set(L[0], '👀', 'call me 0123456789')
+    ok('status: cannot reply to a held status', !!(await fails(() => reply(A, held.id, 'hi'))))
+    await su(`update user_statuses set moderation_state = 'visible', held_kinds = '{}' where id=$1`, [held.id])
+    await su(`update user_statuses set expires_at = now() - interval '1 second' where id=$1`, [held.id])
+    ok('status: cannot reply to an expired status', !!(await fails(() => reply(A, held.id, 'hi'))))
+    await su(`update user_statuses set expires_at = now() + interval '1 hour' where id=$1`, [held.id])
+    for (const [i, u] of L.entries()) {
+      if (i === 0) continue
+      await set(u, '🎮', 'Gaming tonight ' + i)
+    }
+    const targets = []
+    for (const u of L) targets.push((await mine(u)).id)
+    let started = 0
+    const sessions = []
+    for (const t of targets.slice(0, 9)) { sessions.push((await reply(A, t, 'hey')).session_id); started++ }
+    ok('status: 10 new conversations per 24 hours', started === 9 && (await fails(() => reply(A, targets[9], 'hey')))?.includes('Too many'))
+    ok('status: an existing conversation is reused even at the limit', (await reply(A, targets[0], 'again')).created === false)
+    ok('status: a different person can still reply', (await reply(G, targets[9], 'hey')).created === true)
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [G])
+    ok('status: muted people cannot reply', (await fails(() => reply(G, targets[8], 'hey')))?.includes('muted') &&
+       (await su(`select count(*)::int c from random_chat_sessions where kind='status' and user_b=$1 and status_id=$2`, [G, targets[8]])).rows[0].c === 0)
+    await su(`update profiles set muted_until = null, banned_at = now(), ban_reason = 'x' where id=$1`, [G])
+    ok('status: banned people cannot reply', !!(await fails(() => reply(G, targets[8], 'hey'))))
+    await su(`update profiles set banned_at = null, ban_reason = null where id=$1`, [G])
+    // The status is purged long before the conversation: the pinned snapshot survives
+    await su(`delete from user_statuses where id=$1`, [targets[1]])
+    const orphan = (await su(`select status_id, status_snapshot from random_chat_sessions where id=$1`, [sessions[1]])).rows[0]
+    const orphanView = await bs(A, sessions[1])
+    ok('status: conversation survives the status purge with its snapshot', orphan && orphan.status_id === null && orphan.status_snapshot.text === 'Gaming tonight 1' &&
+       orphanView?.context?.text === 'Gaming tonight 1' && orphanView?.context?.status_id === null, JSON.stringify([orphan, orphanView?.context]))
+
+    // ----- reports -----
+    await as(A, `insert into reports (target_type, target_id, reason) values ('status', $1, 'spam: ad')`, [bStatus])
+    const rep = (await su(`select subject_id from reports where target_type='status' and target_id=$1`, [bStatus])).rows[0]
+    ok('status: report subject is the author', rep?.subject_id === B)
+    ok('status: cannot report your own status', !!(await fails(() => as(B, `insert into reports (target_type, target_id, reason) values ('status', $1, 'x: y')`, [bStatus]))))
+    ok('status: cannot report a missing status', !!(await fails(() => as(A, `insert into reports (target_type, target_id, reason) values ('status', $1, 'x: y')`, [targets[1]]))))
+    await su(`insert into admins (user_id, role) values ($1, 'moderator'), ($2, 'viewer')`, [MOD, VIEW])
+    const queue = (await svc(`select * from admin_status_queue($1, 'reported')`, [MOD])).rows
+    ok('status: admin queue lists the reported status with author and counts', queue.length === 1 && queue[0].id === bStatus && queue[0].display_name === 'St1' && queue[0].open_reports === 1 && Number(queue[0].total) === 1, JSON.stringify(queue))
+    ok('status: held queue lists held ones', (await svc(`select * from admin_status_queue($1)`, [MOD])).rows.every((r) => r.moderation_state === 'held'))
+    ok('status: viewer cannot decide', !!(await fails(() => svc(`select admin_moderate_status($1, $2, 'remove', 'spam')`, [VIEW, bStatus]))))
+    ok('status: admin RPCs not callable by users', !!(await fails(() => as(MOD, `select admin_moderate_status($1, $2, 'remove', 'spam')`, [MOD, bStatus]))))
+    const removed = (await svc(`select admin_moderate_status($1, $2, 'remove', 'spam') r`, [MOD, bStatus])).rows[0].r
+    ok('status: remove hides it, closes the reports and is logged', removed.closed === 1 &&
+       (await su(`select moderation_state, reviewed_by from user_statuses where id=$1`, [bStatus])).rows[0].moderation_state === 'removed' &&
+       (await su(`select decision from reports where target_id=$1`, [bStatus])).rows[0].decision === 'hide' &&
+       (await log('status.remove', bStatus)) === 1 && !(await sees(A, B)))
+    const heldAgain = await set(B, '👀', 'send rm50 first')
+    const approved = (await svc(`select admin_moderate_status($1, $2, 'approve') r`, [MOD, heldAgain.id])).rows[0].r
+    ok('status: approve shows it and is logged', approved.closed === 0 &&
+       (await su(`select moderation_state from user_statuses where id=$1`, [heldAgain.id])).rows[0].moderation_state === 'visible' &&
+       (await log('status.approve', heldAgain.id)) === 1 && (await sees(A, B)))
+
+    // ----- retention -----
+    // Rows planted directly (J, MOD and VIEW have no status of their own).
+    const stale = async (user, state, created, expires, replaced) => (await su(`insert into user_statuses (user_id, emoji, text, moderation_state, created_at, expires_at, replaced_at)
+       values ($1, 'x', 'old', $2::text, now() - $3::interval, now() + $4::interval, case when $5::text is null then null else now() + $5::interval end) returning id`,
+       [user, state, created, expires, replaced])).rows[0].id
+    const expiredOld = await stale(J, 'visible', '2 days', '-25 hours', null)
+    const expiredRecent = await stale(VIEW, 'visible', '2 days', '-23 hours', null)
+    const replacedOld = await stale(MOD, 'visible', '2 days', '1 hour', '-25 hours')
+    const heldOld = await stale(J, 'held', '91 days', '-90 days', '-90 days')
+    const heldRecent = await stale(J, 'held', '89 days', '-88 days', '-88 days')
+    const removedReported = await stale(J, 'removed', '91 days', '-90 days', '-90 days')
+    await su(`insert into reports (reporter_id, target_type, target_id, reason) values ($1, 'status', $2, 'scam: x')`, [A, removedReported])
+    ok('status: clients cannot run the purge', !!(await fails(() => as(A, `select purge_live_statuses()`))))
+    await svc(`select purge_live_statuses()`)
+    const alive = (await su(`select id from user_statuses where id = any($1)`, [[expiredOld, expiredRecent, replacedOld, heldOld, heldRecent, removedReported]])).rows.map((r) => r.id)
+    ok('status: purge keeps recent, held < 90 d and reported; drops expired > 24 h, replaced > 24 h, held > 90 d',
+       !alive.includes(expiredOld) && alive.includes(expiredRecent) && !alive.includes(replacedOld) && !alive.includes(heldOld) && alive.includes(heldRecent) && alive.includes(removedReported), JSON.stringify(alive))
+    await su(`update reports set resolved_at = now() where target_id = $1`, [removedReported])
+    await svc(`select purge_live_statuses()`)
+    ok('status: resolved report releases the hold', (await su(`select count(*)::int c from user_statuses where id=$1`, [removedReported])).rows[0].c === 0)
+    ok('status: no anon access', (await su(`select has_function_privilege('anon', 'public.get_live_statuses(int)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('anon', 'public.set_status(text, text, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('anon', 'public.start_status_conversation(uuid, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.admin_moderate_status(uuid, uuid, text, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_live_statuses()', 'execute') v`)).rows[0].v === false)
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end live statuses =====
 
   // ===== duo dating (20261009000260, 20261009000261) =====
   await (async () => {

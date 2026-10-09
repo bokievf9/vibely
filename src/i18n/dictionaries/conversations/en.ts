@@ -30,7 +30,7 @@ export const conversationsEn = {
   backToChats: 'Back to chats',
   // Chats list section
   privateReplies: 'Private replies',
-  privateRepliesHint: 'Anonymous conversations from the feed and the question of the day.',
+  privateRepliesHint: 'Conversations from the feed, the question of the day and statuses.',
   noMessagesYet: 'Say hi to start',
   // Pushes
   pushReply: 'Someone replied privately to your post',

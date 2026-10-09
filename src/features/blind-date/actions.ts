@@ -63,6 +63,14 @@ const contextSchema = z
       author_pseudonym: z.tuple([z.number(), z.number(), z.number()]).nullable().catch(null),
     }),
     z.object({
+      status_id: z.uuid().nullable(),
+      emoji: z.string(),
+      text: z.string().nullable(),
+      plan_tag: z.string().nullable().catch(null),
+      expires_at: z.string().nullable().catch(null),
+      i_am_author: z.boolean(),
+    }),
+    z.object({
       prompt_id: z.uuid(),
       question: localeRecord,
       options: localeLists,
@@ -87,7 +95,7 @@ const sessionSchema = z.object({
   match_id: z.uuid().nullable(),
   // Added by 20261009000210: absent until that migration is applied.
   event_id: z.uuid().nullable().optional(),
-  kind: z.enum(['blind', 'post', 'prompt']).catch('blind'),
+  kind: z.enum(['blind', 'post', 'prompt', 'status']).catch('blind'),
   context: contextSchema,
   my_messages: z.number().int().catch(0),
   partner_messages: z.number().int().catch(0),
@@ -109,7 +117,7 @@ const startSchema = z.object({
 
 const previewSchema = z.object({
   id: z.uuid(),
-  kind: z.enum(['post', 'prompt']),
+  kind: z.enum(['post', 'prompt', 'status']),
   my_side: z.enum(['a', 'b']),
   partner_alias: z.number().int(),
   context: contextSchema,
@@ -124,9 +132,10 @@ const previewSchema = z.object({
   started_at: z.string(),
 })
 
-// Postgres errors raised by the conversation RPCs (20261009000220).
-function conversationError(code: string | undefined): ErrorKey {
+// Postgres errors raised by the conversation RPCs (20261009000220, 20261009000271).
+function conversationError(code: string | undefined, status = false): ErrorKey {
   if (code === 'P0429') return 'conversationLimit'
+  if (code === 'P0002' && status) return 'statusGone'
   if (code === 'VS001') return 'muted'
   if (code === 'P0423') return 'revealLocked'
   if (code === 'P0002' || code === MISSING_RPC) return 'conversationUnavailable'
@@ -165,6 +174,17 @@ async function revealedPartner(raw: unknown): Promise<RevealedPartner | null> {
 // viewer may see) is signed with the viewer's own client.
 async function toContext(raw: z.infer<typeof contextSchema>): Promise<SessionContext> {
   if (!raw) return null
+  if ('status_id' in raw) {
+    return {
+      kind: 'status',
+      statusId: raw.status_id,
+      emoji: raw.emoji,
+      text: raw.text,
+      planTag: raw.plan_tag,
+      expiresAt: raw.expires_at,
+      iAmAuthor: raw.i_am_author,
+    }
+  }
   if ('prompt_id' in raw) {
     return {
       kind: 'prompt',
@@ -389,7 +409,32 @@ export async function startPromptConversation(
   return ok({ sessionId: parsed.data.session_id, state: parsed.data.state })
 }
 
-// The caller's open post / prompt conversations (Chats screen). Empty until the migration is live.
+// Reply to a live status (20261009000271): starts (or continues) the conversation with its author
+// and sends the first message (required). Names show from the start; the author gets a push
+// ("{name} replied to your status") after the response, unless throttled or turned off.
+export async function startStatusConversation(
+  statusId: string,
+  raw: string,
+): Promise<UserResult<{ sessionId: string; state: BlindState }>> {
+  if (!uuid.safeParse(statusId).success) return fail('invalidInput')
+  const body = sanitizeText(z.string().parse(raw))
+  if (!body) return fail('messageEmpty')
+  if (body.length > 1000) return fail('messageTooLong')
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('start_status_conversation', {
+    p_status: statusId,
+    p_body: body,
+  })
+  if (error) {
+    return fail(error.code === 'P0429' ? 'statusReplyLimit' : conversationError(error.code, true))
+  }
+  const parsed = startSchema.safeParse(data)
+  if (!parsed.success) return fail('generic')
+  if (parsed.data.message_id) notifyConversationMessage(parsed.data.message_id)
+  return ok({ sessionId: parsed.data.session_id, state: parsed.data.state })
+}
+
+// The caller's open post / prompt / status conversations (Chats screen). Empty until the migration is live.
 export async function listMyConversations(): Promise<ConversationPreview[]> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('list_my_conversations')

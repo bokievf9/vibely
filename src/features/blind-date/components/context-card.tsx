@@ -1,19 +1,42 @@
 'use client'
 
 import { useState } from 'react'
-import { Lightbulb, Newspaper } from 'lucide-react'
+import { Lightbulb, Newspaper, Sparkles } from 'lucide-react'
 import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import type { SessionContext } from '../types'
 
-// Pinned at the top of a private reply / prompt conversation: the post being replied to, or the
-// question of the day with both answers. Nothing here identifies anyone.
+// Pinned at the top of a private reply / prompt / status conversation: the post being replied
+// to, the question of the day with both answers, or the live status (as it was when the reply
+// was sent). Nothing here identifies anyone.
 export function ContextCard({ context }: { context: SessionContext }) {
   const { dict, locale } = useI18n()
   const c = dict.conversations
   const [expanded, setExpanded] = useState(false)
   if (!context) return null
+
+  if (context.kind === 'status') {
+    const s = dict.statuses
+    return (
+      <aside className="card mt-3 flex items-center gap-3 px-4 py-3" aria-label={s.pinned}>
+        <span
+          aria-hidden
+          className="bg-accent/10 flex size-11 shrink-0 items-center justify-center rounded-full text-2xl"
+        >
+          {context.emoji}
+        </span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <Label icon={Sparkles}>{context.iAmAuthor ? s.yourStatusPinned : s.theirStatus}</Label>
+          {context.text === null ? (
+            <span className="text-muted text-callout">{s.statusRemoved}</span>
+          ) : (
+            <span className="text-headline wrap-anywhere">{context.text}</span>
+          )}
+        </span>
+      </aside>
+    )
+  }
 
   if (context.kind === 'prompt') {
     const answer = (i: number | null) => (i === null ? null : (context.options[locale][i] ?? null))

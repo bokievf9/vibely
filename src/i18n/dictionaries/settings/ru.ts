@@ -12,6 +12,7 @@ export const settingsRu: SettingsDictionary = {
     feed_replies: 'Ответы в ленте',
     random_reveal: 'Мэтчи на свиданиях вслепую',
     new_people: 'Новые люди рядом',
+    status_replies: 'Ответы на ваш статус',
     calls: 'Входящие звонки',
     matchmaker: 'Знакомства через друзей',
     events: 'Вечера свиданий вслепую',

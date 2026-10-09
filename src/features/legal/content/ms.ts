@@ -4,6 +4,7 @@ import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
+import { statusesLegal } from './statuses'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -78,6 +79,9 @@ export const ms: LegalContent = {
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.ms.privacy,
       // --- end duo dating ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.privacy,
+      // --- end live statuses ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -197,6 +201,9 @@ export const ms: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ms.terms,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.terms,
+      // --- end live statuses ---
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.ms.terms,
       // --- end duo dating ---

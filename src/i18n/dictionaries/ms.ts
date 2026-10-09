@@ -16,6 +16,7 @@ import { reportsMs } from './reports/ms'
 import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
+import { statusErrorsMs, statusesMs } from './statuses/ms'
 import { incognitoMs, matchmakerMs, matchmakerErrorsMs } from './matchmaker/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
 import { crushMs } from './crush/ms'
@@ -45,6 +46,7 @@ export const ms: Dictionary = {
     ...usernameErrorsMs,
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
+    ...statusErrorsMs,
     ...matchmakerErrorsMs,
     ...eventErrorsMs,
     ...promoErrorsMs,
@@ -409,6 +411,7 @@ export const ms: Dictionary = {
   sanctions: sanctionsMs,
   crossed: crossedMs,
   plans: plansMs,
+  statuses: statusesMs,
   matchmaker: matchmakerMs,
   incognito: incognitoMs,
   events: eventsMs,

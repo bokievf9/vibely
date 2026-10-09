@@ -28,7 +28,7 @@ export const conversationsMs: ConversationsDictionary = {
   endedHint: 'Tiada lagi yang boleh dihantar di sini.',
   backToChats: 'Kembali ke sembang',
   privateReplies: 'Balasan peribadi',
-  privateRepliesHint: 'Perbualan tanpa nama daripada suapan dan soalan hari ini.',
+  privateRepliesHint: 'Perbualan daripada suapan, soalan hari ini dan status.',
   noMessagesYet: 'Tegur untuk bermula',
   pushReply: 'Seseorang membalas hantaran anda secara peribadi',
   pushReplyBody: 'Buka Vibely untuk membacanya. Anda kekal tanpa nama.',

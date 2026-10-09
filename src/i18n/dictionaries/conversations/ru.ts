@@ -27,7 +27,7 @@ export const conversationsRu: ConversationsDictionary = {
   endedHint: 'Здесь больше ничего нельзя отправить.',
   backToChats: 'К чатам',
   privateReplies: 'Личные ответы',
-  privateRepliesHint: 'Анонимные переписки из ленты и вопроса дня.',
+  privateRepliesHint: 'Переписки из ленты, вопроса дня и статусов.',
   noMessagesYet: 'Поздоровайтесь первым',
   pushReply: 'Кто-то ответил на ваш пост лично',
   pushReplyBody: 'Откройте Vibely, чтобы прочитать. Вы остаётесь анонимны.',

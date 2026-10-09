@@ -45,6 +45,7 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     // Columns from 20261009000220: absent (undefined) until that migration is applied = on.
     post_replies: data.post_replies ?? true,
     daily_prompt: data.daily_prompt ?? true,
+    status_replies: data.status_replies ?? true,
     // Column added by 20261009000240: "on" until that migration is applied.
     matchmaker: data.matchmaker ?? true,
   }

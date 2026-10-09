@@ -10,6 +10,7 @@ import {
   MessageSquareLock,
   Phone,
   Newspaper,
+  Smile,
   Sparkles,
   UserPlus,
   UsersRound,
@@ -39,6 +40,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   duo: UsersRound,
   post_replies: MessageSquareLock,
   daily_prompt: Lightbulb,
+  status_replies: Smile,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

@@ -9,9 +9,9 @@ import { pseudonymColor, pseudonymEmoji, pseudonymName } from '@/features/feed/p
 import type { ConversationPreview } from '../types'
 import { AliasAvatar } from './alias-avatar'
 
-// "Private replies" at the top of Chats: open post / prompt conversations. Each row shows the
-// other person exactly as the conversation page does (alias, post pseudonym, or the real person
-// for prompt conversations) and what the conversation is about; never anything more.
+// "Private replies" at the top of Chats: open post / prompt / status conversations. Each row shows
+// the other person exactly as the conversation page does (alias, post pseudonym, or the real
+// person for prompt and status conversations) and what the conversation is about; nothing more.
 export function ConversationList({ conversations }: { conversations: ConversationPreview[] }) {
   const { dict } = useI18n()
   const c = dict.conversations
@@ -50,7 +50,17 @@ function ConversationRow({ conv }: { conv: ConversationPreview }) {
       ? ctx.question[locale]
       : ctx?.kind === 'post'
         ? (ctx.body ?? c.postUnavailable)
-        : ''
+        : ctx?.kind === 'status'
+          ? `${ctx.emoji} ${ctx.text ?? dict.statuses.statusRemoved}`
+          : ''
+  const aboutLabel =
+    ctx?.kind === 'prompt'
+      ? c.pinnedPrompt
+      : ctx?.kind === 'status'
+        ? ctx.iAmAuthor
+          ? dict.statuses.yourStatusPinned
+          : dict.statuses.theirStatus
+        : c.pinnedPost
   const last = conv.lastBody
     ? `${conv.lastMine ? dict.chats.you : ''}${conv.lastBody}`
     : c.noMessagesYet
@@ -110,7 +120,7 @@ function ConversationRow({ conv }: { conv: ConversationPreview }) {
           </time>
         </div>
         <span className="text-muted text-caption min-w-0 truncate">
-          {ctx?.kind === 'prompt' ? c.pinnedPrompt : c.pinnedPost}: {about}
+          {aboutLabel}: {about}
         </span>
         <span className="text-callout text-muted min-w-0 truncate">{last}</span>
       </div>

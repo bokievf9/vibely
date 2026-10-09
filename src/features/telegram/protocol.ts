@@ -142,6 +142,7 @@ export const TARGET_SHORT = {
   call: 'k',
   group_message: 'g',
   group_member: 'n',
+  status: 't',
 } as const
 export type ReportTargetType = keyof typeof TARGET_SHORT
 const SHORT_TARGET = Object.fromEntries(

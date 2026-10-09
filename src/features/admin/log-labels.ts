@@ -33,6 +33,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'prompt.edit': 'Изменил вопрос дня',
   'prompt.move': 'Переставил вопрос дня',
   'prompt.delete': 'Удалил вопрос дня',
+  'status.approve': 'Одобрил статус',
+  'status.remove': 'Удалил статус',
   'phone.unblock': 'Разблокировал номер',
   'admin.add': 'Добавил в команду',
   'admin.role': 'Изменил роль',

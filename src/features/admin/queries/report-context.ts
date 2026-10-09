@@ -38,6 +38,14 @@ export type ReportContext =
   // Duo Dating group chats: text only in the logged group transcript viewer (evidence-actions).
   | { kind: 'group_message'; offender: Person; image: boolean; sentAt: string }
   | { kind: 'group_member'; offender: Person; leftAt: string | null; leftReason: string | null }
+  | {
+      kind: 'status'
+      offender: Person
+      emoji: string
+      text: string
+      state: string
+      expiresAt: string
+    }
 
 const ids = (targets: Target[], type: Target['targetType']) =>
   targets.filter((t) => t.targetType === type).map((t) => t.targetId)
@@ -61,6 +69,7 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     callRows,
     groupMessages,
     groupMembers,
+    statuses,
   ] = await Promise.all([
     db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
     db
@@ -101,6 +110,11 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
           .select('id, user_id, left_at, left_reason')
           .in('id', ids(targets, 'group_member'))
       : { data: [] },
+    // Live statuses (20261009000271); an error (table missing) just means no context.
+    db
+      .from('user_statuses')
+      .select('id, user_id, emoji, text, moderation_state, expires_at, profiles(display_name)')
+      .in('id', ids(targets, 'status')),
   ])
 
   // Calls between the reported user and the reporters (recordings: see call-recordings.ts).
@@ -229,6 +243,16 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       leftReason: m.left_reason,
     })
   })
+  statuses.data?.forEach((s) =>
+    out.set(`status:${s.id}`, {
+      kind: 'status',
+      offender: person(s.user_id, s.profiles),
+      emoji: s.emoji,
+      text: s.text,
+      state: s.moderation_state,
+      expiresAt: s.expires_at,
+    }),
+  )
 
   for (const s of sessions.data ?? []) {
     const target = targets.find((t) => t.targetId === s.id)

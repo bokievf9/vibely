@@ -1233,6 +1233,7 @@ export type Database = {
           new_people: boolean
           post_replies: boolean
           random_reveal: boolean
+          status_replies: boolean
           updated_at: string
           user_id: string
         }
@@ -1250,6 +1251,7 @@ export type Database = {
           new_people?: boolean
           post_replies?: boolean
           random_reveal?: boolean
+          status_replies?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -1267,6 +1269,7 @@ export type Database = {
           new_people?: boolean
           post_replies?: boolean
           random_reveal?: boolean
+          status_replies?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -2017,6 +2020,8 @@ export type Database = {
           status: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
+          status_id: string | null
+          status_snapshot: Json | null
         }
         Insert: {
           a_revealed?: boolean
@@ -2042,6 +2047,8 @@ export type Database = {
           status?: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
+          status_id?: string | null
+          status_snapshot?: Json | null
         }
         Update: {
           a_revealed?: boolean
@@ -2067,6 +2074,8 @@ export type Database = {
           status?: Database['public']['Enums']['random_session_status']
           user_a?: string
           user_b?: string
+          status_id?: string | null
+          status_snapshot?: Json | null
         }
         Relationships: [
           {
@@ -2554,6 +2563,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'user_warnings_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      user_statuses: {
+        Row: {
+          created_at: string
+          emoji: string
+          expires_at: string
+          held_kinds: string[]
+          id: string
+          moderation_state: string
+          plan_tag: string | null
+          replaced_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          expires_at?: string
+          held_kinds?: string[]
+          id?: string
+          moderation_state?: string
+          plan_tag?: string | null
+          replaced_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          expires_at?: string
+          held_kinds?: string[]
+          id?: string
+          moderation_state?: string
+          plan_tag?: string | null
+          replaced_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_statuses_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
@@ -3362,6 +3424,51 @@ export type Database = {
           state: string
         }[]
       }
+      set_status: { Args: { p_emoji: string; p_text: string; p_plan_tag?: string }; Returns: Json }
+      clear_status: { Args: never; Returns: undefined }
+      get_my_status: { Args: never; Returns: Json }
+      get_live_statuses: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          user_id: string
+          display_name: string
+          age: number
+          photo: Json
+          emoji: string
+          text: string
+          plan_tag: string | null
+          created_at: string
+          expires_at: string
+        }[]
+      }
+      start_status_conversation: { Args: { p_status: string; p_body: string }; Returns: Json }
+      admin_status_queue: {
+        Args: { p_admin: string; p_filter?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          user_id: string
+          display_name: string
+          username: string
+          emoji: string
+          text: string
+          plan_tag: string | null
+          moderation_state: string
+          held_kinds: string[]
+          created_at: string
+          expires_at: string
+          replaced_at: string | null
+          reviewed_at: string | null
+          open_reports: number
+          banned: boolean
+          total: number
+        }[]
+      }
+      admin_moderate_status: {
+        Args: { p_admin: string; p_status: string; p_decision: string; p_reason?: string }
+        Returns: Json
+      }
+      purge_live_statuses: { Args: never; Returns: number }
       get_current_event: {
         Args: never
         Returns: {
@@ -3860,7 +3967,17 @@ export type Database = {
         | 'other'
         | 'none'
         | 'prefer_not_to_say'
-      report_target: 'user' | 'post' | 'comment' | 'random_session' | 'message' | 'photo' | 'call' | 'group_message' | 'group_member'
+      report_target:
+        | 'user'
+        | 'post'
+        | 'comment'
+        | 'random_session'
+        | 'message'
+        | 'photo'
+        | 'call'
+        | 'group_message'
+        | 'group_member'
+        | 'status'
       spoken_language:
         | 'malay'
         | 'english'
@@ -4031,6 +4148,7 @@ export const Constants = {
         'call',
         'group_message',
         'group_member',
+        'status',
       ],
       spoken_language: [
         'malay',

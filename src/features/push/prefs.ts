@@ -16,6 +16,7 @@ export const NOTIFICATION_TYPES = [
   'duo',
   'post_replies',
   'daily_prompt',
+  'status_replies',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -37,4 +38,5 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   duo: true,
   post_replies: true,
   daily_prompt: true,
+  status_replies: true,
 }

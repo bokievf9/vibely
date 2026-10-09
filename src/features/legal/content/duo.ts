@@ -16,7 +16,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5f. Duo Dating',
+      heading: '5d. Duo Dating',
       paragraphs: [
         'Only invite someone you know who wants to join you. Our rules of conduct (section 3) apply to your duo bio and to everything you send in a group chat, and you are responsible for your own messages and photos there. You can report a message or a member of a group chat at any time.',
         "Blocking a member removes you from that group chat and prevents future duo matches with that person's duo. Leaving your duo, or a ban of either member, dissolves the duo.",
@@ -34,7 +34,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5f. Temu Janji Duo',
+      heading: '5d. Temu Janji Duo',
       paragraphs: [
         'Jemput hanya orang yang anda kenali dan yang mahu menyertai anda. Peraturan tingkah laku kami (seksyen 3) terpakai pada bio duo anda dan pada semua yang anda hantar dalam sembang kumpulan, dan anda bertanggungjawab atas mesej dan foto anda sendiri di situ. Anda boleh melaporkan mesej atau ahli sembang kumpulan pada bila-bila masa.',
         'Menyekat seorang ahli mengeluarkan anda daripada sembang kumpulan itu dan menghalang padanan duo pada masa hadapan dengan duo orang itu. Keluar daripada duo anda, atau pengharaman salah seorang ahli, membubarkan duo itu.',
@@ -52,7 +52,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5f. Знакомства вдвоём (Duo)',
+      heading: '5d. Знакомства вдвоём (Duo)',
       paragraphs: [
         'Приглашайте только знакомых людей, которые сами хотят присоединиться к вам. Наши правила поведения (раздел 3) действуют для описания вашего дуо и для всего, что вы отправляете в групповом чате, и вы отвечаете за свои сообщения и фото в нём. Вы в любой момент можете пожаловаться на сообщение или участника группового чата.',
         'Блокировка участника удаляет вас из этого группового чата и исключает будущие мэтчи с дуо этого человека. Выход из дуо или блокировка аккаунта любого из участников распускает дуо.',

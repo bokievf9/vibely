@@ -4,6 +4,7 @@ import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
+import { statusesLegal } from './statuses'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -75,6 +76,9 @@ export const en: LegalContent = {
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.en.privacy,
       // --- end duo dating ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.en.privacy,
+      // --- end live statuses ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -194,6 +198,9 @@ export const en: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.en.terms,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.en.terms,
+      // --- end live statuses ---
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.en.terms,
       // --- end duo dating ---
