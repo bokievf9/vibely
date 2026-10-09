@@ -2,8 +2,8 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { hydrateMessages, loadReactionsFor } from './hydrate'
-import { MESSAGE_COLUMNS } from './message-row'
-import type { ChatPreview, Partner, PreviewKind } from './types'
+import { MESSAGE_COLUMNS, previewKindOf } from './message-row'
+import type { ChatPreview, Partner } from './types'
 
 const ROOM_HISTORY = 100
 
@@ -37,25 +37,6 @@ async function toPartners(rows: PartnerRow[]): Promise<Map<string, Partner>> {
     }),
   )
 }
-
-type PreviewRow = {
-  media_kind: string | null
-  media_expired_at: string | null
-  deleted_at: string | null
-}
-
-const MEDIA_PREVIEW: Record<string, PreviewKind> = {
-  image: 'photo',
-  voice: 'voice',
-  video: 'video',
-}
-
-const previewKind = (m: PreviewRow): PreviewKind =>
-  m.deleted_at
-    ? 'deleted'
-    : m.media_expired_at
-      ? 'expired'
-      : (MEDIA_PREVIEW[m.media_kind ?? ''] ?? 'text')
 
 // Matches with the partner's first photo and the latest message. Partners that are banned,
 // blocked or deactivated are invisible through RLS, so their chats drop out automatically.
@@ -97,7 +78,7 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
         lastMessage: last
           ? {
               body: last.body,
-              kind: previewKind(last),
+              kind: previewKindOf(last),
               mine: last.sender_id === viewerId,
               at: last.created_at,
             }

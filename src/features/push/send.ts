@@ -159,3 +159,28 @@ export function notifyNewLike(userId: string, likerId: string) {
     }))
   })
 }
+
+// Matchmaker (20261009000240). "{name} wants to introduce you to someone": sent to B when A
+// creates the introduction and to C once B is interested. Never says who the other person is.
+export function notifyReferral(userId: string, matchmakerName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(userId, 'matchmaker', (dict, locale) => ({
+      title: fmt(dict.matchmaker.pushIntro, { name: matchmakerName }),
+      body: dict.matchmaker.pushIntroBody,
+      url: chatUrl(locale, matchId),
+      tag: `referral-${matchId}`,
+    })),
+  )
+}
+
+// Both people said yes: the matchmaker learns it worked (and about the VIP days).
+export function notifyReferralWorked(matchmakerId: string, bName: string, cName: string) {
+  inBackground(() =>
+    sendToUser(matchmakerId, 'matchmaker', (dict, locale) => ({
+      title: dict.matchmaker.pushWorked,
+      body: fmt(dict.matchmaker.pushWorkedBody, { b: bName, c: cName }),
+      url: localePath(locale, '/chats'),
+      tag: 'referral-worked',
+    })),
+  )
+}

@@ -16,6 +16,7 @@ import { reportsRu } from './reports/ru'
 import { passwordRu, passwordErrorsRu } from './password/ru'
 import { sanctionErrorsRu, sanctionsRu } from './sanctions/ru'
 import { crossedRu, plansRu } from './nearby/ru'
+import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from './matchmaker/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -41,6 +42,7 @@ export const ru: Dictionary = {
     ...usernameErrorsRu,
     ...passwordErrorsRu,
     ...sanctionErrorsRu,
+    ...matchmakerErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -396,4 +398,6 @@ export const ru: Dictionary = {
   sanctions: sanctionsRu,
   crossed: crossedRu,
   plans: plansRu,
+  matchmaker: matchmakerRu,
+  incognito: incognitoRu,
 }

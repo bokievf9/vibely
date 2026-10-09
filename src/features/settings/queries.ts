@@ -25,7 +25,31 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     .maybeSingle()
   if (!data) return DEFAULT_NOTIFICATION_PREFS
   const { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls } = data
-  return { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls }
+  return {
+    new_matches,
+    messages,
+    likes,
+    feed_replies,
+    random_reveal,
+    new_people,
+    calls,
+    // Column added by 20261009000240: "on" until that migration is applied.
+    matchmaker: data.matchmaker ?? true,
+  }
+}
+
+// Incognito (20261009000240). `null` when the column does not exist on this database yet: the
+// settings row is then hidden. Read apart from getPrivacySettings so a missing column cannot
+// break the other privacy switches.
+export async function getIncognito(userId: string): Promise<boolean | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('is_incognito')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error || !data) return null
+  return data.is_incognito
 }
 
 export type BlockedUser = {

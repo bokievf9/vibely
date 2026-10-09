@@ -11,6 +11,8 @@ import { dayKey, daysAgo, formatDay } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { groupMessages, type Outgoing } from '../chat-state'
 import type { ChatMessage, Reaction, ReplyPreview } from '../types'
+import { ReferralCard } from '@/features/matchmaker/components/referral-card'
+import { SystemNote } from '@/features/matchmaker/components/system-note'
 import { MessageBubble, type BubbleAction, type ListMessage } from './message-bubble'
 import { TypingBubble } from './typing-bubble'
 
@@ -21,6 +23,7 @@ type Props = {
   calls?: CallEntry[]
   reactions: Map<string, Reaction[]>
   viewerId: string
+  partnerId: string
   partnerName: string
   partnerTyping: boolean
   hasMore: boolean
@@ -73,6 +76,7 @@ export function MessageList({
   calls = NO_CALLS,
   reactions,
   viewerId,
+  partnerId,
   partnerName,
   partnerTyping,
   hasMore,
@@ -104,6 +108,8 @@ export function MessageList({
           reply: original ? toPreview(original) : null,
           media: null,
           expiredMedia: null,
+          kind: 'text' as const,
+          referralId: null,
           local: o.status,
         }
       }),
@@ -149,6 +155,28 @@ export function MessageList({
         }
         const m = item.message
         const mine = m.senderId === viewerId
+        // Introduction cards and pinned notes are full-width, non-interactive items.
+        if (m.kind !== 'text' && m.referralId) {
+          return (
+            <li
+              key={m.id}
+              id={`msg-${m.id}`}
+              className="mt-3 flex w-full flex-col scroll-mt-[calc(var(--header-h)+1rem)]"
+            >
+              {m.kind === 'referral' ? (
+                <ReferralCard
+                  referralId={m.referralId}
+                  partnerId={partnerId}
+                  partnerName={partnerName}
+                  mine={mine}
+                  at={m.createdAt}
+                />
+              ) : (
+                <SystemNote referralId={m.referralId} body={m.body} />
+              )}
+            </li>
+          )
+        }
         const original = m.replyTo ? byId.get(m.replyTo) : undefined
         const quote = original ? toPreview(original) : m.reply
         return (

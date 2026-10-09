@@ -2,6 +2,7 @@
 
 import {
   Heart,
+  HeartHandshake,
   MessageCircle,
   Phone,
   Newspaper,
@@ -27,6 +28,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   random_reveal: VenetianMask,
   new_people: UserPlus,
   calls: Phone,
+  matchmaker: HeartHandshake,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

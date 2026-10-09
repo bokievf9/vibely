@@ -14,12 +14,14 @@ import { LanguageSwitcher } from '@/features/profile/components/language-switche
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { PushToggle } from '@/features/push/components/push-toggle'
 import { BlockedUsers } from '@/features/settings/components/blocked-users'
+import { IncognitoToggle } from '@/features/settings/components/incognito-toggle'
 import { NotificationPrefsRows } from '@/features/settings/components/notification-prefs'
 import { PauseToggle } from '@/features/settings/components/pause-toggle'
 import { SettingsSection } from '@/features/settings/components/settings-section'
 import { SettingsSkeleton } from '@/features/settings/components/settings-skeleton'
 import {
   getBlockedUsers,
+  getIncognito,
   getNotificationPrefs,
   getPrivacySettings,
 } from '@/features/settings/queries'
@@ -50,13 +52,14 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword, crossed] = await Promise.all([
+  const [privacy, prefs, blocked, username, hasPassword, crossed, incognito] = await Promise.all([
     getPrivacySettings(viewer.id),
     getNotificationPrefs(viewer.id),
     getBlockedUsers(),
     getUsernameSettings(),
     getHasPassword(),
     crossedPathsEnabled(),
+    getIncognito(viewer.id),
   ])
 
   return (
@@ -79,6 +82,7 @@ async function Settings() {
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
+        {incognito !== null && <IncognitoToggle initial={incognito} />}
         {crossed !== null && <CrossedPathsToggle initial={crossed} />}
       </SettingsSection>
       <SettingsSection title={dict.settings.blocked}>
