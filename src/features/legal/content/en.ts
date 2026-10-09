@@ -59,9 +59,10 @@ export const en: LegalContent = {
       // --- end calls ---
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.en.privacy,
+      // --- end crossed paths & plans ---
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.en.privacy,
-      // --- end crossed paths & plans ---
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [

@@ -1,7 +1,5 @@
 // Matchmaker: A introduces two of their own matches, B and C (migration 20261009000240).
 
-export const NOTE_MAX = 200
-
 export type Photo = { url: string; width: number; height: number }
 
 export type CardPerson = { id: string; name: string; age: number; photo: Photo | null }

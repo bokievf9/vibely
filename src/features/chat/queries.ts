@@ -2,7 +2,8 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { hydrateMessages, loadReactionsFor } from './hydrate'
-import { MESSAGE_COLUMNS, previewKindOf } from './message-row'
+import { previewKindOf } from './message-kind'
+import { MESSAGE_COLUMNS } from './message-row'
 import type { ChatPreview, Partner } from './types'
 
 const ROOM_HISTORY = 100

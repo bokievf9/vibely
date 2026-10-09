@@ -7,9 +7,9 @@ import {
   cardPerson,
   filterIntroducible,
   normalizeNote,
+  NOTE_MAX,
 } from '../../src/features/matchmaker/card.ts'
-import { NOTE_MAX } from '../../src/features/matchmaker/types.ts'
-import { previewKindOf, toChatMessage } from '../../src/features/chat/message-row.ts'
+import { messageKindOf, previewKindOf, referralIdOf } from '../../src/features/chat/message-kind.ts'
 import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from '../../src/i18n/dictionaries/matchmaker/en.ts'
 import { incognitoMs, matchmakerMs, matchmakerErrorsMs } from '../../src/i18n/dictionaries/matchmaker/ms.ts'
 import { incognitoRu, matchmakerRu, matchmakerErrorsRu } from '../../src/i18n/dictionaries/matchmaker/ru.ts'
@@ -83,17 +83,14 @@ test('previewKindOf: a row with neither text nor media is an introduction card',
   assert.equal(previewKindOf({ ...row, media_kind: 'voice', media_expired_at: 'x' }), 'expired')
 })
 
-test('toChatMessage: kind and referral id, text by default (also without the columns)', () => {
-  const base = {
-    id: 'm', body: null, sender_id: 'a', created_at: 't', read_at: null, edited_at: null, deleted_at: null, reply_to: null,
-    image_width: null, image_height: null, media_kind: null, media_path: null, media_duration_ms: null, waveform: null, media_expired_at: null,
-  }
-  assert.deepEqual([toChatMessage(base).kind, toChatMessage(base).referralId], ['text', null])
-  const card = toChatMessage({ ...base, kind: 'referral', payload: { referral_id: 'r1' } })
-  assert.deepEqual([card.kind, card.referralId], ['referral', 'r1'])
-  const note = toChatMessage({ ...base, kind: 'system', payload: { referral_id: 'r1' }, body: 'note' })
-  assert.deepEqual([note.kind, note.referralId], ['system', 'r1'])
-  assert.deepEqual([toChatMessage({ ...base, kind: 'bogus', payload: 'x' }).kind, toChatMessage({ ...base, kind: 'referral', payload: {} }).referralId], ['text', null])
+test('messageKindOf / referralIdOf: kind and referral id, text by default (also without the columns)', () => {
+  const base = { body: null }
+  assert.deepEqual([messageKindOf(base), referralIdOf(base)], ['text', null])
+  const card = { kind: 'referral', payload: { referral_id: 'r1' } }
+  assert.deepEqual([messageKindOf(card), referralIdOf(card)], ['referral', 'r1'])
+  const note = { kind: 'system', payload: { referral_id: 'r1' }, body: 'note' }
+  assert.deepEqual([messageKindOf(note), referralIdOf(note)], ['system', 'r1'])
+  assert.deepEqual([messageKindOf({ kind: 'bogus', payload: 'x' }), referralIdOf({ kind: 'referral', payload: {} }), referralIdOf({ kind: 'text', payload: { referral_id: 'r1' } })], ['text', null, null])
 })
 
 const flat = (o) => Object.values(o).flatMap((v) => (typeof v === 'string' ? [v] : Array.isArray(v) ? v : flat(v)))

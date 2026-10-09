@@ -21,7 +21,7 @@ const REFERRAL_ERRORS: Record<string, ErrorKey> = {
 }
 
 const referralError = (code: string | undefined): ErrorKey =>
-  (code && REFERRAL_ERRORS[code]) ?? rateLimitedOr(code, 'generic')
+  (code ? REFERRAL_ERRORS[code] : undefined) ?? rateLimitedOr(code, 'generic')
 
 // Candidates for "Introduce to a friend" in the chat with `partnerId`.
 export async function loadIntroducible(partnerId: string): Promise<Introducible[]> {

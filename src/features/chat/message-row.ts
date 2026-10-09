@@ -3,11 +3,10 @@ import {
   type ChatMedia,
   type ChatMessage,
   type MediaKind,
-  type MessageKind,
-  type PreviewKind,
   type Reaction,
   type ReactionEmoji,
 } from './types'
+import { messageKindOf, referralIdOf } from './message-kind'
 
 // Every column: `kind` and `payload` (20261009000240) must not break a chat on a database where
 // that migration is not applied yet, and a row is small anyway.
@@ -39,34 +38,6 @@ const isMediaKind = (k: string | null): k is MediaKind =>
 
 export const mediaKindOf = (m: Pick<MessageRow, 'media_kind'>): MediaKind | null =>
   isMediaKind(m.media_kind) ? m.media_kind : null
-
-export const messageKindOf = (m: Pick<MessageRow, 'kind'>): MessageKind =>
-  m.kind === 'referral' || m.kind === 'system' ? m.kind : 'text'
-
-const referralIdOf = (m: Pick<MessageRow, 'kind' | 'payload'>): string | null => {
-  if (messageKindOf(m) === 'text') return null
-  const p = m.payload
-  const id =
-    p && typeof p === 'object' && 'referral_id' in p ? (p as { referral_id?: unknown }).referral_id : null
-  return typeof id === 'string' ? id : null
-}
-
-type PreviewRow = Pick<MessageRow, 'body' | 'media_kind' | 'media_expired_at' | 'deleted_at'> & {
-  kind?: string | null
-}
-
-const MEDIA_PREVIEW: Record<string, PreviewKind> = { image: 'photo', voice: 'voice', video: 'video' }
-
-// What the chat list says about the last message. A row with neither text nor media that is not
-// deleted or expired is a referral card (also on a database without the `kind` column yet).
-export function previewKindOf(m: PreviewRow): PreviewKind {
-  if (m.deleted_at) return 'deleted'
-  if (m.media_expired_at) return 'expired'
-  const media = MEDIA_PREVIEW[m.media_kind ?? '']
-  if (media) return media
-  if (m.kind === 'referral' || (!m.body && !m.media_kind)) return 'referral'
-  return 'text'
-}
 
 function toMedia(m: MessageRow): ChatMedia | null {
   const path = m.media_path

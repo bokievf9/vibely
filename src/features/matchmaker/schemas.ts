@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
-import { NOTE_MAX } from './types'
+import { NOTE_MAX } from './card'
 
 const storedPhoto = z
   .object({ path: z.string(), width: z.number(), height: z.number() })

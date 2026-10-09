@@ -62,9 +62,10 @@ export const ru: LegalContent = {
       // --- end calls ---
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ru.privacy,
+      // --- end crossed paths & plans ---
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ru.privacy,
-      // --- end crossed paths & plans ---
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [

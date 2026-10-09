@@ -13,8 +13,8 @@ import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { cn } from '@/lib/utils'
 import { createReferral, loadIntroducible } from '../actions'
-import { filterIntroducible } from '../card'
-import { NOTE_MAX, type Introducible } from '../types'
+import { filterIntroducible, NOTE_MAX } from '../card'
+import type { Introducible } from '../types'
 
 type Props = { open: boolean; onClose: () => void; partnerId: string; partnerName: string }
 

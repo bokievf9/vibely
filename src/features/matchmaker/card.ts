@@ -2,7 +2,9 @@
 // only), so they are unit-tested with `node --test` (tests/unit/matchmaker.test.mjs).
 import type { MatchmakerDictionary } from '@/i18n/dictionaries/matchmaker/en'
 import type { CardPerson, Introducible, ReferralCard } from './types'
-import { NOTE_MAX } from './types'
+
+// Longest note the matchmaker can add (also enforced by create_referral).
+export const NOTE_MAX = 200
 
 const fill = (template: string, vars: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? `{${key}}`)

@@ -62,9 +62,10 @@ export const ms: LegalContent = {
       // --- end calls ---
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ms.privacy,
+      // --- end crossed paths & plans ---
       // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
       matchmakerLegal.ms.privacy,
-      // --- end crossed paths & plans ---
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
