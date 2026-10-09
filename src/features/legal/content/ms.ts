@@ -197,9 +197,6 @@ export const ms: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ms.terms,
       // --- end private replies & question of the day ---
-      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
-      matchmakerLegal.ms.privacy,
-      // --- end matchmaker & incognito ---
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.ms.terms,
       // --- end duo dating ---
