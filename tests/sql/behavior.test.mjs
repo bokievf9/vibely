@@ -1809,7 +1809,7 @@ export async function run(db) {
     ok('blind: aliases stable per session', (await bs(M1, s1)).partner_alias === m1v.partner_alias)
     ok('blind: fresh session is active, undecided', m1v.state === 'active' && m1v.my_decision === null && m1v.id === s1)
     ok('blind: get_blind_session columns', JSON.stringify(Object.keys(m1v).sort()) ===
-       '["common_tags","event_id","id","match_id","my_alias","my_decision","my_side","partner","partner_alias","started_at","state"]', JSON.stringify(Object.keys(m1v)))
+       '["common_tags","context","event_id","id","kind","match_id","my_alias","my_decision","my_messages","my_side","partner","partner_alias","partner_messages","revealed_from_start","started_at","state"]', JSON.stringify(Object.keys(m1v)))
     const leaks = (row) => { const j = JSON.stringify(row); return j.includes(F1) || j.includes(M1) || j.includes('Nurul') || j.includes('Hafiz') }
     ok('blind: no profile data or ids before connect', m1v.partner === null && m1v.match_id === null && !leaks(m1v) && !leaks(f1v))
     const old = (await as(M1, `select * from get_random_session()`)).rows[0]
@@ -2569,6 +2569,545 @@ export async function run(db) {
     await su(`update profiles set vip_boost_until = null where id=$1`, [F3])
   })()
   // ===== end promo codes / VIP =====
+
+  // ===== feed conversations (20261009000220): reply privately + daily question =====
+  // Anonymity of the post author and the replier, limits, the 5-message reveal unlock, rotation at
+  // 19:00 MYT, same-option matching filters, rate limits, pushes, admin queue. Own users.
+  await (async () => {
+    const F = (i) => `fc000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    const P = F(1), R = F(2), R2 = F(3), P2 = F(4), FAR = F(5), Z = F(6), X = F(7), A = F(8)
+    const M = Array.from({ length: 10 }, (_, i) => F(20 + i))
+    const people = [[P, 'Aisyah', 'female', '{male}', 101.70, 3.14], [R, 'Daniel', 'male', '{female}', 101.71, 3.15],
+      [R2, 'Farid', 'male', '{female}', 101.72, 3.13], [P2, 'Zara', 'female', '{male}', 101.69, 3.12],
+      [FAR, 'Jamal', 'male', '{female}', 110.35, 1.55], [Z, 'Lina', 'female', '{male}', 101.68, 3.16],
+      [X, 'Outsider', 'male', '{female}', 101.70, 3.10], [A, 'Mod', 'male', '{female}', 101.70, 3.11],
+      ...M.map((u, i) => [u, 'Guy' + i, 'male', '{female}', 101.70 + i * 0.001, 3.14])]
+    for (const [i, [u]] of people.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '60137790' + String(i).padStart(3, '0')])
+    for (const [u, name, g, w, lon, lat] of people)
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1997-07-07',$2,$3,'Kuala Lumpur','SRID=4326;POINT(${lon} ${lat})')`, [name, g, w])
+    await su(`update profiles set verification_status='approved' where id::text like 'fc000000-%'`)
+    await su(`delete from random_chat_queue`)
+    const leaks = (row, ...needles) => { const j = JSON.stringify(row); return needles.some((n) => j.includes(n)) }
+    const bs = async (u, s) => (await as(u, `select * from get_blind_session($1)`, [s])).rows[0]
+    const decide = async (u, s, c) => (await as(u, `select blind_decide($1, $2) r`, [s, c])).rows[0].r
+    const start = async (u, post, body = 'hi') => (await as(u, `select start_post_conversation($1, $2) r`, [post, body])).rows[0].r
+    const conv = async (u) => (await as(u, `select * from list_my_conversations()`)).rows
+    const newPost = async (author, body) => (await su(`insert into posts (author_id, body) values ($1, $2) returning id`, [author, body])).rows[0].id
+
+    // --- reply privately: anonymity both ways
+    const post = (await as(P, `select create_post('Anyone up for a mamak run tonight?') id`)).rows[0].id
+    const r1 = await start(R, post, 'count me in')
+    ok('fc: reply privately starts a conversation', r1.created === true && !!r1.session_id && !!r1.message_id && r1.state === 'active', JSON.stringify(r1))
+    const sid = r1.session_id
+    const rv = await bs(R, sid)
+    const pseud = (await su(`select feed_pseudonym($1, 0) v`, [post])).rows[0].v
+    ok('fc: replier sees the post and the author pseudonym', rv.kind === 'post' && rv.my_side === 'b' && rv.context.body === 'Anyone up for a mamak run tonight?' &&
+       JSON.stringify(rv.context.author_pseudonym) === JSON.stringify(pseud) && rv.context.author === null && rv.context.i_am_author === false, JSON.stringify(rv))
+    ok('fc: replier gets no author id, name or profile', rv.partner === null && rv.match_id === null && !leaks(rv, P, 'Aisyah'))
+    ok('fc: replier message counts', rv.my_messages === 1 && rv.partner_messages === 0 && rv.revealed_from_start === false)
+    const pv = await bs(P, sid)
+    ok('fc: author sees own side, nothing about the replier', pv.my_side === 'a' && pv.context.i_am_author === true && pv.context.author === null && pv.context.author_pseudonym === null &&
+       pv.partner === null && pv.partner_alias >= 100 && pv.partner_alias <= 999 && !leaks(pv, R, 'Daniel'), JSON.stringify(pv))
+    ok('fc: no common tags hint on post conversations', JSON.stringify(pv.common_tags) === '[]' && JSON.stringify(rv.common_tags) === '[]')
+    const hist = (await as(P, `select * from get_random_messages($1)`, [sid])).rows
+    ok('fc: author reads the first message without sender id', hist.length === 1 && hist[0].body === 'count me in' && hist[0].is_mine === false && !leaks(hist, R))
+    ok('fc: first message broadcast on the session topic', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='message'`, ['random:' + sid])).rows[0].c === 1)
+    ok('fc: outsider sees nothing', (await as(X, `select * from get_blind_session($1)`, [sid])).rows.length === 0 && (await as(X, `select * from get_random_messages($1)`, [sid])).rows.length === 0)
+    const pl = await conv(P), rl = await conv(R)
+    ok('fc: conversation list for the author', pl.length === 1 && pl[0].id === sid && pl[0].kind === 'post' && pl[0].last_body === 'count me in' && pl[0].last_mine === false && pl[0].partner === null && !leaks(pl, R, 'Daniel'), JSON.stringify(pl))
+    ok('fc: conversation list for the replier', rl.length === 1 && rl[0].last_mine === true && rl[0].context.body.startsWith('Anyone') && rl[0].partner === null && !leaks(rl, P, 'Aisyah'), JSON.stringify(rl))
+    ok('fc: blind dating screen does not resume a post conversation', (await as(R, `select * from get_blind_session()`)).rows.length === 0)
+    ok('fc: sessions table still closed', !!(await fails(() => as(R, `select kind from random_chat_sessions`))))
+
+    // --- rules
+    ok('fc: cannot reply to own post', !!(await fails(() => start(P, post))))
+    ok('fc: empty message rejected', !!(await fails(() => start(R2, post, '  '))))
+    const again = await start(R, post, 'still in?')
+    ok('fc: same post + author reuses the conversation', again.created === false && again.session_id === sid && (await bs(R, sid)).my_messages === 2)
+    await su(`update posts set is_hidden = true where id=$1`, [post])
+    ok('fc: hidden post cannot be replied to', (await fails(() => start(R2, post)))?.includes('Post not found'))
+    ok('fc: hidden post shows no body in the context', (await bs(R, sid)).context.body === null)
+    await su(`update posts set is_hidden = false where id=$1`, [post])
+    await as(P, `insert into blocks (blocked_id) values ($1)`, [R2])
+    ok('fc: blocked pair cannot start', (await fails(() => start(R2, post)))?.includes('Post not found'))
+    await su(`delete from blocks where blocker_id=$1`, [P])
+    await su(`update profiles set shadow_banned = true where id=$1`, [P])
+    ok('fc: shadow-banned author cannot be reached', !!(await fails(() => start(R2, post))))
+    await su(`update profiles set shadow_banned = false where id=$1`, [P])
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [R2])
+    ok('fc: muted user cannot start', (await fails(() => start(R2, post)))?.includes('muted'))
+    await su(`update profiles set muted_until = null where id=$1`, [R2])
+    ok('fc: post session rows need a starter', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind) values ($1, $2, 'post')`, [P, R2]))))
+    ok('fc: blind session rows carry no context', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, post_id) values ($1, $2, 'blind', $3)`, [P, R2, post]))))
+
+    // --- 10 new conversations per day
+    const posts = []
+    for (let i = 0; i < 11; i++) posts.push(await newPost(P2, 'post ' + i))
+    for (let i = 0; i < 10; i++) await start(R2, posts[i], 'reply ' + i)
+    ok('fc: 10 conversations per day', (await conv(R2)).length === 10)
+    ok('fc: 11th conversation in 24h rejected (P0429)', (await fails(() => start(R2, posts[10])))?.includes('Too many'))
+    ok('fc: an existing conversation still accepts messages at the limit', (await start(R2, posts[0], 'more')).created === false)
+    await su(`update random_chat_sessions set started_at = now() - interval '25 hours' where started_by=$1`, [R2])
+    ok('fc: limit is a rolling 24 hours', (await start(R2, posts[10], 'late')).created === true)
+
+    // --- "As me" post: the replier sees the author as the post shows them, never the reverse
+    const named = (await as(P, `select create_post('Named post: coffee buddies?', true) id`)).rows[0].id
+    const n1 = await start(R, named, 'coffee!')
+    const nv = await bs(R, n1.session_id)
+    ok('fc: named post shows the author card to the replier', nv.context.author?.id === P && nv.context.author.display_name === 'Aisyah' && nv.context.author_pseudonym === null, JSON.stringify(nv.context))
+    const npv = await bs(P, n1.session_id)
+    ok('fc: named post still hides the replier from the author', npv.context.author === null && npv.partner === null && !leaks(npv, R, 'Daniel'))
+    ok('fc: replier\'s list row shows the author card, author\'s row does not leak', (await conv(R)).some((c) => c.id === n1.session_id && c.context.author?.id === P) &&
+       !leaks((await conv(P)).find((c) => c.id === n1.session_id), R, 'Daniel'))
+
+    // --- reveal unlock: 5 messages from each side
+    ok('fc: reveal locked before 5 messages each', (await fails(() => decide(R, sid, true)))?.includes('Reveal locked'))
+    for (let i = 0; i < 3; i++) await as(R, `select randomizer_send($1, $2)`, [sid, 'r' + i])
+    for (let i = 0; i < 4; i++) await as(P, `select randomizer_send($1, $2)`, [sid, 'p' + i])
+    const rv2 = await bs(R, sid)
+    ok('fc: still locked when one side has 4', rv2.my_messages === 5 && rv2.partner_messages === 4 && !!(await fails(() => decide(R, sid, true))))
+    await as(P, `select randomizer_send($1, 'p4')`, [sid])
+    const w = await decide(R, sid, true)
+    ok('fc: reveal unlocks at 5 each', w.state === 'waiting' && (await bs(R, sid)).my_decision === true)
+    const pw = await bs(P, sid)
+    ok('fc: author learns nothing about the pending reveal', pw.my_decision === null && pw.partner === null && pw.state === 'active')
+    const mm = await decide(P, sid, true)
+    ok('fc: mutual reveal matches and copies the transcript', mm.state === 'matched' && !!mm.match_id &&
+       (await su(`select count(*)::int c from messages where match_id=$1`, [mm.match_id])).rows[0].c === 10)
+    ok('fc: profiles revealed after the match', (await bs(P, sid)).partner?.id === R && (await bs(R, sid)).partner?.id === P)
+    ok('fc: matched conversation leaves the list', !(await conv(P)).some((c) => c.id === sid))
+    // The pair is matched now; later checks (same-option matching excludes existing matches) need them unmatched.
+    await su(`delete from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [P, R])
+
+    // --- pass ends it for both
+    const pp = await newPost(P2, 'pass me')
+    const ps = (await start(R, pp)).session_id
+    ok('fc: author can pass while locked', (await decide(P2, ps, false)).state === 'passed')
+    ok('fc: replier sees only "ended"', (await bs(R, ps)).state === 'ended' && (await bs(R, ps)).partner === null)
+    ok('fc: cannot send after pass', !!(await fails(() => as(R, `select randomizer_send($1,'x')`, [ps]))))
+    const after = await start(R, pp, 'again?')
+    ok('fc: no new conversation after a pass, state returned', after.created === false && after.session_id === ps && after.message_id === null && after.state === 'ended', JSON.stringify(after))
+    ok('fc: ended conversation leaves the list', !(await conv(R)).some((c) => c.id === ps))
+
+    // --- blind dating is not blocked by an open private reply
+    const openPost = await newPost(P2, 'open thread')
+    await start(R, openPost)
+    ok('fc: randomizer_join ignores post conversations', (await as(R, `select randomizer_join('{female}',18,99) s`)).rows[0].s === null)
+    ok('fc: randomizer_join definition carries the kind filter', (await su(`select pg_get_functiondef('public.randomizer_join'::regproc) d`)).rows[0].d.includes("kind = 'blind'"))
+    await as(R, `select randomizer_leave()`)
+
+    // --- pushes: claim per session, throttled, names only when revealed from the start
+    const pr = await start(R2, await newPost(P, 'push post'), 'first')
+    const c1 = (await svc(`select claim_session_push($1) r`, [pr.message_id])).rows[0].r
+    ok('fc: push claim names the author as recipient, no sender name', c1?.recipient === P && c1.kind === 'post' && c1.is_first === true && c1.sender_name === null && c1.session_id === pr.session_id, JSON.stringify(c1))
+    const m2 = (await as(R2, `select randomizer_send($1, 'second') id`, [pr.session_id])).rows[0].id
+    ok('fc: push throttled to one per 10 minutes', (await svc(`select claim_session_push($1) r`, [m2])).rows[0].r === null)
+    await su(`update random_chat_sessions set last_push_at = now() - interval '11 minutes' where id=$1`, [pr.session_id])
+    const c2 = (await svc(`select claim_session_push($1) r`, [m2])).rows[0].r
+    ok('fc: push allowed again after 10 minutes, not first', c2?.recipient === P && c2.is_first === false)
+    const blindMsg = (await su(`select m.id from random_chat_messages m join random_chat_sessions s on s.id = m.session_id where s.kind='blind' limit 1`)).rows[0]
+    ok('fc: blind date messages never claim a push', !!blindMsg && (await svc(`select claim_session_push($1) r`, [blindMsg.id])).rows[0].r === null)
+    ok('fc: push claim is server only', !!(await fails(() => as(R2, `select claim_session_push($1)`, [m2]))))
+
+    // --- daily question: rotation at 19:00 MYT
+    const pd = (await su(`select prompt_day('2026-10-09 10:59:59+00')::text a, prompt_day('2026-10-09 11:00:00+00')::text b, prompt_day('2026-10-10 02:00:00+00')::text c`)).rows[0]
+    ok('fc: prompt day flips at 19:00 MYT', pd.a === '2026-10-08' && pd.b === '2026-10-09' && pd.c === '2026-10-09', JSON.stringify(pd))
+    ok('fc: window ends at 19:00 MYT next day', new Date((await su(`select prompt_window_end('2026-10-09'::date) e`)).rows[0].e).toISOString() === '2026-10-10T11:00:00.000Z')
+    ok('fc: 60 questions seeded, none shown', (await su(`select count(*)::int c, count(show_date)::int s from daily_prompts`)).rows[0].c === 60 && (await su(`select count(show_date)::int s from daily_prompts`)).rows[0].s === 0)
+    ok('fc: no question before rotation', (await as(P, `select get_daily_prompt() r`)).rows[0].r === null)
+    ok('fc: rotation is server only', !!(await fails(() => as(P, `select rotate_daily_prompt()`))))
+    const q1 = (await svc(`select rotate_daily_prompt() r`)).rows[0].r
+    ok('fc: rotation activates the first queued question', q1 === (await su(`select id from daily_prompts where sort_order=1`)).rows[0].id)
+    ok('fc: rotation is idempotent within a day', (await svc(`select rotate_daily_prompt() r`)).rows[0].r === q1)
+    const q2 = (await svc(`select rotate_daily_prompt(now() + interval '1 day') r`)).rows[0].r
+    ok('fc: next day takes the next question, today unchanged', q2 === (await su(`select id from daily_prompts where sort_order=2`)).rows[0].id && (await svc(`select rotate_daily_prompt() r`)).rows[0].r === q1)
+    const dp = (await as(P, `select get_daily_prompt() r`)).rows[0].r
+    ok('fc: today\'s question in three languages, unanswered', dp.id === q1 && dp.question.en && dp.question.ms && dp.question.ru && dp.options.en.length === 2 && dp.my_option === null && dp.counts === null, JSON.stringify(dp))
+    await su(`update profiles set verification_status='pending' where id=$1`, [X])
+    ok('fc: unverified gets no question', (await as(X, `select get_daily_prompt() r`)).rows[0].r === null)
+    await su(`update profiles set verification_status='approved' where id=$1`, [X])
+
+    // --- answers, percentages, same-option matching filters
+    ok('fc: option out of range rejected', !!(await fails(() => as(P, `select answer_daily_prompt($1, 2)`, [q1]))))
+    ok('fc: cannot answer tomorrow\'s question', !!(await fails(() => as(P, `select answer_daily_prompt($1, 0)`, [q2]))))
+    const an = (await as(P, `select answer_daily_prompt($1, 0) r`, [q1])).rows[0].r
+    ok('fc: answer returns counts', an.my_option === 0 && JSON.stringify(an.counts) === '[1,0]', JSON.stringify(an))
+    await as(R, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(R2, `select answer_daily_prompt($1, 1)`, [q1])
+    await as(FAR, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(Z, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(X, `select answer_daily_prompt($1, 0)`, [q1])
+    for (const u of M) await as(u, `select answer_daily_prompt($1, 0)`, [q1])
+    await as(P, `insert into blocks (blocked_id) values ($1)`, [X])
+    ok('fc: counts update', JSON.stringify((await as(P, `select get_daily_prompt() r`)).rows[0].r.counts) === '[15,1]')
+    const pm = (await as(P, `select * from get_prompt_matches($1, 3)`, [q1])).rows
+    ok('fc: matches: same option, mutual interest, distance, not blocked, limit', pm.length === 3 && pm.every((x) => [R, ...M].includes(x.id)) && !pm.some((x) => [R2, FAR, Z, X].includes(x.id)) && pm[0].display_name && pm[0].age >= 18, JSON.stringify(pm))
+    ok('fc: matches: at most 8', (await as(P, `select * from get_prompt_matches($1, 50)`, [q1])).rows.length === 8)
+    ok('fc: matches: nearest first', (await as(P, `select id from get_prompt_matches($1)`, [q1])).rows[0].id === M[0])
+    ok('fc: matches for a man: women with the same option', JSON.stringify((await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.map((x) => x.id).sort()) === JSON.stringify([P, Z].sort()))
+    ok('fc: no matches before answering', (await as(A, `select * from get_prompt_matches($1)`, [q1])).rows.length === 0)
+    await su(`update profiles set last_active_at = now() - interval '31 days' where id=$1`, [Z])
+    ok('fc: inactive 30 days excluded', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === Z))
+    await su(`update profiles set last_active_at = now(), discoverable = false where id=$1`, [Z])
+    ok('fc: paused profile excluded', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === Z))
+    await su(`update profiles set discoverable = true where id=$1`, [Z])
+    await as(R, `select set_new_people_alert(true, '{female}', 30, 40, 50)`)
+    ok('fc: saved age filter applies both ways', !(await as(R, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === P) && !(await as(P, `select id from get_prompt_matches($1)`, [q1])).rows.some((x) => x.id === R))
+    await as(R, `select set_new_people_alert(false)`)
+    ok('fc: match rows carry only name, age, photo', JSON.stringify(Object.keys(pm[0]).sort()) === '["age","display_name","id","photo"]')
+    const ch = (await as(P, `select answer_daily_prompt($1, 1) r`, [q1])).rows[0].r
+    ok('fc: answer can change', ch.my_option === 1 && JSON.stringify(ch.counts) === '[14,2]')
+    await as(P, `select answer_daily_prompt($1, 0)`, [q1])
+
+    // --- say hi: prompt conversations show names from the start, Connect = match
+    const h1 = (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r
+    ok('fc: say hi creates a prompt conversation', h1.created === true && !!h1.session_id && h1.state === 'active', JSON.stringify(h1))
+    const hv = await bs(P, h1.session_id)
+    ok('fc: prompt conversation reveals the partner from the start', hv.kind === 'prompt' && hv.revealed_from_start === true && hv.partner?.id === R && hv.partner.display_name === 'Daniel' && hv.state === 'active')
+    ok('fc: question and both answers pinned', hv.context.prompt_id === q1 && hv.context.question.en === dp.question.en && hv.context.my_option === 0 && hv.context.partner_option === 0, JSON.stringify(hv.context))
+    const hr = await bs(R, h1.session_id)
+    ok('fc: the other side sees the initiator too', hr.partner?.id === P && hr.my_side === 'a' && hr.context.partner_option === 0)
+    ok('fc: target notified on its own topic', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='conversation'`, ['randomizer:' + R])).rows[0].c === 1)
+    ok('fc: say hi to someone not on the card fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, R2]))))
+    ok('fc: say hi to a blocked person fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, X]))))
+    ok('fc: say hi to yourself fails', !!(await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, P]))))
+    ok('fc: say hi reuses the pair\'s conversation from either side', (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r.session_id === h1.session_id &&
+       (await as(R, `select start_prompt_conversation($1, $2) r`, [q1, P])).rows[0].r.created === false)
+    const lp = (await conv(P)).find((c) => c.id === h1.session_id)
+    ok('fc: prompt conversation listed with the partner card', lp?.kind === 'prompt' && lp.partner?.id === R && lp.partner.display_name === 'Daniel' && !!lp.context.question.ms, JSON.stringify(lp))
+    const hm = (await as(R, `select randomizer_send($1, 'hi Aisyah') id`, [h1.session_id])).rows[0].id
+    const hc = (await svc(`select claim_session_push($1) r`, [hm])).rows[0].r
+    ok('fc: prompt push carries the sender name', hc?.recipient === P && hc.kind === 'prompt' && hc.sender_name === 'Daniel')
+    for (let i = 0; i < 9; i++) await as(P, `select start_prompt_conversation($1, $2)`, [q1, M[i]])
+    ok('fc: 11th say hi in 24h rejected', (await fails(() => as(P, `select start_prompt_conversation($1, $2)`, [q1, M[9]])))?.includes('Too many'))
+    ok('fc: existing prompt conversation still reachable at the limit', (await as(P, `select start_prompt_conversation($1, $2) r`, [q1, R])).rows[0].r.created === false)
+    ok('fc: prompt connect needs no unlock', (await decide(P, h1.session_id, true)).state === 'waiting' && (await decide(R, h1.session_id, true)).state === 'matched')
+    ok('fc: prompt match exists', (await su(`select count(*)::int c from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [P, R])).rows[0].c === 1)
+
+    // --- daily push recipients
+    await as(P, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/p', 'k', 'a', 'ms')`)
+    await as(R, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/r', 'k', 'a', 'en')`)
+    await as(R2, `insert into push_subscriptions (endpoint, p256dh, auth, locale) values ('https://push.example/r2', 'k', 'a', 'en')`)
+    await as(R2, `insert into notification_prefs (daily_prompt) values (false)`)
+    ok('fc: users can toggle the new preferences', (await as(R2, `select daily_prompt, post_replies from notification_prefs`)).rows[0].daily_prompt === false && !(await fails(() => as(R2, `update notification_prefs set post_replies = false`))))
+    ok('fc: tomorrow\'s question has no recipients yet', (await svc(`select * from daily_prompt_push_recipients($1)`, [q2])).rows.length === 0)
+    const rec = (await svc(`select daily_prompt_push_recipients($1) u`, [q1])).rows.map((r) => r.u).filter((u) => u.startsWith('fc000000')).sort()
+    ok('fc: recipients: subscribed, verified, preference on', JSON.stringify(rec) === JSON.stringify([P, R].sort()), JSON.stringify(rec))
+    ok('fc: recipients claimed once', (await svc(`select * from daily_prompt_push_recipients($1)`, [q1])).rows.length === 0)
+    ok('fc: recipients list is server only', !!(await fails(() => as(P, `select * from daily_prompt_push_recipients($1)`, [q1]))))
+
+    // --- retention: answers older than 90 days go with the next rotation
+    await su(`insert into prompt_answers (prompt_id, user_id, option_idx, created_at) values ($1, $2, 0, now() - interval '91 days')`, [q2, X])
+    await svc(`select rotate_daily_prompt()`)
+    ok('fc: old answers purged', (await su(`select count(*)::int c from prompt_answers where prompt_id=$1`, [q2])).rows[0].c === 0)
+
+    // --- admin queue (service role + assert_admin_role)
+    await su(`insert into admins (user_id, role) values ($1, 'moderator')`, [A])
+    const qs = { en: 'Kopi o or kopi c?', ms: 'Kopi o atau kopi c?', ru: 'Копи о или копи си?' }
+    const os = { en: ['Kopi o', 'Kopi c'], ms: ['Kopi o', 'Kopi c'], ru: ['Копи о', 'Копи си'] }
+    const nid = (await svc(`select admin_upsert_daily_prompt($1, $2, $3) id`, [A, JSON.stringify(qs), JSON.stringify(os)])).rows[0].id
+    ok('fc: admin adds a question at the end of the queue', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 61)
+    ok('fc: admin add is logged', (await su(`select count(*)::int c from moderation_actions where action='prompt.add' and target_id=$1`, [nid])).rows[0].c === 1)
+    ok('fc: admin rejects a single option', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify({ en: ['x'], ms: ['x'], ru: ['x'] })]))))
+    ok('fc: admin rejects mismatched option counts', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify({ en: ['a', 'b'], ms: ['a', 'b', 'c'], ru: ['a', 'b'] })]))))
+    await svc(`select admin_upsert_daily_prompt($1, $2, $3, $4)`, [A, JSON.stringify({ ...qs, en: 'Kopi o or kopi c today?' }), JSON.stringify(os), nid])
+    ok('fc: admin edits a question', (await su(`select question_en q from daily_prompts where id=$1`, [nid])).rows[0].q === 'Kopi o or kopi c today?')
+    await svc(`select admin_move_daily_prompt($1, $2, true)`, [A, nid])
+    ok('fc: admin moves a question up', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 60 && (await su(`select count(*)::int c from daily_prompts where sort_order=61`)).rows[0].c === 1)
+    await svc(`select admin_move_daily_prompt($1, $2, false)`, [A, nid])
+    ok('fc: admin moves it back down', (await su(`select sort_order from daily_prompts where id=$1`, [nid])).rows[0].sort_order === 61)
+    ok('fc: shown question cannot be moved or deleted', !!(await fails(() => svc(`select admin_move_daily_prompt($1, $2, true)`, [A, q1]))) && !!(await fails(() => svc(`select admin_delete_daily_prompt($1, $2)`, [A, q1]))))
+    await svc(`select admin_delete_daily_prompt($1, $2)`, [A, nid])
+    ok('fc: admin deletes an unused question', (await su(`select count(*)::int c from daily_prompts where id=$1`, [nid])).rows[0].c === 0)
+    ok('fc: non-admin cannot manage questions', !!(await fails(() => svc(`select admin_upsert_daily_prompt($1, $2, $3)`, [P, JSON.stringify(qs), JSON.stringify(os)]))))
+    ok('fc: admin RPCs not callable by users', !!(await fails(() => as(A, `select admin_upsert_daily_prompt($1, $2, $3)`, [A, JSON.stringify(qs), JSON.stringify(os)]))))
+    ok('fc: anon cannot call the RPCs', (await su(`select bool_or(has_function_privilege('anon', f, 'execute')) a from unnest(array[
+       'public.start_post_conversation(uuid, text)', 'public.start_prompt_conversation(uuid, uuid)', 'public.list_my_conversations()',
+       'public.get_daily_prompt()', 'public.answer_daily_prompt(uuid, int)', 'public.get_prompt_matches(uuid, int)']) f`)).rows[0].a === false)
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end feed conversations =====
+  // ===== Blind Dating Nights x feed conversations (20261009000210 + 20261009000220) =====
+  // 220 redefines get_blind_session, blind_decide, randomizer_join and event_requeue after 210:
+  // both behaviours must survive (event pool + re-queue after a Pass, and kind / context / reveal
+  // lock), and post / prompt conversations never enter an event pool.
+  await (async () => {
+    const U = (i) => `cb000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    const M = U(1), W = U(2), P = U(3), ADM = U(4)
+    for (const [i, u] of [M, W, P, ADM].entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601499900' + String(i).padStart(2, '0')])
+    for (const [u, name, g, w, bd] of [[M, 'Cb Hakim', 'male', '{female}', '1996-05-05'], [W, 'Cb Intan', 'female', '{male}', '1997-05-05'],
+      [P, 'Cb Poster', 'female', '{male}', '1995-05-05'], [ADM, 'Cb Admin', 'male', '{female}', '1990-05-05']])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,$2,$3,$4,'Ipoh','SRID=4326;POINT(101.08 4.6)')`, [name, bd, g, w])
+    await su(`update profiles set verification_status='approved' where id::text like 'cb000000-%'`)
+    await su(`insert into admins (user_id, role) values ($1, 'admin')`, [ADM])
+    await su(`delete from random_chat_queue`)
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const at = async (expr) => (await su(`select ${expr} t`)).rows[0].t
+    const join = async (u, ev, genders) => (await as(u, `select randomizer_join($1, 18, 99, '{}', $2) s`, [genders, ev])).rows[0].s
+    const queue = async () => (await su(`select user_id, event_id from random_chat_queue order by user_id`)).rows
+    const bs = async (u, sid) => (await as(u, `select * from get_blind_session($1)`, [sid])).rows[0]
+    const decide = async (u, sid, c) => (await as(u, `select blind_decide($1, $2) r`, [sid, c])).rows[0].r
+
+    // A live night
+    const ev = (await svc(`select admin_upsert_event($1, null, 'Combo Night', 'Malam Kombo', 'Комбо', null, $2, $3, null, 'scheduled') id`,
+      [ADM, await at(`now() + interval '5 minutes'`), await at(`now() + interval '90 minutes'`)])).rows[0].id
+    await su(`update scheduled_events set starts_at = now() - interval '1 minute' where id=$1`, [ev])
+    await svc(`select event_tick()`)
+
+    // M has an open private reply on P's post (kind 'post', active the whole time)
+    const post = (await as(P, `select create_post('Combo: anyone in Ipoh tonight?') id`)).rows[0].id
+    const postSid = (await as(M, `select start_post_conversation($1, 'me!') r`, [post])).rows[0].r.session_id
+    ok('combo: a private reply never enters a queue', (await queue()).length === 0)
+
+    // Event path with an open post conversation: M waits in the event pool, W pairs with him
+    ok('combo: event join is not hijacked by an open post conversation', (await join(M, ev, '{female}')) === null &&
+       JSON.stringify(await queue()) === JSON.stringify([{ user_id: M, event_id: ev }]))
+    const es = await join(W, ev, '{male}')
+    const row = es && (await su(`select kind, event_id, user_a, user_b from random_chat_sessions where id=$1`, [es])).rows[0]
+    ok('combo: event session is kind blind with the event id', row?.kind === 'blind' && row.event_id === ev && row.user_a === M && row.user_b === W, JSON.stringify(row))
+    const cur = (await as(M, `select * from get_blind_session()`)).rows[0]
+    ok('combo: get_blind_session() returns the event date (not the post conversation) with event_id and kind',
+       cur?.id === es && cur.event_id === ev && cur.kind === 'blind' && cur.context === null && cur.my_messages === 0 && cur.revealed_from_start === false, JSON.stringify(cur))
+    const pv = await bs(M, postSid)
+    ok('combo: get_blind_session(post) returns kind, context and no event', pv.kind === 'post' && pv.event_id === null && pv.context?.body === 'Combo: anyone in Ipoh tonight?' && pv.my_messages === 1, JSON.stringify(pv))
+
+    // Pass during the live night re-queues both, even though M still has an open post conversation
+    await as(M, `select randomizer_send($1, 'hey')`, [es])
+    ok('combo: event pass', (await decide(W, es, false)).state === 'passed')
+    const q = await queue()
+    ok('combo: pass re-queues both into the event pool with 220 applied', q.length === 2 && q.every((r) => r.event_id === ev) &&
+       q.map((r) => r.user_id).sort().join() === [M, W].sort().join(), JSON.stringify(q))
+    ok('combo: post conversation untouched by the event pass', (await bs(M, postSid)).state === 'active')
+
+    // Reveal lock on the post conversation still holds; Pass there never re-queues anyone
+    ok('combo: post reveal lock (P0423) still enforced', (await fails(() => decide(M, postSid, true)))?.includes('Reveal locked'))
+    await su(`delete from random_chat_queue`)
+    ok('combo: post pass does not queue anyone', (await decide(P, postSid, false)).state === 'passed' && (await queue()).length === 0)
+    ok('combo: a post / prompt session can never carry an event id',
+       !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, post_id, started_by, event_id) values ($1, $2, 'post', $3, $2, $4)`, [P, W, post, ev]))))
+
+    // Non-event path unchanged: normal pool, kind blind, no event, a pass does not re-queue
+    ok('combo: non-event join waits in the normal pool', (await join(M, null, '{female}')) === null &&
+       JSON.stringify(await queue()) === JSON.stringify([{ user_id: M, event_id: null }]))
+    const ns = await join(W, null, '{male}')
+    const nrow = ns && (await su(`select kind, event_id from random_chat_sessions where id=$1`, [ns])).rows[0]
+    ok('combo: non-event session is kind blind without event', nrow?.kind === 'blind' && nrow.event_id === null, JSON.stringify(nrow))
+    ok('combo: get_blind_session for a normal date', (await bs(W, ns)).event_id === null && (await bs(W, ns)).kind === 'blind')
+    ok('combo: normal pass does not re-queue', (await decide(M, ns, false)).state === 'passed' && (await queue()).length === 0)
+    ok('combo: one randomizer_join (5 args) with the kind filter and event pool',
+       (await su(`select count(*)::int c, max(pronargs)::int n, bool_and(pg_get_functiondef(oid) like '%kind = ''blind''%' and pg_get_functiondef(oid) like '%event_id is not distinct from p_event_id%') k
+                  from pg_proc where proname = 'randomizer_join' and pronamespace = 'public'::regnamespace`)).rows.every((r) => r.c === 1 && r.n === 5 && r.k))
+    ok('combo: event_requeue ignores post / prompt conversations', (await su(`select pg_get_functiondef('public.event_requeue'::regproc) d`)).rows[0].d.includes("s.kind = 'blind'"))
+    await svc(`select admin_cancel_event($1, $2, 'test over')`, [ADM, ev])
+    await su(`delete from random_chat_queue`)
+  })()
+  // ===== end Blind Dating Nights x feed conversations =====
+
+  // ===== matchmaker & incognito (20261009000240) =====
+  await (async () => {
+    const ids = Array.from({ length: 14 }, (_, i) => `cc000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, H, I, J, K, L, M, E, F, G, S] = ids
+    const males = new Set([A, F, S])
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601488800' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) {
+      const male = males.has(u)
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,'Kuala Lumpur','SRID=4326;POINT(101.671 3.13)')`, ['Mm' + i, male ? 'male' : 'female', male ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
+    const pair = (a, b) => su(`select ensure_match($1::uuid, $2::uuid, 'swipe') id`, [a, b]).then((r) => r.rows[0].id)
+    const matchOf = async (a, b) => (await su(`select id, source from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0]
+    const refer = (who, b, c, note = null) => as(who, `select create_referral($1, $2, $3) r`, [b, c, note]).then((r) => r.rows[0].r)
+    const card = (who, id) => as(who, `select get_referral_card($1) c`, [id]).then((r) => r.rows[0].c)
+    const decide = (who, id, yes) => as(who, `select decide_referral($1, $2) d`, [id, yes]).then((r) => r.rows[0].d)
+    const status = async (id) => (await su(`select * from matchmaker_referrals where id=$1`, [id])).rows[0]
+    const cardsIn = async (who, matchId) => (await as(who, `select kind, payload, body, sender_id, read_at from messages where match_id=$1 order by created_at`, [matchId])).rows
+    // A is matched with B, C, D, H, I, J, K, L, M
+    const ab = await pair(A, B); const ac = await pair(A, C)
+    for (const u of [D, H, I, J, K, L, M]) await pair(A, u)
+
+    // ----- rules -----
+    ok('mm: only your own matches', !!(await fails(() => refer(B, C, D))) && !!(await fails(() => refer(A, B, S))))
+    ok('mm: not yourself, not the same person twice', !!(await fails(() => refer(A, A, B))) && !!(await fails(() => refer(A, B, B))))
+    ok('mm: note at most 200 characters', !!(await fails(() => refer(A, B, C, 'x'.repeat(201)))))
+    ok('mm: referrals table closed to clients', !!(await fails(() => as(A, `select * from matchmaker_referrals`))))
+    ok('mm: clients cannot insert cards', !!(await fails(() => as(A, `insert into messages (match_id, kind, payload) values ($1, 'referral', '{"referral_id":"x"}')`, [ab]))))
+    const r1 = await refer(A, B, C, '  You both love hiking  ')
+    ok('mm: create returns the id and the A-B chat', !!r1?.id && r1.match_id === ab, JSON.stringify(r1))
+    const s1 = await status(r1.id)
+    ok('mm: stored pending with the trimmed note', s1.status === 'pending' && s1.note === 'You both love hiking' && s1.decision_b === null)
+    const abMsgs = await cardsIn(B, ab)
+    ok('mm: card delivered as a referral message in the A-B chat', abMsgs.length === 1 && abMsgs[0].kind === 'referral' && abMsgs[0].payload.referral_id === r1.id && abMsgs[0].body === null && abMsgs[0].sender_id === A, JSON.stringify(abMsgs))
+    ok('mm: nothing in the A-C chat yet', (await cardsIn(C, ac)).length === 0)
+    ok('mm: same pair cannot be introduced again within 90 days (either order)', !!(await fails(() => refer(A, B, C))) && !!(await fails(() => refer(A, C, B))))
+    const cardMsg = (await su(`select id from messages where match_id=$1`, [ab])).rows[0].id
+    ok('mm: referral card cannot be edited', !!(await fails(() => as(A, `select edit_message($1, 'hi')`, [cardMsg]))))
+
+    // ----- visibility -----
+    const cb = await card(B, r1.id)
+    ok('mm: B sees C, the note and an open card', cb?.role === 'b' && cb.state === 'open' && cb.person?.id === C && cb.person.name === 'Mm2' && cb.person.age === 30 && cb.note === 'You both love hiking' && cb.matchmaker_name === 'Mm0', JSON.stringify(cb))
+    ok('mm: C sees nothing before B accepts', (await card(C, r1.id)) === null)
+    ok('mm: strangers see nothing', (await card(D, r1.id)) === null && (await card(S, r1.id)) === null)
+    const ca = await card(A, r1.id)
+    ok('mm: A sees both people and pending', ca?.role === 'matchmaker' && ca.state === 'pending' && ca.b?.id === B && ca.c?.id === C && ca.person === null, JSON.stringify(ca))
+    ok('mm: C cannot decide before B', !!(await fails(() => decide(C, r1.id, true))))
+    ok('mm: A cannot decide', !!(await fails(() => decide(A, r1.id, true))))
+
+    // ----- B interested -> card for C -----
+    const d1 = await decide(B, r1.id, true)
+    ok('mm: B interested: waiting, C to be notified in the A-C chat', d1.state === 'interested' && d1.notify?.user_id === C && d1.notify.match_id === ac && d1.notify.matchmaker_name === 'Mm0', JSON.stringify(d1))
+    const acMsgs = await cardsIn(C, ac)
+    ok('mm: card now in the A-C chat (sender A)', acMsgs.length === 1 && acMsgs[0].kind === 'referral' && acMsgs[0].payload.referral_id === r1.id && acMsgs[0].sender_id === A)
+    const cc = await card(C, r1.id)
+    ok('mm: C sees B and an open card', cc?.role === 'c' && cc.state === 'open' && cc.person?.id === B && cc.note === 'You both love hiking', JSON.stringify(cc))
+    ok('mm: B sees "interested", A still pending', (await card(B, r1.id)).state === 'interested' && (await card(A, r1.id)).state === 'pending')
+    ok('mm: B cannot decide twice', !!(await fails(() => decide(B, r1.id, false))))
+    ok('mm: no match yet', !(await matchOf(B, C)))
+
+    // ----- C interested -> match, pinned note, reward -----
+    const vipBefore = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    const d2 = await decide(C, r1.id, true)
+    const bc = await matchOf(B, C)
+    ok('mm: both interested creates the match', d2.state === 'matched' && d2.just_matched === true && !!bc && d2.match_id === bc.id && bc.source === 'matchmaker', JSON.stringify(d2))
+    ok('mm: push data carries ids and names only', JSON.stringify(Object.keys(d2.notify).sort()) === '["b_id","b_name","c_id","c_name","matchmaker_id","matchmaker_name"]' && d2.notify.b_name === 'Mm1')
+    const bcMsgs = await cardsIn(B, bc.id)
+    ok('mm: note pinned as the first system message, already read', bcMsgs.length === 1 && bcMsgs[0].kind === 'system' && bcMsgs[0].body === 'You both love hiking' && bcMsgs[0].sender_id === A && bcMsgs[0].read_at !== null && bcMsgs[0].payload.referral_id === r1.id, JSON.stringify(bcMsgs))
+    ok('mm: C reads the note too, A cannot (not a participant)', (await cardsIn(C, bc.id)).length === 1 && (await cardsIn(A, bc.id)).length === 0)
+    await as(C, `update messages set read_at = now() where match_id=$1 and read_at is null`, [ac])
+    ok('mm: unread count ignores the pinned note', (await as(C, `select unread_message_count() n`)).rows[0].n === 0)
+    const noteMsg = (await su(`select id from messages where match_id=$1`, [bc.id])).rows[0].id
+    ok('mm: nobody can delete the pinned note', !!(await fails(() => as(A, `select delete_message($1)`, [noteMsg]))) && !!(await fails(() => as(B, `select delete_message($1)`, [noteMsg]))))
+    const s1b = await status(r1.id)
+    const vipAfter = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    const vipDays = (new Date(vipAfter) - Date.now()) / 86400000
+    ok('mm: status matched + rewarded', s1b.status === 'matched' && s1b.match_id === bc.id && s1b.rewarded_at !== null && s1b.decision_c === true)
+    ok('mm: A gets 7 VIP days', vipBefore === null && vipDays > 6.99 && vipDays <= 7.01, String(vipDays))
+    ok('mm: cards after the match', (await card(B, r1.id)).state === 'matched' && (await card(B, r1.id)).match_id === bc.id && (await card(C, r1.id)).state === 'matched' && (await card(A, r1.id)).state === 'matched' && (await card(A, r1.id)).match_id === null)
+    ok('mm: deciding a finished one just reports it', await decide(C, r1.id, true).then((d) => d.state === 'matched' && d.match_id === bc.id && !d.notify))
+    ok('mm: already matched pair cannot be introduced (after the 90-day window)', await (async () => {
+      await su(`update matchmaker_referrals set created_at = now() - interval '100 days' where id=$1`, [r1.id])
+      const err = await fails(() => refer(A, B, C))
+      await su(`update matchmaker_referrals set created_at = now() where id=$1`, [r1.id])
+      return !!err
+    })())
+
+    // ----- reward at most once per 7 days -----
+    const r2 = await refer(A, D, H)
+    await decide(D, r2.id, true); const d3 = await decide(H, r2.id, true)
+    const vipTwice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    ok('mm: second success within 7 days: match but no extra VIP', d3.state === 'matched' && String(vipTwice) === String(vipAfter) && (await status(r2.id)).rewarded_at === null, `${vipAfter} -> ${vipTwice}`)
+    ok('mm: match without a note has no pinned message', (await cardsIn(D, d3.match_id)).length === 0)
+    await su(`update matchmaker_referrals set rewarded_at = now() - interval '8 days' where id=$1`, [r1.id])
+    await su(`update matchmaker_referrals set created_at = now() - interval '8 days' where id=$1`, [r2.id])
+    const r2b = await refer(A, B, H, 'again')
+    await decide(B, r2b.id, true); await decide(H, r2b.id, true)
+    const vipThrice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    ok('mm: after 7 days the reward extends vip_until by 7 more days', Math.round((new Date(vipThrice) - new Date(vipAfter)) / 86400000) === 7, `${vipAfter} -> ${vipThrice}`)
+
+    // ----- declines are silent -----
+    const r3 = await refer(A, I, J, 'maybe')
+    const d4 = await decide(I, r3.id, false)
+    ok('mm: B declines: closed for B only', d4.state === 'closed' && (await status(r3.id)).status === 'b_declined' && (await card(I, r3.id)).state === 'closed' && (await card(A, r3.id)).state === 'pending' && (await card(J, r3.id)) === null)
+    ok('mm: no card ever reaches C after a decline', (await cardsIn(J, (await matchOf(A, J)).id)).length === 0)
+    const r4 = await refer(A, K, L)
+    await decide(K, r4.id, true)
+    const d5 = await decide(L, r4.id, false)
+    ok('mm: C declines: B keeps "interested", A keeps pending', d5.state === 'closed' && (await status(r4.id)).status === 'c_declined' && (await card(K, r4.id)).state === 'interested' && (await card(L, r4.id)).state === 'closed' && (await card(A, r4.id)).state === 'pending' && !(await matchOf(K, L)))
+
+    // ----- 5 per day -----
+    const r5 = await refer(A, I, M)
+    ok('mm: fifth introduction today still allowed', !!r5?.id)
+    const limitErr = await fails(() => refer(A, J, M))
+    ok('mm: sixth introduction today is rate limited', !!limitErr && /Rate limit/.test(limitErr), limitErr)
+    await su(`update matchmaker_referrals set created_at = now() - interval '2 days' where matchmaker_id=$1 and created_at > now() - interval '1 hour'`, [A])
+
+    // ----- blocks cancel -----
+    const r6 = await refer(A, C, I, 'blocked soon')
+    await decide(C, r6.id, true)
+    await as(I, `insert into blocks (blocked_id) values ($1)`, [C])
+    ok('mm: a block among the three cancels the introduction', (await status(r6.id)).status === 'cancelled' && (await card(C, r6.id)).state === 'closed' && (await card(C, r6.id)).person === null && (await card(A, r6.id)).state === 'closed')
+    ok('mm: deciding a cancelled one is closed', (await decide(I, r6.id, true)).state === 'closed')
+    const blockedPair = await fails(() => refer(A, I, C))
+    ok('mm: blocked people cannot be introduced', !!blockedPair && /Not available/.test(blockedPair), blockedPair)
+    const blockedErr = await fails(() => refer(A, I, L))
+    await as(I, `delete from blocks where blocked_id=$1`, [C])
+    ok('mm: new introduction with a block between B and C refused', await (async () => {
+      await as(L, `insert into blocks (blocked_id) values ($1)`, [M])
+      const err = await fails(() => refer(A, L, M))
+      await as(L, `delete from blocks where blocked_id=$1`, [M])
+      return !!err && blockedErr === null
+    })())
+
+    // ----- banned / muted -----
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [J])
+    ok('mm: muted people cannot be introduced', !!(await fails(() => refer(A, J, L))))
+    await su(`update profiles set muted_until = null where id=$1`, [J])
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [A])
+    const mutedErr = await fails(() => refer(A, J, L))
+    await su(`update profiles set muted_until = null where id=$1`, [A])
+    ok('mm: a muted matchmaker cannot introduce', !!mutedErr && /muted/.test(mutedErr), mutedErr)
+    await su(`update profiles set banned_at = now(), ban_reason = 'x', is_active = false where id=$1`, [L])
+    ok('mm: banned people cannot be introduced', !!(await fails(() => refer(A, J, L))))
+    await su(`update profiles set banned_at = null, ban_reason = null, is_active = true where id=$1`, [L])
+
+    // ----- notification setting -----
+    ok('mm: notification toggle defaults on and is writable by the owner', !(await fails(() => as(B, `insert into notification_prefs (matchmaker) values (false)`))) &&
+       (await su(`select matchmaker from notification_prefs where user_id=$1`, [B])).rows[0].matchmaker === false &&
+       (await su(`select column_default d from information_schema.columns where table_name='notification_prefs' and column_name='matchmaker'`)).rows[0].d === 'true')
+    await as(B, `update notification_prefs set matchmaker = true`)
+    ok('mm: notification toggle updates', (await su(`select matchmaker from notification_prefs where user_id=$1`, [B])).rows[0].matchmaker === true)
+
+    // ----- retention + access -----
+    await su(`update matchmaker_referrals set created_at = now() - interval '91 days' where id=$1`, [r3.id])
+    const purged = (await su(`select purge_matchmaker_referrals() n`)).rows[0].n
+    ok('mm: referrals purged after 90 days; the card then reads as unavailable', purged === 1 && (await card(I, r3.id)) === null)
+    ok('mm: no anon access, no client purge', (await su(`select has_function_privilege('anon', 'public.create_referral(uuid, uuid, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_matchmaker_referrals()', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.matchmaker_person(uuid)', 'execute') v`)).rows[0].v === false)
+
+    // ----- incognito -----
+    const deck = async (who, genders) => (await as(who, `select id from get_swipe_candidates($1, 18, 99, 50, 50)`, [genders])).rows.map((r) => r.id)
+    const eUsername = (await su(`select username from profiles where id=$1`, [E])).rows[0].username
+    const search = async (who) => (await as(who, `select id from search_profiles_by_username($1)`, [eUsername])).rows.map((r) => r.id)
+    const likers = async (who) => (await as(who, `select id from get_incoming_likes()`)).rows.map((r) => r.id)
+    ok('incognito: off by default and visible', (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === false && (await deck(F, '{female}')).includes(E) && (await search(F)).includes(E))
+    await as(E, `update profiles set is_incognito = true where id=$1`, [E])
+    ok('incognito: owner can turn it on', (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === true)
+    ok('incognito: others cannot change it', (await as(F, `update profiles set is_incognito = false where id=$1`, [E])).rows !== undefined && (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === true)
+    ok('incognito: hidden from Discover', !(await deck(F, '{female}')).includes(E) && (await deck(F, '{female}')).includes(G))
+    ok('incognito: hidden from username search', !(await search(F)).includes(E) && (await search(S)).length === 0)
+    ok('incognito: own deck still works', (await deck(E, '{male}')).includes(F))
+    await as(E, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [F])
+    ok('incognito: shown to the people it liked', (await deck(F, '{female}')).includes(E) && !(await deck(S, '{female}')).includes(E))
+    ok('incognito: the like is hidden in "Who liked you"', !(await likers(F)).includes(E) && (await as(F, `select count_incoming_likes() n`)).rows[0].n === 0)
+    await as(G, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [F])
+    ok('incognito: regular likes still show', (await likers(F)).includes(G))
+    await su(`update profiles set discoverable = false where id=$1`, [E])
+    ok('incognito: pause still hides everything', !(await deck(F, '{female}')).includes(E))
+    await su(`update profiles set discoverable = true where id=$1`, [E])
+    await as(F, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [E])
+    ok('incognito: mutual like still matches', !!(await matchOf(E, F)))
+    const efMatch = (await matchOf(E, F)).id
+    ok('incognito: the match sees the profile and the chat', (await as(F, `select count(*)::int c from profiles where id=$1`, [E])).rows[0].c === 1 &&
+       !(await fails(() => as(F, `insert into messages (match_id, body) values ($1, 'hi')`, [efMatch]))))
+    // crossed paths: no encounter is computed or shown for an incognito person
+    for (const u of [E, S]) await as(u, `select set_crossed_paths(true)`)
+    const ping = (u, h) => su(`insert into user_location_pings (user_id, cell, day, seen_hour, is_night)
+       select $1, 'w283c9', (h at time zone 'Asia/Kuala_Lumpur')::date, h, false from (select date_trunc('hour', now()) - make_interval(hours => $2) h) t`, [u, h])
+    for (const h of [5, 6]) { await ping(E, h); await ping(S, h) }
+    await su(`select compute_crossed_paths()`)
+    const crossed = async (a, b) => (await su(`select count(*)::int c from crossed_paths where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0].c
+    ok('incognito: crossed paths never computed', (await crossed(E, S)) === 0)
+    await as(E, `update profiles set is_incognito = false where id=$1`, [E])
+    await su(`select compute_crossed_paths()`)
+    ok('incognito: off again: encounter computed and shown', (await crossed(E, S)) === 1 && (await as(S, `select id from get_crossed_paths()`)).rows.some((r) => r.id === E))
+    await as(E, `update profiles set is_incognito = true where id=$1`, [E])
+    ok('incognito: hidden from crossed paths at read time', !(await as(S, `select id from get_crossed_paths()`)).rows.some((r) => r.id === E))
+    await as(E, `update profiles set is_incognito = false where id=$1`, [E])
+    await su(`delete from user_location_pings where user_id = any($1)`, [[E, S]])
+    await su(`delete from crossed_paths where user_a = any($1) or user_b = any($1)`, [[E, S]])
+  })()
+  // ===== end matchmaker & incognito =====
 
   // ===== duo dating (20261009000260, 20261009000261) =====
   await (async () => {

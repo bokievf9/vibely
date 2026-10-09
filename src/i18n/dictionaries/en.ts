@@ -15,10 +15,12 @@ import { reportsEn } from './reports/en'
 import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
+import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from './matchmaker/en'
 import { eventErrorsEn, eventsEn } from './events/en'
 import { crushEn } from './crush/en'
 import { promoEn, promoErrorsEn } from './promo/en'
 import { duoEn, duoErrorsEn } from './duo/en'
+import { conversationErrorsEn, conversationsEn } from './conversations/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -42,9 +44,11 @@ export const en = {
     ...usernameErrorsEn,
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
+    ...matchmakerErrorsEn,
     ...eventErrorsEn,
     ...promoErrorsEn,
     ...duoErrorsEn,
+    ...conversationErrorsEn,
     generic: 'Something went wrong. Please try again.',
     unauthorized: 'Please sign in again.',
     invalidInput: 'Please check the form.',
@@ -398,10 +402,13 @@ export const en = {
   sanctions: sanctionsEn,
   crossed: crossedEn,
   plans: plansEn,
+  matchmaker: matchmakerEn,
+  incognito: incognitoEn,
   events: eventsEn,
   crush: crushEn,
   promo: promoEn,
   duo: duoEn,
+  conversations: conversationsEn,
 }
 
 export type Dictionary = typeof en

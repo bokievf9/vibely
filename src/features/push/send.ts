@@ -179,16 +179,17 @@ export function notifyCrushMatch(inviterId: string, inviteeName: string, matchId
 }
 
 // A one-way like. Never the liker's name or photo: only that someone did. Skipped when the liker
-// is paused, because the recipient could not find them in "Who liked you" anyway.
-// One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
+// is paused or in Incognito mode, because the recipient could not find them in "Who liked you"
+// anyway. One notification at a time (same tag): a burst of likes doesn't flood the lock screen.
 export function notifyNewLike(userId: string, likerId: string) {
   inBackground(async () => {
+    // '*': is_incognito (20261009000240) may not exist yet on this database.
     const { data: liker } = await createAdminClient()
       .from('profiles')
-      .select('discoverable')
+      .select('*')
       .eq('id', likerId)
       .maybeSingle()
-    if (!liker?.discoverable) return
+    if (!liker?.discoverable || liker.is_incognito === true) return
     // A VIP with the see_likes perk (promo codes) gets the list even when the flag is off.
     const visible = LIKES_VISIBLE_FREE || (await userCanSeeLikes(userId))
     await sendToUser(userId, 'likes', (dict, locale) => ({
@@ -198,6 +199,31 @@ export function notifyNewLike(userId: string, likerId: string) {
       tag: 'likes',
     }))
   })
+}
+
+// Matchmaker (20261009000240). "{name} wants to introduce you to someone": sent to B when A
+// creates the introduction and to C once B is interested. Never says who the other person is.
+export function notifyReferral(userId: string, matchmakerName: string, matchId: string) {
+  inBackground(() =>
+    sendToUser(userId, 'matchmaker', (dict, locale) => ({
+      title: fmt(dict.matchmaker.pushIntro, { name: matchmakerName }),
+      body: dict.matchmaker.pushIntroBody,
+      url: chatUrl(locale, matchId),
+      tag: `referral-${matchId}`,
+    })),
+  )
+}
+
+// Both people said yes: the matchmaker learns it worked (and about the VIP days).
+export function notifyReferralWorked(matchmakerId: string, bName: string, cName: string) {
+  inBackground(() =>
+    sendToUser(matchmakerId, 'matchmaker', (dict, locale) => ({
+      title: dict.matchmaker.pushWorked,
+      body: fmt(dict.matchmaker.pushWorkedBody, { b: bName, c: cName }),
+      url: localePath(locale, '/chats'),
+      tag: 'referral-worked',
+    })),
+  )
 }
 
 // ---------- Duo Dating (20261009000261): preference 'duo' ----------

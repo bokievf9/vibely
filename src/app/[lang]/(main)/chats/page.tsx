@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/layout/page-header'
 import { getViewer } from '@/features/auth/session'
+import { listMyConversations } from '@/features/blind-date/actions'
 import { ChatList } from '@/features/chat/components/chat-list'
 import { ChatListSkeleton } from '@/features/chat/components/chat-skeletons'
 import { getChatList } from '@/features/chat/queries'
@@ -27,14 +28,21 @@ export default async function ChatsPage() {
 
 async function Chats() {
   const viewer = await getViewer()
-  const [chats, groups] = viewer
-    ? await Promise.all([getChatList(viewer.id), getGroupChats()])
-    : [[], []]
+  if (!viewer) return <ChatList chats={[]} conversations={[]} />
+  // Private replies (feed + question of the day) sit above the match chats; empty until the
+  // 20261009000220 migration is live. Duo chats (20261009000261) come first.
+  const [chats, conversations, groups] = await Promise.all([
+    getChatList(viewer.id),
+    listMyConversations(),
+    getGroupChats(),
+  ])
   return (
     <>
-      {viewer && <GroupChatList groups={groups} viewerId={viewer.id} />}
+      <GroupChatList groups={groups} viewerId={viewer.id} />
       {/* With only duo chats, no "no chats yet" screen under them. */}
-      {(chats.length > 0 || groups.length === 0) && <ChatList chats={chats} />}
+      {(chats.length > 0 || conversations.length > 0 || groups.length === 0) && (
+        <ChatList chats={chats} conversations={conversations} />
+      )}
     </>
   )
 }

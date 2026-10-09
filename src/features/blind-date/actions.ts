@@ -4,15 +4,21 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeText } from '@/lib/sanitize'
 import { fail, ok, rateLimitedOr, type UserResult } from '@/i18n/errors'
+import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { signPhotoPaths } from '@/features/profile/queries'
 import { notifyBlindMatch } from '@/features/push/send'
+import { toPseudonym } from '@/features/feed/pseudonym'
+import { notifyConversationMessage } from './notify'
 import { joinSchema, partnerSchema, type JoinFilters } from './schemas'
 import type {
   BlindMessage,
   BlindSession,
   BlindState,
+  ConversationPreview,
   DecideResult,
   RevealedPartner,
+  SessionContext,
+  SessionKind,
   Side,
 } from './types'
 
@@ -23,6 +29,52 @@ const uuid = z.uuid()
 // TODO: remove the fallbacks once the migration is live everywhere.
 const MISSING_RPC = 'PGRST202'
 
+// Explicit keys (not Object.fromEntries over LOCALES) so the parsed shape is Record<Locale, …>.
+const localeRecord = z.object({ en: z.string(), ms: z.string(), ru: z.string() })
+const localeLists = z.object({
+  en: z.array(z.string()),
+  ms: z.array(z.string()),
+  ru: z.array(z.string()),
+})
+
+const photoSchema = z
+  .object({ path: z.string(), width: z.number(), height: z.number() })
+  .nullable()
+  .catch(null)
+
+// session_context (20261009000220). Unknown shapes become "no context" instead of breaking a chat.
+const contextSchema = z
+  .union([
+    z.object({
+      post_id: z.uuid().nullable(),
+      body: z.string().nullable(),
+      i_am_author: z.boolean(),
+      author: z
+        .object({
+          id: z.uuid(),
+          display_name: z.string(),
+          username: z.string().nullable().catch(null),
+          age: z.number().nullable().catch(null),
+          verified: z.boolean().catch(false),
+          photo: photoSchema,
+        })
+        .nullable()
+        .catch(null),
+      author_pseudonym: z.tuple([z.number(), z.number(), z.number()]).nullable().catch(null),
+    }),
+    z.object({
+      prompt_id: z.uuid(),
+      question: localeRecord,
+      options: localeLists,
+      my_option: z.number().nullable(),
+      partner_option: z.number().nullable(),
+    }),
+  ])
+  .nullable()
+  .catch(null)
+
+// Columns from 20261009000220 are optional: before that migration get_blind_session has no
+// kind / context / counts, and every session is a blind date.
 const sessionSchema = z.object({
   id: z.uuid(),
   my_side: z.enum(['a', 'b']),
@@ -35,6 +87,11 @@ const sessionSchema = z.object({
   match_id: z.uuid().nullable(),
   // Added by 20261009000210: absent until that migration is applied.
   event_id: z.uuid().nullable().optional(),
+  kind: z.enum(['blind', 'post', 'prompt']).catch('blind'),
+  context: contextSchema,
+  my_messages: z.number().int().catch(0),
+  partner_messages: z.number().int().catch(0),
+  revealed_from_start: z.boolean().catch(false),
 })
 
 const decideSchema = z.object({
@@ -43,7 +100,42 @@ const decideSchema = z.object({
   just_matched: z.boolean().optional(),
 })
 
-// Main photo of a partner who is already revealed (matched): signed, short-lived URL.
+const startSchema = z.object({
+  session_id: z.uuid(),
+  message_id: z.uuid().nullable().optional(),
+  created: z.boolean(),
+  state: z.enum(['active', 'matched', 'passed', 'ended']),
+})
+
+const previewSchema = z.object({
+  id: z.uuid(),
+  kind: z.enum(['post', 'prompt']),
+  my_side: z.enum(['a', 'b']),
+  partner_alias: z.number().int(),
+  context: contextSchema,
+  partner: z
+    .object({ id: z.uuid(), display_name: z.string(), age: z.number(), photo: photoSchema })
+    .nullable()
+    .catch(null),
+  revealed_from_start: z.boolean(),
+  last_body: z.string().nullable(),
+  last_at: z.string().nullable(),
+  last_mine: z.boolean().nullable(),
+  started_at: z.string(),
+})
+
+// Postgres errors raised by the conversation RPCs (20261009000220).
+function conversationError(code: string | undefined): ErrorKey {
+  if (code === 'P0429') return 'conversationLimit'
+  if (code === 'VS001') return 'muted'
+  if (code === 'P0423') return 'revealLocked'
+  if (code === 'P0002' || code === MISSING_RPC) return 'conversationUnavailable'
+  if (code === '42501') return 'unauthorized'
+  return 'generic'
+}
+
+// Main photo of a partner who is already revealed (matched, or a prompt conversation): signed,
+// short-lived URL.
 async function revealedPartner(raw: unknown): Promise<RevealedPartner | null> {
   const parsed = partnerSchema.safeParse(raw)
   if (!parsed.success) return null
@@ -69,19 +161,51 @@ async function revealedPartner(raw: unknown): Promise<RevealedPartner | null> {
   }
 }
 
-// The caller's active blind date, or (with an id) that session in any state, e.g. to show the
-// reveal after a match. Profile data is only present once both people pressed Connect.
-export async function getBlindSession(sessionId?: string): Promise<BlindSession | null> {
-  if (sessionId !== undefined && !uuid.safeParse(sessionId).success) return null
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc('get_blind_session', { p_session: sessionId })
-  if (error?.code === MISSING_RPC) return legacySession()
-  const parsed = sessionSchema.safeParse(data?.[0])
-  if (!parsed.success) return null
-  const s = parsed.data
-  const partner = s.state === 'matched' && s.partner ? await revealedPartner(s.partner) : null
+// The pinned context of a post / prompt conversation; the author's photo (an "As me" post the
+// viewer may see) is signed with the viewer's own client.
+async function toContext(raw: z.infer<typeof contextSchema>): Promise<SessionContext> {
+  if (!raw) return null
+  if ('prompt_id' in raw) {
+    return {
+      kind: 'prompt',
+      promptId: raw.prompt_id,
+      question: raw.question,
+      options: raw.options,
+      myOption: raw.my_option,
+      partnerOption: raw.partner_option,
+    }
+  }
+  const a = raw.author
+  const photoUrl = a?.photo && (await signPhotoPaths([a.photo.path])).get(a.photo.path)
+  const ps = raw.author_pseudonym
+  return {
+    kind: 'post',
+    postId: raw.post_id,
+    body: raw.body,
+    iAmAuthor: raw.i_am_author,
+    author: a
+      ? {
+          id: a.id,
+          name: a.display_name,
+          username: a.username,
+          age: a.age,
+          verified: a.verified,
+          photoUrl: photoUrl || null,
+        }
+      : null,
+    authorPseudonym: ps ? toPseudonym(ps[0], ps[1], ps[2]) : null,
+  }
+}
+
+async function toSession(s: z.infer<typeof sessionSchema>): Promise<BlindSession> {
+  const showPartner = s.state === 'matched' || s.revealed_from_start
+  const [partner, context] = await Promise.all([
+    showPartner && s.partner ? revealedPartner(s.partner) : null,
+    toContext(s.context),
+  ])
   return {
     id: s.id,
+    kind: s.kind,
     mySide: s.my_side,
     myAlias: s.my_alias,
     partnerAlias: s.partner_alias,
@@ -91,7 +215,24 @@ export async function getBlindSession(sessionId?: string): Promise<BlindSession 
     partner,
     matchId: s.state === 'matched' ? s.match_id : null,
     eventId: s.event_id ?? null,
+    context,
+    myMessages: s.my_messages,
+    partnerMessages: s.partner_messages,
+    revealedFromStart: s.revealed_from_start,
   }
+}
+
+// The caller's active blind date, or (with an id) that session in any state, e.g. to show the
+// reveal after a match or to open a private reply. Profile data is only present once both people
+// pressed Connect (or from the start for prompt conversations).
+export async function getBlindSession(sessionId?: string): Promise<BlindSession | null> {
+  if (sessionId !== undefined && !uuid.safeParse(sessionId).success) return null
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_blind_session', { p_session: sessionId })
+  if (error?.code === MISSING_RPC) return legacySession()
+  const parsed = sessionSchema.safeParse(data?.[0])
+  if (!parsed.success) return null
+  return toSession(parsed.data)
 }
 
 // Returns the session if paired right away, or null while waiting in the queue. With an event id
@@ -143,7 +284,13 @@ export async function loadBlindMessages(sessionId: string): Promise<BlindMessage
     .reverse()
 }
 
-export async function sendBlind(sessionId: string, raw: string): Promise<UserResult<BlindMessage>> {
+// `notify`: a post / prompt conversation, whose partner is usually not on the page: the server
+// sends them a (throttled) push. Blind dates never push (both people are present).
+export async function sendBlind(
+  sessionId: string,
+  raw: string,
+  notify = false,
+): Promise<UserResult<BlindMessage>> {
   if (!uuid.safeParse(sessionId).success) return fail('invalidInput')
   const body = sanitizeText(z.string().parse(raw))
   if (!body) return fail('messageEmpty')
@@ -154,6 +301,7 @@ export async function sendBlind(sessionId: string, raw: string): Promise<UserRes
     p_body: body,
   })
   if (error) return fail(rateLimitedOr(error.code, 'generic'))
+  if (notify === true) notifyConversationMessage(data)
   return ok({ id: data, body, mine: true, createdAt: new Date().toISOString() })
 }
 
@@ -170,7 +318,7 @@ export async function decideBlind(
     p_connect: connect,
   })
   if (error?.code === MISSING_RPC) return legacyDecide(sessionId, connect)
-  if (error) return fail('generic')
+  if (error) return fail(error.code === 'P0423' ? 'revealLocked' : 'generic')
   const parsed = decideSchema.safeParse(data)
   if (!parsed.success) return fail('generic')
   const { state, match_id: matchId, just_matched: justMatched } = parsed.data
@@ -198,6 +346,86 @@ export async function getBlindStats(): Promise<number> {
   return count.success ? count.data : 0
 }
 
+// ---- Reply privately / Say hi (20261009000220) ------------------------------------------------
+
+// Starts (or continues) the caller's private conversation on a post with its author, sending the
+// first message. The author gets a push after the response; the caller never learns who they are.
+export async function startPostConversation(
+  postId: string,
+  raw: string,
+): Promise<UserResult<{ sessionId: string; state: BlindState }>> {
+  if (!uuid.safeParse(postId).success) return fail('invalidInput')
+  const body = sanitizeText(z.string().parse(raw))
+  if (!body) return fail('messageEmpty')
+  if (body.length > 1000) return fail('messageTooLong')
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('start_post_conversation', {
+    p_post: postId,
+    p_body: body,
+  })
+  if (error) return fail(conversationError(error.code))
+  const parsed = startSchema.safeParse(data)
+  if (!parsed.success) return fail('generic')
+  if (parsed.data.message_id) notifyConversationMessage(parsed.data.message_id)
+  return ok({ sessionId: parsed.data.session_id, state: parsed.data.state })
+}
+
+// "Say hi" from the question of the day: a conversation with someone who chose the same answer.
+export async function startPromptConversation(
+  promptId: string,
+  targetId: string,
+): Promise<UserResult<{ sessionId: string; state: BlindState }>> {
+  if (!uuid.safeParse(promptId).success || !uuid.safeParse(targetId).success) {
+    return fail('invalidInput')
+  }
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('start_prompt_conversation', {
+    p_prompt: promptId,
+    p_target: targetId,
+  })
+  if (error) return fail(conversationError(error.code))
+  const parsed = startSchema.safeParse(data)
+  if (!parsed.success) return fail('generic')
+  return ok({ sessionId: parsed.data.session_id, state: parsed.data.state })
+}
+
+// The caller's open post / prompt conversations (Chats screen). Empty until the migration is live.
+export async function listMyConversations(): Promise<ConversationPreview[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('list_my_conversations')
+  if (error || !data) return []
+  const rows = data.flatMap((r) => {
+    const p = previewSchema.safeParse(r)
+    return p.success ? [p.data] : []
+  })
+  const paths = rows.flatMap((r) => (r.partner?.photo ? [r.partner.photo.path] : []))
+  const urls = await signPhotoPaths([...new Set(paths)])
+  return Promise.all(
+    rows.map(async (r) => {
+      const ph = r.partner?.photo
+      const url = ph && urls.get(ph.path)
+      return {
+        id: r.id,
+        kind: r.kind,
+        partnerAlias: r.partner_alias,
+        context: await toContext(r.context),
+        partner: r.partner
+          ? {
+              id: r.partner.id,
+              name: r.partner.display_name,
+              age: r.partner.age,
+              photo: ph && url ? { url, width: ph.width, height: ph.height } : null,
+            }
+          : null,
+        lastBody: r.last_body,
+        lastAt: r.last_at,
+        lastMine: r.last_mine ?? false,
+        startedAt: r.started_at,
+      }
+    }),
+  )
+}
+
 // ---- Fallback to the pre-20261009000190 RPCs (see MISSING_RPC) --------------------------------
 
 // Server-side alias from the session id, stable per session and different for the two sides.
@@ -217,8 +445,10 @@ async function legacySession(): Promise<BlindSession | null> {
   const mySide: Side = s.my_side === 'a' ? 'a' : 'b'
   const partner = s.partner ? await revealedPartner(s.partner) : null
   const state: BlindState = partner ? 'matched' : 'active'
+  const kind: SessionKind = 'blind'
   return {
     id: s.id,
+    kind,
     mySide,
     myAlias: legacyAlias(s.id, mySide),
     partnerAlias: legacyAlias(s.id, mySide === 'a' ? 'b' : 'a'),
@@ -228,6 +458,10 @@ async function legacySession(): Promise<BlindSession | null> {
     partner,
     matchId: partner ? s.match_id : null,
     eventId: null,
+    context: null,
+    myMessages: 0,
+    partnerMessages: 0,
+    revealedFromStart: false,
   }
 }
 

@@ -16,10 +16,12 @@ import { reportsMs } from './reports/ms'
 import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
+import { incognitoMs, matchmakerMs, matchmakerErrorsMs } from './matchmaker/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
 import { crushMs } from './crush/ms'
 import { promoMs, promoErrorsMs } from './promo/ms'
 import { duoMs, duoErrorsMs } from './duo/ms'
+import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -43,9 +45,11 @@ export const ms: Dictionary = {
     ...usernameErrorsMs,
     ...passwordErrorsMs,
     ...sanctionErrorsMs,
+    ...matchmakerErrorsMs,
     ...eventErrorsMs,
     ...promoErrorsMs,
     ...duoErrorsMs,
+    ...conversationErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -405,8 +409,11 @@ export const ms: Dictionary = {
   sanctions: sanctionsMs,
   crossed: crossedMs,
   plans: plansMs,
+  matchmaker: matchmakerMs,
+  incognito: incognitoMs,
   events: eventsMs,
   crush: crushMs,
   promo: promoMs,
   duo: duoMs,
+  conversations: conversationsMs,
 }

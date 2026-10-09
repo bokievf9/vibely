@@ -7,7 +7,7 @@ import type { LegalSection } from './types'
 export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSection }> = {
   en: {
     privacy: {
-      heading: '5d. Duo Dating',
+      heading: '5f. Duo Dating',
       paragraphs: [
         'A duo is formed only when one verified user invites another verified user and that person accepts. Other duos see both members of your duo: their main photo, first name and age, and the bio of your duo. Duo bios are checked automatically; a bio that looks suspicious (for example contact details, links or requests for money) is held and not shown until a moderator has reviewed it.',
         'When you like another duo, your partner sees that like and can undo it within 1 hour. When two duos like each other, a group chat for the 4 of you is created.',
@@ -16,7 +16,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5b. Duo Dating',
+      heading: '5f. Duo Dating',
       paragraphs: [
         'Only invite someone you know who wants to join you. Our rules of conduct (section 3) apply to your duo bio and to everything you send in a group chat, and you are responsible for your own messages and photos there. You can report a message or a member of a group chat at any time.',
         "Blocking a member removes you from that group chat and prevents future duo matches with that person's duo. Leaving your duo, or a ban of either member, dissolves the duo.",
@@ -25,7 +25,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
   },
   ms: {
     privacy: {
-      heading: '5d. Temu Janji Duo',
+      heading: '5f. Temu Janji Duo',
       paragraphs: [
         'Duo hanya terbentuk apabila seorang pengguna yang disahkan menjemput pengguna lain yang disahkan dan orang itu menerimanya. Duo lain melihat kedua-dua ahli duo anda: foto utama, nama pertama dan umur mereka, serta bio duo anda. Bio duo disemak secara automatik; bio yang kelihatan mencurigakan (contohnya butiran hubungan, pautan atau permintaan wang) ditahan dan tidak ditunjukkan sehingga moderator menyemaknya.',
         'Apabila anda menyukai duo lain, pasangan anda melihat suka itu dan boleh membatalkannya dalam masa 1 jam. Apabila dua duo saling menyukai, sembang kumpulan untuk anda berempat diwujudkan.',
@@ -34,7 +34,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5b. Temu Janji Duo',
+      heading: '5f. Temu Janji Duo',
       paragraphs: [
         'Jemput hanya orang yang anda kenali dan yang mahu menyertai anda. Peraturan tingkah laku kami (seksyen 3) terpakai pada bio duo anda dan pada semua yang anda hantar dalam sembang kumpulan, dan anda bertanggungjawab atas mesej dan foto anda sendiri di situ. Anda boleh melaporkan mesej atau ahli sembang kumpulan pada bila-bila masa.',
         'Menyekat seorang ahli mengeluarkan anda daripada sembang kumpulan itu dan menghalang padanan duo pada masa hadapan dengan duo orang itu. Keluar daripada duo anda, atau pengharaman salah seorang ahli, membubarkan duo itu.',
@@ -43,7 +43,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
   },
   ru: {
     privacy: {
-      heading: '5d. Знакомства вдвоём (Duo)',
+      heading: '5f. Знакомства вдвоём (Duo)',
       paragraphs: [
         'Дуо создаётся, только когда один верифицированный пользователь приглашает другого верифицированного пользователя и тот принимает приглашение. Другие дуо видят обоих участников вашего дуо: их главное фото, имя и возраст, а также описание вашего дуо. Описания дуо проверяются автоматически; подозрительное описание (например, с контактами, ссылками или просьбами о деньгах) задерживается и не показывается, пока его не проверит модератор.',
         'Когда вы ставите лайк другому дуо, ваш партнёр видит этот лайк и может отменить его в течение 1 часа. Когда два дуо ставят лайк друг другу, создаётся групповой чат для вас четверых.',
@@ -52,7 +52,7 @@ export const duoLegal: Record<Locale, { privacy: LegalSection; terms: LegalSecti
       ],
     },
     terms: {
-      heading: '5b. Знакомства вдвоём (Duo)',
+      heading: '5f. Знакомства вдвоём (Duo)',
       paragraphs: [
         'Приглашайте только знакомых людей, которые сами хотят присоединиться к вам. Наши правила поведения (раздел 3) действуют для описания вашего дуо и для всего, что вы отправляете в групповом чате, и вы отвечаете за свои сообщения и фото в нём. Вы в любой момент можете пожаловаться на сообщение или участника группового чата.',
         'Блокировка участника удаляет вас из этого группового чата и исключает будущие мэтчи с дуо этого человека. Выход из дуо или блокировка аккаунта любого из участников распускает дуо.',

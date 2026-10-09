@@ -6,9 +6,11 @@ import {
   type Reaction,
   type ReactionEmoji,
 } from './types'
+import { messageKindOf, referralIdOf } from './message-kind'
 
-export const MESSAGE_COLUMNS =
-  'id, body, sender_id, created_at, read_at, edited_at, deleted_at, reply_to, image_width, image_height, media_kind, media_path, media_duration_ms, waveform, media_expired_at'
+// Every column: `kind` and `payload` (20261009000240) must not break a chat on a database where
+// that migration is not applied yet, and a row is small anyway.
+export const MESSAGE_COLUMNS = '*'
 
 export type MessageRow = {
   id: string
@@ -26,6 +28,9 @@ export type MessageRow = {
   media_duration_ms: number | null
   waveform: number[] | null
   media_expired_at: string | null
+  // Absent before 20261009000240.
+  kind?: string | null
+  payload?: unknown
 }
 
 const isMediaKind = (k: string | null): k is MediaKind =>
@@ -62,6 +67,8 @@ export const toChatMessage = (m: MessageRow): ChatMessage => ({
   reply: null,
   media: toMedia(m),
   expiredMedia: m.media_expired_at ? mediaKindOf(m) : null,
+  kind: messageKindOf(m),
+  referralId: referralIdOf(m),
 })
 
 export const REACTION_COLUMNS = 'message_id, user_id, emoji'

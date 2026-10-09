@@ -1,7 +1,9 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
 import { duoLegal } from './duo'
+import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -64,6 +66,12 @@ export const en: LegalContent = {
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.en.privacy,
       // --- end secret crush ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.privacy,
+      // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.en.privacy,
+      // --- end matchmaker & incognito ---
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.en.privacy,
       // --- end duo dating ---
@@ -183,6 +191,12 @@ export const en: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.en.terms,
       // --- end calls ---
+      // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
+      conversationsLegal.en.terms,
+      // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.en.privacy,
+      // --- end matchmaker & incognito ---
       // --- duo dating (src/features/legal/content/duo.ts) ---
       duoLegal.en.terms,
       // --- end duo dating ---

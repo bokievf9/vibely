@@ -27,6 +27,7 @@ import { useStickToBottom } from './use-stick-to-bottom'
 type Props = {
   matchId: string
   viewerId: string
+  partnerId: string
   partnerName: string
   initialMessages: ChatMessage[]
   initialReactions: Reaction[]
@@ -34,7 +35,7 @@ type Props = {
   initialCalls?: CallEntry[]
 }
 
-export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) {
+export function ChatRoom({ matchId, viewerId, partnerId, partnerName, ...initial }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
   const [error, setError] = useFlash<ErrorKey>()
@@ -105,6 +106,7 @@ export function ChatRoom({ matchId, viewerId, partnerName, ...initial }: Props) 
             calls={calls}
             reactions={reactions.byMessage}
             viewerId={viewerId}
+            partnerId={partnerId}
             partnerName={partnerName}
             partnerTyping={partnerTyping}
             hasMore={hasMore}

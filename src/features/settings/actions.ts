@@ -20,6 +20,21 @@ export async function setDiscoverable(discoverable: boolean): Promise<UserResult
   return error ? fail('generic') : ok(undefined)
 }
 
+// Incognito: shown in Discover only to people the user liked; hidden from search, crossed paths
+// and "Who liked you" (enforced in the database, 20261009000240).
+export async function setIncognito(on: boolean): Promise<UserResult> {
+  const value = z.boolean().safeParse(on)
+  if (!value.success) return fail('invalidInput')
+  const viewer = await getViewer()
+  if (!viewer) return fail('unauthorized')
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_incognito: value.data })
+    .eq('id', viewer.id)
+  return error ? fail('generic') : ok(undefined)
+}
+
 const prefSchema = z.object({ type: notificationTypeSchema, enabled: z.boolean() })
 
 export async function setNotificationPref(

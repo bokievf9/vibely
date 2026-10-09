@@ -7,13 +7,25 @@ import { fmt } from '@/i18n/config'
 import { LocaleLink, useI18n } from '@/i18n/client'
 import { formatChatTime } from '@/i18n/format'
 import { cn } from '@/lib/utils'
+import { ConversationList } from '@/features/blind-date/components/conversation-list'
+import type { ConversationPreview } from '@/features/blind-date/types'
 import type { ChatPreview } from '../types'
 
 const unreadLabel = (n: number) => (n > 99 ? '99+' : String(n))
 
-// Matches without messages yet go to the "New matches" carousel; conversations below.
-export function ChatList({ chats }: { chats: ChatPreview[] }) {
+type Props = { chats: ChatPreview[]; conversations?: ConversationPreview[] }
+
+// Private replies first, then matches without messages yet ("New matches" carousel), then the
+// conversations.
+export function ChatList({ chats, conversations = [] }: Props) {
   const { dict } = useI18n()
+  if (!chats.length && conversations.length) {
+    return (
+      <div className="flex flex-col gap-3 pt-2 pb-4">
+        <ConversationList conversations={conversations} />
+      </div>
+    )
+  }
   if (!chats.length) {
     return (
       <EmptyState icon={MessagesSquare} title={dict.chats.empty} text={dict.chats.emptyHint}>
@@ -31,6 +43,7 @@ export function ChatList({ chats }: { chats: ChatPreview[] }) {
 
   return (
     <div className="flex flex-col gap-3 pt-2 pb-4">
+      <ConversationList conversations={conversations} />
       {fresh.length > 0 && (
         <section aria-labelledby="new-matches" className="flex flex-col gap-3">
           <h2 id="new-matches" className="text-headline flex items-center gap-2 px-4">
@@ -108,6 +121,8 @@ function ChatRow({ chat: c }: { chat: ChatPreview }) {
         return dict.media.previewVideo
       case 'expired':
         return m.body ?? dict.media.previewExpired
+      case 'referral':
+        return dict.matchmaker.preview
       default:
         return m.body ?? ''
     }
