@@ -6,6 +6,8 @@ import { ChatList } from '@/features/chat/components/chat-list'
 import { ChatListSkeleton } from '@/features/chat/components/chat-skeletons'
 import { getChatList } from '@/features/chat/queries'
 import { getDictionary } from '@/i18n/server'
+import { GroupChatList } from '@/features/duo/components/group-chat-list'
+import { getGroupChats } from '@/features/duo/queries'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).chats.title }
@@ -25,5 +27,14 @@ export default async function ChatsPage() {
 
 async function Chats() {
   const viewer = await getViewer()
-  return <ChatList chats={viewer ? await getChatList(viewer.id) : []} />
+  const [chats, groups] = viewer
+    ? await Promise.all([getChatList(viewer.id), getGroupChats()])
+    : [[], []]
+  return (
+    <>
+      {viewer && <GroupChatList groups={groups} viewerId={viewer.id} />}
+      {/* With only duo chats, no "no chats yet" screen under them. */}
+      {(chats.length > 0 || groups.length === 0) && <ChatList chats={chats} />}
+    </>
+  )
 }

@@ -45,6 +45,10 @@ export const ACTION_LABELS: Record<string, string> = {
   'promo.update': 'Изменил промокод',
   'promo.activate': 'Включил промокод',
   'promo.deactivate': 'Выключил промокод',
+  'evidence.transcript_open': 'Открыл переписку по жалобе',
+  'evidence.media_open': 'Открыл медиафайл по жалобе',
+  'duo_bio.approve': 'Одобрил описание дуо',
+  'duo_bio.reject': 'Отклонил описание дуо',
 }
 
 export const actionLabel = (action: string) => ACTION_LABELS[action] ?? action

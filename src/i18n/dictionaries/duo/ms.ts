@@ -93,6 +93,9 @@ export const duoMs: DuoDictionary = {
   pushGroupMessage: 'Mesej baharu dalam sembang duo anda',
   pushGroupMessageBody: 'Buka Vibely untuk membacanya.',
   pushGroupPhotoBody: 'Seseorang menghantar foto. Buka Vibely untuk melihatnya.',
+  noResults: 'Tiada sesiapa dengan nama pengguna itu',
+  createLink: 'Cipta pautan jemputan',
+  blockMemberConfirm: 'Sekat {name}? Anda akan keluar dari sembang ini, anda tidak lagi melihat satu sama lain, dan duo anda tidak akan dipadankan dengan duo mereka lagi.',
   notifyType: 'Duo',
 }
 
@@ -104,4 +107,5 @@ export const duoErrorsMs: typeof import('./en').duoErrorsEn = {
   duoBioTooLong: 'Paling banyak 120 aksara',
   duoNone: 'Anda perlukan duo yang aktif untuk ini.',
   groupNotMember: 'Anda tidak lagi berada dalam sembang ini.',
+  duoUndoExpired: 'Sudah terlambat untuk membatalkan',
 }

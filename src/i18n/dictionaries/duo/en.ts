@@ -100,6 +100,9 @@ export const duoEn = {
   pushGroupMessage: 'New message in your duo chat',
   pushGroupMessageBody: 'Open Vibely to read it.',
   pushGroupPhotoBody: 'Someone sent a photo. Open Vibely to see it.',
+  noResults: 'No one found with that username',
+  createLink: 'Create an invite link',
+  blockMemberConfirm: 'Block {name}? You leave this chat, you no longer see each other, and your duo will never be matched with theirs again.',
   notifyType: 'Duo dating',
 }
 
@@ -111,6 +114,7 @@ export const duoErrorsEn = {
   duoBioTooLong: 'At most 120 characters',
   duoNone: 'You need an active duo for this.',
   groupNotMember: 'You are not in this chat any more.',
+  duoUndoExpired: 'Too late to undo',
 }
 
 export type DuoDictionary = typeof duoEn

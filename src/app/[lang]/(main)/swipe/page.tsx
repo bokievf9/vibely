@@ -13,24 +13,38 @@ import { getOwnProfile } from '@/features/profile/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
 import { SearchButton } from '@/features/username/components/search-button'
 import { getDictionary } from '@/i18n/server'
+import { DuoDiscover } from '@/features/duo/components/duo-discover'
+import { DiscoverModeToggle } from '@/features/duo/components/mode-toggle'
+import { getMyDuo, getOwnDuoPerson } from '@/features/duo/queries'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).swipe.title }
 }
 
-export default function SwipePage() {
+export default function SwipePage({ searchParams }: PageProps<'/[lang]/swipe'>) {
   return (
     <Suspense fallback={<DiscoverSkeleton />}>
-      <Deck />
+      <Deck searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function Deck() {
-  const viewer = await getViewer()
-  const [profile, plan] = viewer
-    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id)])
-    : [null, undefined]
+async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchParams'>) {
+  const [viewer, query] = await Promise.all([getViewer(), searchParams])
+  const [profile, plan, duo] = viewer
+    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id), getMyDuo()])
+    : [null, undefined, undefined]
+  // Duo mode (?mode=duo) once Duo Dating exists on this database (migration 20261009000261).
+  if (viewer && duo && query.mode === 'duo') {
+    return (
+      <DuoDiscover
+        initial={duo}
+        me={await getOwnDuoPerson(viewer.id)}
+        openInbox={query.inbox === '1'}
+        headerActions={<SearchButton />}
+      />
+    )
+  }
   // Until the user changes filters, show who they said they're interested in.
   return (
     <>
@@ -53,9 +67,12 @@ async function Deck() {
           </>
         }
         banner={
-          <Suspense fallback={null}>
-            <NightBanner />
-          </Suspense>
+          <>
+            {duo && <DiscoverModeToggle mode="solo" />}
+            <Suspense fallback={null}>
+              <NightBanner />
+            </Suspense>
+          </>
         }
       />
       {/* Joined through a crush invite link: the one-time card, once verified. */}

@@ -1,6 +1,7 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { crushLegal } from './crush'
+import { duoLegal } from './duo'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -66,6 +67,9 @@ export const ms: LegalContent = {
       // --- secret crush (src/features/legal/content/crush.ts) ---
       crushLegal.ms.privacy,
       // --- end secret crush ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.privacy,
+      // --- end duo dating ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -182,6 +186,9 @@ export const ms: LegalContent = {
       // --- calls & recording (src/features/legal/content/calls.ts) ---
       callsLegal.ms.terms,
       // --- end calls ---
+      // --- duo dating (src/features/legal/content/duo.ts) ---
+      duoLegal.ms.terms,
+      // --- end duo dating ---
       {
         heading: '6. Moderasi',
         paragraphs: [

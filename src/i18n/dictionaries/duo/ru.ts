@@ -93,6 +93,9 @@ export const duoRu: DuoDictionary = {
   pushGroupMessage: 'Новое сообщение в чате дуэтов',
   pushGroupMessageBody: 'Откройте Vibely, чтобы прочитать.',
   pushGroupPhotoBody: 'Кто-то отправил фото. Откройте Vibely, чтобы посмотреть.',
+  noResults: 'Никого с таким именем пользователя',
+  createLink: 'Создать ссылку-приглашение',
+  blockMemberConfirm: 'Заблокировать {name}? Вы выйдете из этого чата, перестанете видеть друг друга, и ваш дуэт больше никогда не совпадёт с их дуэтом.',
   notifyType: 'Дуэты',
 }
 
@@ -104,4 +107,5 @@ export const duoErrorsRu: typeof import('./en').duoErrorsEn = {
   duoBioTooLong: 'Не больше 120 символов',
   duoNone: 'Для этого нужен активный дуэт.',
   groupNotMember: 'Вы больше не участник этого чата.',
+  duoUndoExpired: 'Отменить уже нельзя',
 }

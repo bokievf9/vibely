@@ -19,6 +19,7 @@ import { crossedMs, plansMs } from './nearby/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
 import { crushMs } from './crush/ms'
 import { promoMs, promoErrorsMs } from './promo/ms'
+import { duoMs, duoErrorsMs } from './duo/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -44,6 +45,7 @@ export const ms: Dictionary = {
     ...sanctionErrorsMs,
     ...eventErrorsMs,
     ...promoErrorsMs,
+    ...duoErrorsMs,
     generic: 'Ada masalah. Sila cuba lagi.',
     unauthorized: 'Sila log masuk semula.',
     invalidInput: 'Sila semak borang.',
@@ -406,4 +408,5 @@ export const ms: Dictionary = {
   events: eventsMs,
   crush: crushMs,
   promo: promoMs,
+  duo: duoMs,
 }

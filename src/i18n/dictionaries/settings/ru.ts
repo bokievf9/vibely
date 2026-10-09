@@ -15,6 +15,7 @@ export const settingsRu: SettingsDictionary = {
     calls: 'Входящие звонки',
     events: 'Вечера свиданий вслепую',
     crush: 'Взаимная симпатия по приглашению',
+    duo: 'Дуо-знакомства',
   },
   privacy: 'Приватность',
   pause: 'Поставить профиль на паузу',

@@ -199,3 +199,83 @@ export function notifyNewLike(userId: string, likerId: string) {
     }))
   })
 }
+
+// ---------- Duo Dating (20261009000261): preference 'duo' ----------
+
+const groupUrl = (locale: Locale, groupId: string) => localePath(locale, `/chats/group/${groupId}`)
+
+// An invite by username: the invited friend is told who wants to team up.
+export function notifyDuoInvite(userId: string, fromName: string) {
+  inBackground(() =>
+    sendToUser(userId, 'duo', (dict, locale) => ({
+      title: dict.duo.pushInvite,
+      body: fmt(dict.duo.pushInviteBody, { name: fromName }),
+      url: localePath(locale, '/swipe?mode=duo'),
+      tag: 'duo-invite',
+    })),
+  )
+}
+
+// The partner liked a duo for the team: the other member can see it and undo it within an hour.
+export function notifyDuoPartnerLiked(likerId: string, likerName: string) {
+  inBackground(async () => {
+    const { data: team } = await createAdminClient()
+      .from('duo_teams')
+      .select('user_a, user_b')
+      .eq('status', 'active')
+      .or(`user_a.eq.${likerId},user_b.eq.${likerId}`)
+      .maybeSingle()
+    const partner = team && (team.user_a === likerId ? team.user_b : team.user_a)
+    if (!partner) return
+    await sendToUser(partner, 'duo', (dict, locale) => ({
+      title: fmt(dict.duo.pushPartnerLiked, { name: likerName }),
+      body: dict.duo.pushPartnerLikedBody,
+      url: localePath(locale, '/swipe?mode=duo&inbox=1'),
+      tag: 'duo-like',
+    }))
+  })
+}
+
+// Current members of a group, except one.
+async function groupRecipients(groupId: string, except: string) {
+  const { data } = await createAdminClient()
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .is('left_at', null)
+  return (data ?? []).map((m) => m.user_id).filter((id) => id !== except)
+}
+
+// A mutual duo like: the three others (the one who completed it sees the match screen).
+export function notifyDuoMatch(groupId: string, exceptUserId: string) {
+  inBackground(async () => {
+    const recipients = await groupRecipients(groupId, exceptUserId)
+    await Promise.all(
+      recipients.map((id) =>
+        sendToUser(id, 'duo', (dict, locale) => ({
+          title: dict.duo.pushMatch,
+          body: dict.duo.pushMatchBody,
+          url: groupUrl(locale, groupId),
+          tag: `group-${groupId}`,
+        })),
+      ),
+    )
+  })
+}
+
+// A group message. Never the text or the photo, nor who sent it (locked screens).
+export function notifyGroupMessage(groupId: string, senderId: string, kind: 'text' | 'image') {
+  inBackground(async () => {
+    const recipients = await groupRecipients(groupId, senderId)
+    await Promise.all(
+      recipients.map((id) =>
+        sendToUser(id, 'duo', (dict, locale) => ({
+          title: dict.duo.pushGroupMessage,
+          body: kind === 'image' ? dict.duo.pushGroupPhotoBody : dict.duo.pushGroupMessageBody,
+          url: groupUrl(locale, groupId),
+          tag: `group-${groupId}`,
+        })),
+      ),
+    )
+  })
+}

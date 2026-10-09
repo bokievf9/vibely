@@ -19,6 +19,7 @@ import { crossedRu, plansRu } from './nearby/ru'
 import { eventErrorsRu, eventsRu } from './events/ru'
 import { crushRu } from './crush/ru'
 import { promoRu, promoErrorsRu } from './promo/ru'
+import { duoRu, duoErrorsRu } from './duo/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -46,6 +47,7 @@ export const ru: Dictionary = {
     ...sanctionErrorsRu,
     ...eventErrorsRu,
     ...promoErrorsRu,
+    ...duoErrorsRu,
     generic: 'Что-то пошло не так. Попробуйте ещё раз.',
     unauthorized: 'Войдите заново.',
     invalidInput: 'Проверьте поля формы.',
@@ -404,4 +406,5 @@ export const ru: Dictionary = {
   events: eventsRu,
   crush: crushRu,
   promo: promoRu,
+  duo: duoRu,
 }
