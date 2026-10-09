@@ -13,6 +13,7 @@ export const settingsEn = {
     new_people: 'New people nearby',
     calls: 'Incoming calls',
     events: 'Blind Dating Nights',
+    crush: 'Your crush likes you back',
   },
   privacy: 'Privacy',
   pause: 'Pause my profile',

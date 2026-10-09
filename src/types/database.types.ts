@@ -799,6 +799,7 @@ export type Database = {
         Row: {
           calls: boolean
           events: boolean
+          crush: boolean
           feed_replies: boolean
           likes: boolean
           messages: boolean
@@ -811,6 +812,7 @@ export type Database = {
         Insert: {
           calls?: boolean
           events?: boolean
+          crush?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
@@ -823,6 +825,7 @@ export type Database = {
         Update: {
           calls?: boolean
           events?: boolean
+          crush?: boolean
           feed_replies?: boolean
           likes?: boolean
           messages?: boolean
@@ -1518,6 +1521,57 @@ export type Database = {
             foreignKeyName: 'referral_codes_user_id_fkey'
             columns: ['user_id']
             isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      referral_invites: {
+        Row: {
+          claimed_at: string | null
+          code: string
+          created_at: string
+          crush_answer: boolean | null
+          crush_answered_at: string | null
+          id: string
+          invitee_id: string | null
+          inviter_id: string
+          is_crush: boolean
+        }
+        Insert: {
+          claimed_at?: string | null
+          code: string
+          created_at?: string
+          crush_answer?: boolean | null
+          crush_answered_at?: string | null
+          id?: string
+          invitee_id?: string | null
+          inviter_id: string
+          is_crush?: boolean
+        }
+        Update: {
+          claimed_at?: string | null
+          code?: string
+          created_at?: string
+          crush_answer?: boolean | null
+          crush_answered_at?: string | null
+          id?: string
+          invitee_id?: string | null
+          inviter_id?: string
+          is_crush?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'referral_invites_invitee_id_fkey'
+            columns: ['invitee_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'referral_invites_inviter_id_fkey'
+            columns: ['inviter_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -2408,6 +2462,13 @@ export type Database = {
         Returns: string
       }
       age_in_years: { Args: { birth_date: string }; Returns: number }
+      answer_crush: {
+        Args: { p_yes: boolean }
+        Returns: {
+          inviter_id: string
+          match_id: string
+        }[]
+      }
       answer_call: {
         Args: { p_call: string }
         Returns: Database['public']['Enums']['call_status']
@@ -2464,6 +2525,8 @@ export type Database = {
         }
         Returns: number
       }
+      create_referral_invite: { Args: { p_crush?: boolean }; Returns: string }
+      crush_compatible: { Args: { a: string; b: string }; Returns: boolean }
       create_comment: {
         Args: { p_body: string; p_named?: boolean; p_post_id: string }
         Returns: string
@@ -2556,6 +2619,7 @@ export type Database = {
       }
       hide_crossed_path: { Args: { p_user: string }; Returns: undefined }
       ping_location: { Args: { p_lat: number; p_lng: number }; Returns: boolean }
+      purge_referral_invites: { Args: never; Returns: undefined }
       set_crossed_paths: { Args: { p_enabled: boolean }; Returns: boolean }
       set_plan: { Args: { p_tag: string }; Returns: string }
       event_push_due: {
@@ -2648,6 +2712,16 @@ export type Database = {
         Returns: {
           code: string
           invited: number
+        }[]
+      }
+      get_pending_crush: {
+        Args: never
+        Returns: {
+          age: number
+          compatible: boolean
+          display_name: string
+          inviter_id: string
+          photo: Json
         }[]
       }
       get_random_messages: {

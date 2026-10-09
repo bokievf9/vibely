@@ -16,6 +16,7 @@ import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
 import { eventErrorsEn, eventsEn } from './events/en'
+import { crushEn } from './crush/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -394,6 +395,7 @@ export const en = {
   crossed: crossedEn,
   plans: plansEn,
   events: eventsEn,
+  crush: crushEn,
 }
 
 export type Dictionary = typeof en

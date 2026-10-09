@@ -17,6 +17,7 @@ import { passwordMs, passwordErrorsMs } from './password/ms'
 import { sanctionErrorsMs, sanctionsMs } from './sanctions/ms'
 import { crossedMs, plansMs } from './nearby/ms'
 import { eventErrorsMs, eventsMs } from './events/ms'
+import { crushMs } from './crush/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -401,4 +402,5 @@ export const ms: Dictionary = {
   crossed: crossedMs,
   plans: plansMs,
   events: eventsMs,
+  crush: crushMs,
 }

@@ -11,6 +11,7 @@ export const NOTIFICATION_TYPES = [
   'new_people',
   'calls',
   'events',
+  'crush',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -27,4 +28,5 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   new_people: true,
   calls: true,
   events: true,
+  crush: true,
 }

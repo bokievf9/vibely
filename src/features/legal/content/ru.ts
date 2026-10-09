@@ -1,5 +1,6 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { crushLegal } from './crush'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -62,6 +63,9 @@ export const ru: LegalContent = {
       // --- crossed paths & plans (src/features/legal/content/nearby.ts) ---
       nearbyLegal.ru.privacy,
       // --- end crossed paths & plans ---
+      // --- secret crush (src/features/legal/content/crush.ts) ---
+      crushLegal.ru.privacy,
+      // --- end secret crush ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [

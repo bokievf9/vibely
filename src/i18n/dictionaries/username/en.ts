@@ -34,9 +34,10 @@ export const usernameEn = {
   results: 'Search results',
   openProfile: 'Open the profile of {name}',
   backToSearch: 'Back to search',
-  like: 'Like',
-  liked: 'Liked',
-  likedHint: 'If they like you too, it’s a match and a chat opens.',
+  like: 'Secret like',
+  liked: 'Secret like sent',
+  likeHint: 'They will only know if they like you back.',
+  likedHint: 'They will only know if they like you back. Then it is a match and a chat opens.',
 }
 
 export const usernameErrorsEn = {

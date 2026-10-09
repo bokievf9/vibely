@@ -27,7 +27,19 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
   const { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls } = data
   // Column added by 20261009000210: missing until the migration is applied, which means "on".
   const events = 'events' in data ? (data.events ?? true) : true
-  return { new_matches, messages, likes, feed_replies, random_reveal, new_people, calls, events }
+  // Absent before migration 20261009000250: on.
+  const crush = 'crush' in data ? (data.crush ?? true) : true
+  return {
+    new_matches,
+    messages,
+    likes,
+    feed_replies,
+    random_reveal,
+    new_people,
+    calls,
+    events,
+    crush,
+  }
 }
 
 export type BlockedUser = {

@@ -14,6 +14,7 @@ export const settingsMs: SettingsDictionary = {
     new_people: 'Orang baharu berdekatan',
     calls: 'Panggilan masuk',
     events: 'Malam Temu Janji Buta',
+    crush: 'Orang yang anda sukai membalas',
   },
   privacy: 'Privasi',
   pause: 'Jeda profil saya',
