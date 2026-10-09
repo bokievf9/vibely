@@ -33,6 +33,14 @@ export type ReportContext =
     }
   | { kind: 'photo'; offender: Person; url: string | null; width: number; height: number }
   | { kind: 'call'; offender: Person; call: ReportCall | null; calls: ReportCall[] }
+  | {
+      kind: 'status'
+      offender: Person
+      emoji: string
+      text: string
+      state: string
+      expiresAt: string
+    }
 
 const ids = (targets: Target[], type: Target['targetType']) =>
   targets.filter((t) => t.targetType === type).map((t) => t.targetId)
@@ -45,7 +53,7 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
     name: p?.display_name ?? '—',
   })
 
-  const [users, posts, comments, sessions, messages, archived, photos, callRows] =
+  const [users, posts, comments, sessions, messages, archived, photos, callRows, statuses] =
     await Promise.all([
       db.from('profiles').select('id, display_name, bio, banned_at').in('id', ids(targets, 'user')),
       db
@@ -73,6 +81,11 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
         .select('id, profile_id, storage_path, width, height, profiles(display_name)')
         .in('id', ids(targets, 'photo')),
       getCallsByIds(ids(targets, 'call')),
+      // Live statuses (20261009000271); an error (table missing) just means no context.
+      db
+        .from('user_statuses')
+        .select('id, user_id, emoji, text, moderation_state, expires_at, profiles(display_name)')
+        .in('id', ids(targets, 'status')),
     ])
 
   // Calls between the reported user and the reporters (recordings: see call-recordings.ts).
@@ -168,6 +181,17 @@ export async function getReportContexts(targets: Target[]): Promise<Map<string, 
       calls: (await getCallsBetween(offenderId, reporters)).filter((c) => c.id !== id),
     })
   }
+
+  statuses.data?.forEach((s) =>
+    out.set(`status:${s.id}`, {
+      kind: 'status',
+      offender: person(s.user_id, s.profiles),
+      emoji: s.emoji,
+      text: s.text,
+      state: s.moderation_state,
+      expiresAt: s.expires_at,
+    }),
+  )
 
   for (const s of sessions.data ?? []) {
     const target = targets.find((t) => t.targetId === s.id)

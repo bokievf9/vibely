@@ -10,6 +10,8 @@ import { EventWidget } from '@/features/events/components/event-widget'
 import { getCurrentEvent } from '@/features/events/queries'
 import { LikesButton } from '@/features/likes/components/likes-button'
 import { getOwnProfile } from '@/features/profile/queries'
+import { StatusCarousel } from '@/features/statuses/components/status-carousel'
+import { getStatuses } from '@/features/statuses/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
 import { SearchButton } from '@/features/username/components/search-button'
 import { getDictionary } from '@/i18n/server'
@@ -28,9 +30,9 @@ export default function SwipePage() {
 
 async function Deck() {
   const viewer = await getViewer()
-  const [profile, plan] = viewer
-    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id)])
-    : [null, undefined]
+  const [profile, plan, statuses] = viewer
+    ? await Promise.all([getOwnProfile(viewer.id), getOwnPlan(viewer.id), getStatuses()])
+    : [null, undefined, null]
   // Until the user changes filters, show who they said they're interested in.
   return (
     <>
@@ -45,7 +47,9 @@ async function Deck() {
         plansAvailable={plan !== undefined}
         headerActions={
           <>
-            {plan !== undefined && <PlanButton initial={plan} variant="icon" />}
+            {/* With live statuses the own bubble of the carousel opens the one "What's your
+                vibe?" sheet (status + plan); without them the plan keeps its own picker. */}
+            {plan !== undefined && !statuses && <PlanButton initial={plan} variant="icon" />}
             <SearchButton />
             <Suspense fallback={null}>
               <LikesButton />
@@ -53,9 +57,12 @@ async function Deck() {
           </>
         }
         banner={
-          <Suspense fallback={null}>
-            <NightBanner />
-          </Suspense>
+          <>
+            {statuses && <StatusCarousel initial={statuses} plan={plan} className="-mx-3" />}
+            <Suspense fallback={null}>
+              <NightBanner />
+            </Suspense>
+          </>
         }
       />
       {/* Joined through a crush invite link: the one-time card, once verified. */}

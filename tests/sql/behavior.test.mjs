@@ -2905,8 +2905,9 @@ export async function run(db) {
   // ===== end Blind Dating Nights x feed conversations =====
 
   // ===== live statuses (20261009000270 / 271) =====
-  // Set / replace / clear, hold per risk kind, carousel visibility, status conversations on the
-  // Blind Dating engine (limits, context, Connect), report target, pushes, retention. Own users.
+  // Set / replace / clear, hold per risk kind, carousel visibility, status conversations (kind
+  // 'status' on the feed-conversations engine of 220: limits, context, Connect), report target,
+  // pushes, retention. Own users.
   await (async () => {
     const ids = Array.from({ length: 22 }, (_, i) => `57a70000-0000-4000-8000-0000000000${String(i + 10)}`)
     const [A, B, C, D, E, F, G, H, I, J, MOD, VIEW, ...L] = ids
@@ -2945,6 +2946,9 @@ export async function run(db) {
        !!(await fails(() => as(B, `insert into user_statuses (user_id, emoji, text) values ($1,'x','y')`, [B]))))
     await as(B, `select clear_status()`)
     ok('status: clear hides it', (await mine(B)) === null)
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [B])
+    ok('status: muted people cannot post a status', (await fails(() => set(B, '☕', 'hi')))?.includes('muted'))
+    await su(`update profiles set muted_until = null where id=$1`, [B])
 
     // ----- moderation hold per risk kind -----
     await su(`insert into risk_keywords (keyword, weight) values ('sugar daddy', 5)`)
@@ -2994,29 +2998,38 @@ export async function run(db) {
     const r1 = await reply(A, bStatus, 'Movie sounds great')
     ok('status: reply starts a conversation and sends the first message', r1.created === true && r1.state === 'active' && !!r1.message_id, JSON.stringify(r1))
     const sess = (await su(`select * from random_chat_sessions where id=$1`, [r1.session_id])).rows[0]
-    ok('status: conversation kind, context and sides', sess.kind === 'status' && sess.revealed_from_start === true && sess.status_id === bStatus &&
-       sess.started_by === A && sess.user_a === B && sess.user_b === A && sess.context.text === 'Movie night, anyone?' && sess.context.emoji === '🎬', JSON.stringify(sess))
+    ok('status: conversation kind, snapshot and sides', sess.kind === 'status' && sess.revealed_from_start === true && sess.status_id === bStatus &&
+       sess.started_by === A && sess.user_a === B && sess.user_b === A && sess.status_snapshot.text === 'Movie night, anyone?' && sess.status_snapshot.emoji === '🎬' &&
+       sess.post_id === null && sess.prompt_id === null && sess.event_id === null, JSON.stringify(sess))
+    ok('status: kind constraint rejects a status session without its snapshot', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, kind, started_by) values ($1, $2, 'status', $2)`, [C, G]))))
+    ok('status: kind constraint rejects a blind date carrying a status', !!(await fails(() => su(`insert into random_chat_sessions (user_a, user_b, status_id, status_snapshot) values ($1, $2, $3, '{}')`, [C, G, bStatus]))))
     ok('status: author is told on their own channel', (await su(`select count(*)::int c from realtime.messages where topic=$1 and event='conversation'`, ['randomizer:' + B])).rows[0].c === 1)
     const bView = await bs(B, r1.session_id)
     const aView = await bs(A, r1.session_id)
     ok('status: both see names from the start, with the status pinned',
        bView.kind === 'status' && bView.revealed_from_start === true && bView.partner?.display_name === 'St0' && bView.context?.text === 'Movie night, anyone?' &&
+       bView.context?.i_am_author === true && aView.context?.i_am_author === false && aView.context?.status_id === bStatus &&
        bView.my_side === 'a' && aView.partner?.display_name === 'St1' && aView.my_side === 'b' && aView.partner_messages === 0 && aView.my_messages === 1, JSON.stringify([bView, aView]))
     ok('status: a status conversation never hijacks the Blind Dating screen', (await bs(A)) === undefined && (await bs(B)) === undefined)
     ok('status: outsider cannot read it', (await bs(C, r1.session_id)) === undefined)
     // push: claimed once per 10 minutes, to the other side, with the sender's name
-    const push = (await svc(`select claim_status_push($1) r`, [r1.message_id])).rows[0].r
-    ok('status: push goes to the author with the sender name', push?.recipient === B && push?.sender_name === 'St0' && push?.is_first === true && push?.session_id === r1.session_id, JSON.stringify(push))
-    ok('status: push throttled per conversation', (await svc(`select claim_status_push($1) r`, [r1.message_id])).rows[0].r === null)
-    ok('status: push RPC is server only', !!(await fails(() => as(A, `select claim_status_push($1)`, [r1.message_id]))))
+    const push = (await svc(`select claim_session_push($1) r`, [r1.message_id])).rows[0].r
+    ok('status: push goes to the author with kind and sender name', push?.recipient === B && push?.kind === 'status' && push?.sender_name === 'St0' && push?.is_first === true && push?.session_id === r1.session_id, JSON.stringify(push))
+    ok('status: push throttled per conversation', (await svc(`select claim_session_push($1) r`, [r1.message_id])).rows[0].r === null)
     await as(A, `insert into notification_prefs (status_replies) values (false)`)
     ok('status: status_replies preference stored', (await as(A, `select status_replies from notification_prefs`)).rows[0].status_replies === false)
     const r2 = await reply(A, bStatus, 'Second message')
     ok('status: a second reply continues the same conversation', r2.created === false && r2.session_id === r1.session_id &&
        (await su(`select count(*)::int c from random_chat_messages where session_id=$1`, [r1.session_id])).rows[0].c === 2)
-    const list = (await as(B, `select * from list_status_conversations()`)).rows
-    ok('status: author lists the conversation with partner and last message',
-       list.length === 1 && list[0].i_am_author === true && list[0].partner?.display_name === 'St0' && list[0].last_body === 'Second message' && list[0].last_mine === false && list[0].context?.text === 'Movie night, anyone?', JSON.stringify(list))
+    const list = (await as(B, `select * from list_my_conversations()`)).rows.filter((r) => r.kind === 'status')
+    ok('status: author lists the conversation with partner, pinned status and last message',
+       list.length === 1 && list[0].context?.i_am_author === true && list[0].revealed_from_start === true && list[0].partner?.display_name === 'St0' &&
+       list[0].last_body === 'Second message' && list[0].last_mine === false && list[0].context?.text === 'Movie night, anyone?', JSON.stringify(list))
+    // a moderator removing the status hides its text in the pinned context (the chat stays)
+    await su(`update user_statuses set moderation_state = 'removed' where id=$1`, [bStatus])
+    const hidden = await bs(A, r1.session_id)
+    ok('status: removed status text is hidden in the conversation', hidden.context?.text === null && hidden.context?.emoji === '🎬' && hidden.state === 'active', JSON.stringify(hidden.context))
+    await su(`update user_statuses set moderation_state = 'visible' where id=$1`, [bStatus])
     // the open status reply does not block a blind date
     await su(`delete from random_chat_queue`)
     ok('status: an open status conversation does not block randomizer_join', (await as(A, `select randomizer_join('{female}',18,99) s`)).rows[0].s === null)
@@ -3041,14 +3054,23 @@ export async function run(db) {
     const targets = []
     for (const u of L) targets.push((await mine(u)).id)
     let started = 0
-    for (const t of targets.slice(0, 9)) { await reply(A, t, 'hey'); started++ }
+    const sessions = []
+    for (const t of targets.slice(0, 9)) { sessions.push((await reply(A, t, 'hey')).session_id); started++ }
     ok('status: 10 new conversations per 24 hours', started === 9 && (await fails(() => reply(A, targets[9], 'hey')))?.includes('Too many'))
     ok('status: an existing conversation is reused even at the limit', (await reply(A, targets[0], 'again')).created === false)
     ok('status: a different person can still reply', (await reply(G, targets[9], 'hey')).created === true)
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [G])
+    ok('status: muted people cannot reply', (await fails(() => reply(G, targets[8], 'hey')))?.includes('muted') &&
+       (await su(`select count(*)::int c from random_chat_sessions where kind='status' and user_b=$1 and status_id=$2`, [G, targets[8]])).rows[0].c === 0)
+    await su(`update profiles set muted_until = null, banned_at = now(), ban_reason = 'x' where id=$1`, [G])
+    ok('status: banned people cannot reply', !!(await fails(() => reply(G, targets[8], 'hey'))))
+    await su(`update profiles set banned_at = null, ban_reason = null where id=$1`, [G])
     // The status is purged long before the conversation: the pinned snapshot survives
     await su(`delete from user_statuses where id=$1`, [targets[1]])
-    const orphan = (await su(`select status_id, context from random_chat_sessions where kind='status' and user_b=$1 and context->>'status_id'=$2`, [A, targets[1]])).rows[0]
-    ok('status: conversation survives the status purge with its snapshot', orphan && orphan.status_id === null && orphan.context.text === 'Gaming tonight 1', JSON.stringify(orphan))
+    const orphan = (await su(`select status_id, status_snapshot from random_chat_sessions where id=$1`, [sessions[1]])).rows[0]
+    const orphanView = await bs(A, sessions[1])
+    ok('status: conversation survives the status purge with its snapshot', orphan && orphan.status_id === null && orphan.status_snapshot.text === 'Gaming tonight 1' &&
+       orphanView?.context?.text === 'Gaming tonight 1' && orphanView?.context?.status_id === null, JSON.stringify([orphan, orphanView?.context]))
 
     // ----- reports -----
     await as(A, `insert into reports (target_type, target_id, reason) values ('status', $1, 'spam: ad')`, [bStatus])
@@ -3095,7 +3117,10 @@ export async function run(db) {
     ok('status: resolved report releases the hold', (await su(`select count(*)::int c from user_statuses where id=$1`, [removedReported])).rows[0].c === 0)
     ok('status: no anon access', (await su(`select has_function_privilege('anon', 'public.get_live_statuses(int)', 'execute') v`)).rows[0].v === false &&
        (await su(`select has_function_privilege('anon', 'public.set_status(text, text, text)', 'execute') v`)).rows[0].v === false &&
-       (await su(`select has_function_privilege('authenticated', 'public.admin_moderate_status(uuid, uuid, text, text)', 'execute') v`)).rows[0].v === false)
+       (await su(`select has_function_privilege('anon', 'public.start_status_conversation(uuid, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.admin_moderate_status(uuid, uuid, text, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_live_statuses()', 'execute') v`)).rows[0].v === false)
+    await su(`delete from random_chat_queue`)
   })()
   // ===== end live statuses =====
 

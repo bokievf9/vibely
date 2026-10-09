@@ -2,6 +2,7 @@ import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { crushLegal } from './crush'
 import { conversationsLegal } from './conversations'
+import { statusesLegal } from './statuses'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -70,6 +71,9 @@ export const ms: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ms.privacy,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.privacy,
+      // --- end live statuses ---
       {
         heading: '6. Laporan, moderasi dan sekatan',
         paragraphs: [
@@ -189,6 +193,9 @@ export const ms: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ms.terms,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ms.terms,
+      // --- end live statuses ---
       {
         heading: '6. Moderasi',
         paragraphs: [

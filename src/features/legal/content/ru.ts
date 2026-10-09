@@ -2,6 +2,7 @@ import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
 import { crushLegal } from './crush'
 import { conversationsLegal } from './conversations'
+import { statusesLegal } from './statuses'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -70,6 +71,9 @@ export const ru: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ru.privacy,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ru.privacy,
+      // --- end live statuses ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [
@@ -189,6 +193,9 @@ export const ru: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ru.terms,
       // --- end private replies & question of the day ---
+      // --- live statuses (src/features/legal/content/statuses.ts) ---
+      statusesLegal.ru.terms,
+      // --- end live statuses ---
       {
         heading: '6. Модерация',
         paragraphs: [

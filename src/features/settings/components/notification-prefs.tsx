@@ -9,6 +9,7 @@ import {
   MessageSquareLock,
   Phone,
   Newspaper,
+  Smile,
   Sparkles,
   UserPlus,
   VenetianMask,
@@ -35,6 +36,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   crush: HeartHandshake,
   post_replies: MessageSquareLock,
   daily_prompt: Lightbulb,
+  status_replies: Smile,
 }
 
 // Settings → Notifications: one switch per push type (stored per account, not per device).

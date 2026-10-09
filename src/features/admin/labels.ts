@@ -18,6 +18,7 @@ export const TARGET_LABELS: Record<Enums<'report_target'>, string> = {
   message: 'Сообщение',
   photo: 'Фото',
   call: 'Звонок',
+  status: 'Статус',
 }
 
 // Users submit a report reason code ("fake: optional details").

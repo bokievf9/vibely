@@ -1639,12 +1639,8 @@ export type Database = {
           status: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
-          kind: string
-          revealed_from_start: boolean
-          context: Json | null
-          started_by: string | null
-          last_push_at: string | null
           status_id: string | null
+          status_snapshot: Json | null
         }
         Insert: {
           a_revealed?: boolean
@@ -1670,12 +1666,8 @@ export type Database = {
           status?: Database['public']['Enums']['random_session_status']
           user_a: string
           user_b: string
-          kind?: string
-          revealed_from_start?: boolean
-          context?: Json | null
-          started_by?: string | null
-          last_push_at?: string | null
           status_id?: string | null
+          status_snapshot?: Json | null
         }
         Update: {
           a_revealed?: boolean
@@ -1701,12 +1693,8 @@ export type Database = {
           status?: Database['public']['Enums']['random_session_status']
           user_a?: string
           user_b?: string
-          kind?: string
-          revealed_from_start?: boolean
-          context?: Json | null
-          started_by?: string | null
-          last_push_at?: string | null
           status_id?: string | null
+          status_snapshot?: Json | null
         }
         Relationships: [
           {
@@ -3049,11 +3037,6 @@ export type Database = {
           revealed_from_start: boolean
           started_at: string
           state: string
-          kind: string
-          context: Json
-          my_messages: number
-          partner_messages: number
-          revealed_from_start: boolean
         }[]
       }
       set_status: { Args: { p_emoji: string; p_text: string; p_plan_tag?: string }; Returns: Json }
@@ -3075,22 +3058,6 @@ export type Database = {
         }[]
       }
       start_status_conversation: { Args: { p_status: string; p_body: string }; Returns: Json }
-      list_status_conversations: {
-        Args: never
-        Returns: {
-          id: string
-          my_side: string
-          state: string
-          i_am_author: boolean
-          partner: Json
-          context: Json
-          last_body: string | null
-          last_at: string | null
-          last_mine: boolean | null
-          started_at: string
-        }[]
-      }
-      claim_status_push: { Args: { p_message: string }; Returns: Json }
       admin_status_queue: {
         Args: { p_admin: string; p_filter?: string; p_limit?: number; p_offset?: number }
         Returns: {

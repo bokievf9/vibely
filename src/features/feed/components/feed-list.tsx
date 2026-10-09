@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUp, EyeOff, MapPin, Newspaper, PenLine } from 'lucide-react'
 import { EmptyState } from '@/components/layout/empty-state'
@@ -26,9 +26,11 @@ type Props = {
   // Question of the day (null: none active, not verified, or the migration is not applied).
   prompt?: DailyPrompt | null
   promptMatches?: PromptMatch[]
+  // Live statuses carousel (rendered by the page; null when unavailable).
+  top?: ReactNode
 }
 
-export function FeedList({ initial, prompt = null, promptMatches = [] }: Props) {
+export function FeedList({ initial, prompt = null, promptMatches = [], top }: Props) {
   const { dict } = useI18n()
   const [tab, setTab] = useState<FeedTab>('new')
   const [page, setPage] = useState(initial)
@@ -105,6 +107,7 @@ export function FeedList({ initial, prompt = null, promptMatches = [] }: Props) 
 
   return (
     <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
+      {top}
       {prompt && <DailyPromptCard prompt={prompt} matches={promptMatches} />}
       <Composer
         id={COMPOSER_ID}

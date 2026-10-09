@@ -62,20 +62,21 @@ export function isSingleEmoji(value: string): boolean {
   return true
 }
 
+// Characters as Postgres counts them (char_length: code points), so "60" means the same on both
+// sides even with emoji in the text.
+export const codePoints = (value: string) => [...value].length
+
 export const statusInputSchema = z.object({
   emoji: z.string().refine(isSingleEmoji, 'statusEmojiRequired'),
-  text: z.string().trim().min(1, 'invalidInput').max(STATUS_MAX_LENGTH, 'statusTooLong'),
+  text: z
+    .string()
+    .trim()
+    .min(1, 'invalidInput')
+    .refine((v) => codePoints(v) <= STATUS_MAX_LENGTH, 'statusTooLong'),
   planTag: planTagSchema.nullable(),
 })
 
 export type StatusInput = z.infer<typeof statusInputSchema>
-
-export const replySchema = z.object({
-  statusId: z.uuid(),
-  body: z.string().trim().min(1, 'messageEmpty').max(1000, 'messageTooLong'),
-})
-
-export type ReplyInput = z.infer<typeof replySchema>
 
 // Whole minutes left, split for "{h} h {m} min"; null once expired.
 export function timeLeft(

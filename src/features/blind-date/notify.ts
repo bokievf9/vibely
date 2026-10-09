@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const claimSchema = z.object({
   recipient: z.uuid(),
-  kind: z.enum(['post', 'prompt']),
+  kind: z.enum(['post', 'prompt', 'status']),
   session_id: z.uuid(),
   sender_name: z.string().nullable(),
   is_first: z.boolean(),
@@ -36,6 +36,16 @@ export function notifyConversationMessage(messageId: string) {
         await sendToUser(recipient, 'post_replies', (dict, locale) => ({
           title: is_first ? dict.conversations.pushReply : dict.conversations.pushReplyMessage,
           body: is_first ? dict.conversations.pushReplyBody : dict.conversations.pushReplyMessageBody,
+          url: url(locale),
+          tag: `conversation-${sessionId}`,
+        }))
+      } else if (kind === 'status') {
+        // A reply to a live status: the first message says so, later ones read like a chat.
+        await sendToUser(recipient, 'status_replies', (dict, locale) => ({
+          title: fmt(is_first ? dict.statuses.pushReply : dict.statuses.pushMessage, {
+            name: senderName ?? 'Vibely',
+          }),
+          body: dict.statuses.pushBody,
           url: url(locale),
           tag: `conversation-${sessionId}`,
         }))

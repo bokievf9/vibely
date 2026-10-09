@@ -91,6 +91,29 @@ export function ReportContextView({ context }: { context: ReportContext | null }
           />
         </div>
       )
+    case 'status':
+      return (
+        <div className="flex flex-col gap-2">
+          {offender}
+          <blockquote className="border-border rounded-xl border-l-4 bg-black/20 px-3 py-2 break-words">
+            <span aria-hidden className="mr-2">
+              {context.emoji}
+            </span>
+            {context.text}
+          </blockquote>
+          <p className="text-muted text-sm">
+            {context.state === 'removed'
+              ? 'Уже удалён'
+              : context.state === 'held'
+                ? 'Ждёт проверки'
+                : `Виден до ${formatDate(context.expiresAt)}`}
+            {' · '}
+            <Link href="/admin/statuses?filter=reported" className="text-accent hover:underline">
+              Одобрить или удалить в разделе «Статусы»
+            </Link>
+          </p>
+        </div>
+      )
     case 'random_session':
       return (
         <div className="flex flex-col gap-2">

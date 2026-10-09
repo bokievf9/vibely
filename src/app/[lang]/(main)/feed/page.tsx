@@ -6,7 +6,11 @@ import { FeedList } from '@/features/feed/components/feed-list'
 import { PostListSkeleton } from '@/features/feed/components/post-card'
 import { feedFixture } from '@/features/feed/components/worst-case'
 import { getFeedPage } from '@/features/feed/queries'
+import { getOwnPlan } from '@/features/plans/queries'
 import { getDailyPrompt, getPromptMatches } from '@/features/prompts/queries'
+import { getViewer } from '@/features/auth/session'
+import { StatusCarousel } from '@/features/statuses/components/status-carousel'
+import { getStatuses } from '@/features/statuses/queries'
 import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,12 +33,22 @@ async function Feed({ searchParams }: Pick<PageProps<'/[lang]/feed'>, 'searchPar
   // Dev-only worst-case data (?data=worst | ?data=empty); always null in production.
   const fixture =
     process.env.NODE_ENV === 'production' ? null : feedFixture(String((await searchParams).data))
-  const [page, prompt] = await Promise.all([
+  const viewer = await getViewer()
+  const [page, prompt, statuses, plan] = await Promise.all([
     fixture ?? getFeedPage('new', null),
     fixture ? null : getDailyPrompt(),
+    fixture ? null : getStatuses(),
+    viewer ? getOwnPlan(viewer.id) : undefined,
   ])
   const matches = prompt && prompt.myOption !== null ? await getPromptMatches(prompt.id) : []
-  return <FeedList initial={page} prompt={prompt} promptMatches={matches} />
+  return (
+    <FeedList
+      initial={page}
+      prompt={prompt}
+      promptMatches={matches}
+      top={statuses && <StatusCarousel initial={statuses} plan={plan} className="-mx-4" />}
+    />
+  )
 }
 
 // The shape of FeedList: note, collapsed composer, tabs, cards.

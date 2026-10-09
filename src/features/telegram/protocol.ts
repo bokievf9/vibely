@@ -140,6 +140,7 @@ export const TARGET_SHORT = {
   message: 'm',
   photo: 'f',
   call: 'k',
+  status: 't',
 } as const
 export type ReportTargetType = keyof typeof TARGET_SHORT
 const SHORT_TARGET = Object.fromEntries(

@@ -12,21 +12,20 @@
 --   * Carousel: statuses of compatible people nearby (interested in each other, inside the
 --     caller's saved Discover distance and age range, else 50 km and 18-99), verified, active,
 --     not paused, not banned, not shadow-banned, not incognito, not blocked either way.
---   * Reply: a conversation on the Blind Dating engine (random_chat_sessions, 20261009000190),
---     kind 'status', revealed_from_start (both see names and photos), the status pinned as
---     context (a snapshot in random_chat_sessions.context: the status itself expires and is
---     purged while the conversation keeps its 90-day retention). Connect / Pass as in Blind
---     Dating: mutual Connect = match + transcript copy via blind_decide (unchanged).
---     Limits: 10 new conversations per 24 hours, one conversation per status per replier,
---     never with yourself, never across a block, never while muted (VS001 from the trigger).
+--   * Reply: a conversation on the feed-conversations engine (20261009000220), new kind 'status':
+--     revealed_from_start (both see names and photos), the status pinned as context through
+--     session_context (from a snapshot: the status expires and is purged while the conversation
+--     keeps its 90-day retention), listed by list_my_conversations, pushed through
+--     claim_session_push under the new preference status_replies. Connect / Pass as in Blind
+--     Dating (blind_decide: mutual Connect = match + transcript copy). Limits: 10 new
+--     conversations per 24 hours, one per status per replier, never with yourself, never across
+--     a block, never while banned or muted (VS001 from the message trigger).
 --   * Retention (pg_cron, hourly): visible statuses 24 hours after they expired or were
 --     replaced; held and removed ones 90 days; anything under an open report stays until the
 --     report is resolved.
 --
--- Columns on random_chat_sessions are shared with feature/feed-conversations (20261009000220):
--- kind, revealed_from_start, context, started_by, last_push_at are added with IF NOT EXISTS and
--- the same definitions, so either migration can land first. 220 also redefines
--- get_blind_session and the kind constraints; see the DO blocks below for how both coexist.
+-- Requires 20261009000220 (kind, started_by, revealed_from_start, session_context,
+-- list_my_conversations, claim_session_push); nothing of it is duplicated here.
 
 -- ---------------------------------------------------------------------------------------------
 -- Statuses
@@ -136,6 +135,13 @@ begin
   if nullif(btrim(coalesce(p_text, '')), '') is null or nullif(btrim(coalesce(p_emoji, '')), '') is null then
     raise exception 'Status required' using errcode = 'invalid_parameter_value';
   end if;
+  -- Like posts: banned people cannot post, muted people wait until the mute ends.
+  if exists (select 1 from public.profiles where id = me and banned_at is not null) then
+    raise exception 'Banned' using errcode = 'insufficient_privilege';
+  end if;
+  if exists (select 1 from public.profiles where id = me and muted_until > now()) then
+    raise exception 'muted' using errcode = 'VS001';
+  end if;
   -- Rate limit: at most 20 statuses per hour (edits included).
   if (select count(*) from public.user_statuses
       where user_id = me and created_at > now() - interval '1 hour') >= 20 then
@@ -178,8 +184,10 @@ as $$
     and s.moderation_state <> 'removed';
 $$;
 
--- Internal: whether p_viewer may see p_user's status in the carousel (compatibility, distance,
--- age, blocks, sanctions, incognito, pause).
+-- Internal: whether p_viewer may see p_user's status in the carousel. Same compatibility as the
+-- question-of-the-day pool (20261009000220): interested in each other, inside each other's saved
+-- age range and distance (new_people_alerts, else 18-99 and 50 km); the author verified, active,
+-- discoverable (not paused), not banned, not shadow-banned, not incognito; not blocked either way.
 create function public.status_visible_to(p_viewer uuid, p_user uuid)
 returns boolean
 language sql
@@ -191,6 +199,7 @@ as $$
     from public.profiles me
     join public.profiles p on p.id = p_user
     left join public.new_people_alerts mf on mf.user_id = me.id
+    left join public.new_people_alerts pf on pf.user_id = p.id
     where me.id = p_viewer and p.id <> me.id
       and p.verification_status = 'approved'
       and p.is_active
@@ -201,8 +210,10 @@ as $$
       and p.gender = any (me.interested_in)
       and me.gender = any (p.interested_in)
       and public.age_in_years(p.birth_date) between coalesce(mf.min_age, 18) and coalesce(mf.max_age, 99)
+      and public.age_in_years(me.birth_date) between coalesce(pf.min_age, 18) and coalesce(pf.max_age, 99)
       and (me.location is null or p.location is null
-           or extensions.st_dwithin(me.location, p.location, coalesce(mf.max_km, 50) * 1000))
+           or extensions.st_dwithin(me.location, p.location,
+                least(coalesce(mf.max_km, 50), coalesce(pf.max_km, 50)) * 1000))
       and not public.is_blocked_between(me.id, p.id)
   );
 $$;
@@ -253,180 +264,109 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------------------------
--- Conversations on the Blind Dating engine
+-- Conversations: kind 'status' on the feed-conversations engine (20261009000220)
 -- ---------------------------------------------------------------------------------------------
 
--- Shared with 20261009000220 (same names and definitions, IF NOT EXISTS on both sides).
+-- 220 owns kind, started_by, revealed_from_start and last_push_at. Status conversations add the
+-- status replied to and a snapshot of it: the status is purged 24 hours after it expires, while
+-- the conversation keeps its 90-day retention, so the pinned context must not depend on the row.
 alter table public.random_chat_sessions
-  add column if not exists kind text not null default 'blind',
-  add column if not exists revealed_from_start boolean not null default false,
-  add column if not exists context jsonb,
-  add column if not exists started_by uuid references public.profiles (id) on delete set null,
-  add column if not exists last_push_at timestamptz,
-  -- Own: the status replied to. set null: the status is purged long before the conversation.
-  add column if not exists status_id uuid references public.user_statuses (id) on delete set null;
+  -- set null, not cascade: purging a status must not delete a stored conversation (CLAUDE.md).
+  add column status_id uuid references public.user_statuses (id) on delete set null,
+  -- {"emoji", "text", "plan_tag", "expires_at"} as the replier saw it.
+  add column status_snapshot jsonb;
 
--- The kind checks: drop whatever check mentions `kind` (the inline check of 220, or ours from an
--- earlier run) and re-add them including 'status'. The context constraint covers 220's columns
--- when they exist.
-do $$
-declare
-  r record;
-  has_220 boolean;
-begin
-  for r in
-    select conname from pg_constraint
-    where conrelid = 'public.random_chat_sessions'::regclass and contype = 'c'
-      and pg_get_constraintdef(oid) ~ '\mkind\M'
-  loop
-    execute format('alter table public.random_chat_sessions drop constraint %I', r.conname);
-  end loop;
-  alter table public.random_chat_sessions
-    add constraint random_sessions_kind_check check (kind in ('blind', 'post', 'prompt', 'status'));
-  select exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'random_chat_sessions' and column_name = 'post_id'
-  ) into has_220;
-  if has_220 then
-    alter table public.random_chat_sessions add constraint random_sessions_kind_context check (
-      (kind = 'blind' and post_id is null and prompt_id is null and status_id is null and started_by is null)
-      or (kind = 'post' and prompt_id is null and status_id is null and started_by is not null)
-      or (kind = 'prompt' and post_id is null and status_id is null and started_by is not null and prompt_id is not null)
-      or (kind = 'status' and post_id is null and prompt_id is null and started_by is not null and context is not null));
-  else
-    alter table public.random_chat_sessions add constraint random_sessions_kind_context check (
-      (kind = 'status' and started_by is not null and context is not null)
-      or (kind <> 'status' and status_id is null));
-  end if;
-end;
-$$;
+-- 220's checks with 'status' added (the inline kind check of 220 is named by Postgres).
+alter table public.random_chat_sessions
+  drop constraint random_chat_sessions_kind_check,
+  drop constraint random_sessions_kind_context,
+  add constraint random_chat_sessions_kind_check check (kind in ('blind', 'post', 'prompt', 'status')),
+  add constraint random_sessions_kind_context check (
+    (kind = 'blind' and post_id is null and prompt_id is null and status_id is null
+       and status_snapshot is null and started_by is null)
+    or (kind = 'post' and prompt_id is null and status_id is null and status_snapshot is null
+       and started_by is not null)
+    or (kind = 'prompt' and post_id is null and status_id is null and status_snapshot is null
+       and started_by is not null and prompt_id is not null)
+    or (kind = 'status' and post_id is null and prompt_id is null and started_by is not null
+       and status_snapshot is not null));
 
 -- One conversation per status and replier (reused whatever its state).
-create unique index if not exists random_sessions_status_pair_idx
+create unique index random_sessions_status_pair_idx
   on public.random_chat_sessions (status_id, user_b) where kind = 'status';
-create index if not exists random_sessions_started_by_idx
-  on public.random_chat_sessions (started_by, started_at desc) where started_by is not null;
 
--- The pinned context of a conversation for one participant. Status conversations carry their
--- snapshot in `context`; post / prompt conversations (220) have public.session_context(), used
--- here when it exists so that both features keep working whichever migration ran last.
-do $$
-begin
-  if exists (
-    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'session_context'
-  ) then
-    execute $f$
-      create or replace function public.conversation_context(s public.random_chat_sessions, viewer uuid)
-      returns jsonb
-      language sql
-      stable
-      security definer
-      set search_path = ''
-      as $b$
-        select case when s.kind = 'status' then s.context else public.session_context(s, viewer) end
-      $b$
-    $f$;
-  else
-    execute $f$
-      create or replace function public.conversation_context(s public.random_chat_sessions, viewer uuid)
-      returns jsonb
-      language sql
-      stable
-      security definer
-      set search_path = ''
-      as $b$
-        select case when s.kind = 'status' then s.context end
-      $b$
-    $f$;
-  end if;
-end;
-$$;
-
-revoke execute on function public.conversation_context(public.random_chat_sessions, uuid) from public, anon, authenticated;
-
--- get_blind_session: same columns as 20261009000220 (a superset of 20261009000190). Without an
--- id it returns only the newest active BLIND date, so a status conversation never hijacks the
--- Blind Dating screen. The partner profile is included after a match, or from the start when
--- revealed_from_start (status and prompt conversations); never otherwise.
-drop function if exists public.get_blind_session(uuid);
-
-create function public.get_blind_session(p_session uuid default null)
-returns table (
-  id                  uuid,
-  my_side             text,
-  my_alias            int,
-  partner_alias       int,
-  my_decision         boolean,
-  state               text,
-  common_tags         text[],
-  partner             jsonb,
-  match_id            uuid,
-  started_at          timestamptz,
-  kind                text,
-  context             jsonb,
-  my_messages         int,
-  partner_messages    int,
-  revealed_from_start boolean
-)
+-- session_context: the 20261009000220 definition plus the 'status' branch: the status as the
+-- replier saw it (snapshot), its text hidden once a moderator removed it, and who wrote it.
+-- Both people see each other from the start (revealed_from_start), so nothing here is secret.
+create or replace function public.session_context(s public.random_chat_sessions, viewer uuid)
+returns jsonb
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  with s as (
-    select rs as sess, rs.*,
-           case when rs.user_a = (select auth.uid()) then 'a' else 'b' end as side,
-           case when rs.user_a = (select auth.uid()) then rs.user_b else rs.user_a end as other
-    from public.random_chat_sessions rs
-    where (select auth.uid()) in (rs.user_a, rs.user_b)
-      and (case when p_session is null then rs.status = 'active' and rs.kind = 'blind'
-                else rs.id = p_session end)
-    order by rs.started_at desc
-    limit 1
-  )
-  select
-    s.id,
-    s.side,
-    (case s.side when 'a' then s.alias_a else s.alias_b end)::int,
-    (case s.side when 'a' then s.alias_b else s.alias_a end)::int,
-    case s.side when 'a' then s.decision_a else s.decision_b end,
-    public.blind_state(s.sess, s.side),
-    case when s.kind = 'blind' then coalesce((
-      select array_agg(t.slug order by t.slug)
-      from public.profile_tags mine
-      join public.profile_tags theirs on theirs.tag_id = mine.tag_id and theirs.profile_id = s.other
-      join public.tags t on t.id = mine.tag_id
-      where mine.profile_id = (select auth.uid())
-    ), '{}') else '{}' end,
-    case when (s.end_reason = 'matched' or s.revealed_from_start) and public.can_view_profile(s.other) then (
+  select case s.kind
+    when 'post' then (
       select jsonb_build_object(
-        'id', p.id, 'display_name', p.display_name,
-        'age', public.age_in_years(p.birth_date), 'bio', p.bio, 'city', p.city,
-        'relationship_goal', p.relationship_goal, 'job_title', p.job_title)
-      from public.profiles p where p.id = s.other
-    ) end,
-    case when s.end_reason = 'matched' then s.match_id end,
-    s.started_at,
-    s.kind,
-    public.conversation_context(s.sess, (select auth.uid())),
-    (select count(*) from public.random_chat_messages m
-     where m.session_id = s.id and m.sender_id = (select auth.uid()))::int,
-    (select count(*) from public.random_chat_messages m
-     where m.session_id = s.id and m.sender_id <> (select auth.uid()))::int,
-    s.revealed_from_start
-  from s;
+        'post_id', s.post_id,
+        'body', case when p.id is not null and not p.is_hidden then p.body end,
+        'i_am_author', s.user_a = viewer,
+        'author', case
+          when s.user_a <> viewer and p.id is not null and p.is_named
+               and public.can_view_profile(p.author_id)
+          then jsonb_build_object(
+            'id', pr.id, 'display_name', pr.display_name, 'username', pr.username,
+            'age', public.age_in_years(pr.birth_date),
+            'verified', pr.verification_status = 'approved',
+            'photo', (select jsonb_build_object('path', ph.storage_path, 'width', ph.width, 'height', ph.height)
+                      from public.profile_photos ph where ph.profile_id = pr.id
+                      order by ph.position limit 1))
+          end,
+        'author_pseudonym', case
+          when s.user_a <> viewer and s.post_id is not null
+               and not (p.id is not null and p.is_named and public.can_view_profile(p.author_id))
+          then to_jsonb(public.feed_pseudonym(s.post_id, 0))
+          end)
+      from (select 1) x
+      left join public.posts p on p.id = s.post_id
+      left join public.profiles pr on pr.id = p.author_id)
+    when 'prompt' then (
+      select jsonb_build_object(
+        'prompt_id', d.id,
+        'question', jsonb_build_object('en', d.question_en, 'ms', d.question_ms, 'ru', d.question_ru),
+        'options', jsonb_build_object(
+          'en', to_jsonb(d.options_en), 'ms', to_jsonb(d.options_ms), 'ru', to_jsonb(d.options_ru)),
+        'my_option', (select option_idx from public.prompt_answers
+                      where prompt_id = d.id and user_id = viewer),
+        'partner_option', (select option_idx from public.prompt_answers
+                           where prompt_id = d.id
+                             and user_id = case when s.user_a = viewer then s.user_b else s.user_a end))
+      from public.daily_prompts d where d.id = s.prompt_id)
+    when 'status' then (
+      select jsonb_build_object(
+        'status_id', s.status_id,
+        'emoji', s.status_snapshot ->> 'emoji',
+        'text', case when st.moderation_state = 'removed' then null else s.status_snapshot ->> 'text' end,
+        'plan_tag', s.status_snapshot ->> 'plan_tag',
+        'expires_at', s.status_snapshot ->> 'expires_at',
+        'i_am_author', s.user_a = viewer)
+      from (select 1) x
+      left join public.user_statuses st on st.id = s.status_id)
+  end;
 $$;
 
-revoke execute on function public.get_blind_session(uuid) from public, anon;
-grant execute on function public.get_blind_session(uuid) to authenticated;
+revoke execute on function public.session_context(public.random_chat_sessions, uuid) from public, anon, authenticated;
 
 -- Reply to a status: starts (or continues) the caller's conversation with its author, sending
--- p_body as the first message. Not allowed: own status, a status that is held, removed, replaced
--- or expired, an author the caller may not see (banned, paused, blocked either way,
--- shadow-banned, incognito), more than 10 new conversations in 24 hours (P0429), muted (VS001
--- from the message trigger). user_a is the author, user_b the replier.
--- Returns {"session_id", "message_id" | null, "created": bool, "state"}.
+-- p_body as the first message (required). Modelled on start_prompt_conversation: names and photos
+-- from the start (revealed_from_start), Connect / Pass as in Blind Dating (blind_decide: mutual
+-- Connect = match + transcript copy). Not allowed: own status; a status that is held, removed,
+-- replaced or expired; an author the caller may not see in the carousel (status_visible_to:
+-- blocked either way, banned, paused, shadow-banned, incognito, not compatible); a banned caller;
+-- more than 10 new status conversations in 24 hours (P0429); muted (VS001 from the message
+-- trigger). One conversation per status and replier: when it exists and is still active the
+-- message goes there, when it ended nothing is sent and its state is returned. user_a is the
+-- author, user_b the replier. Returns {"session_id", "message_id" | null, "created", "state"}.
 create function public.start_status_conversation(p_status uuid, p_body text)
 returns jsonb
 language plpgsql
@@ -441,6 +381,9 @@ declare
 begin
   if me is null or not public.is_verified() then
     raise exception 'Verification required' using errcode = 'insufficient_privilege';
+  end if;
+  if exists (select 1 from public.profiles where id = me and banned_at is not null) then
+    raise exception 'Banned' using errcode = 'insufficient_privilege';
   end if;
   if nullif(btrim(coalesce(p_body, '')), '') is null then
     raise exception 'Message required' using errcode = 'invalid_parameter_value';
@@ -463,15 +406,17 @@ begin
        or not public.status_visible_to(me, st.user_id) then
       raise exception 'Status not found' using errcode = 'no_data_found';
     end if;
+    -- Serialize the caller's starts so two parallel replies cannot both pass the limit.
+    perform pg_advisory_xact_lock(hashtext('start_status_conversation'), hashtext(me::text));
     if (select count(*) from public.random_chat_sessions
         where started_by = me and kind = 'status' and started_at > now() - interval '24 hours') >= 10 then
       raise exception 'Too many replies today' using errcode = 'P0429';
     end if;
     insert into public.random_chat_sessions
-      (user_a, user_b, kind, status_id, started_by, revealed_from_start, context)
-    values (st.user_id, me, 'status', st.id, me, true, jsonb_build_object(
-      'status_id', st.id, 'author_id', st.user_id, 'emoji', st.emoji, 'text', st.text,
-      'plan_tag', st.plan_tag, 'expires_at', st.expires_at))
+      (user_a, user_b, kind, status_id, status_snapshot, started_by, revealed_from_start)
+    values (st.user_id, me, 'status', st.id, jsonb_build_object(
+      'emoji', st.emoji, 'text', st.text, 'plan_tag', st.plan_tag, 'expires_at', st.expires_at),
+      me, true)
     returning * into s;
     v_msg := public.randomizer_send(s.id, p_body);
     perform realtime.send(jsonb_build_object('session_id', s.id), 'conversation',
@@ -488,21 +433,21 @@ begin
 end;
 $$;
 
--- The caller's status conversations for the Chats screen: partner (names are shown from the
--- start), the pinned status, the latest message. Active ones first, then matched / ended ones of
--- the last 7 days.
-create function public.list_status_conversations()
+-- list_my_conversations: the 20261009000220 definition with status conversations included (same
+-- columns; the status is the pinned context, the partner is shown from the start).
+create or replace function public.list_my_conversations()
 returns table (
-  id          uuid,
-  my_side     text,
-  state       text,
-  i_am_author boolean,
-  partner     jsonb,
-  context     jsonb,
-  last_body   text,
-  last_at     timestamptz,
-  last_mine   boolean,
-  started_at  timestamptz
+  id                  uuid,
+  kind                text,
+  my_side             text,
+  partner_alias       int,
+  context             jsonb,
+  partner             jsonb,
+  revealed_from_start boolean,
+  last_body           text,
+  last_at             timestamptz,
+  last_mine           boolean,
+  started_at          timestamptz
 )
 language sql
 stable
@@ -511,16 +456,17 @@ set search_path = ''
 as $$
   select
     rs.id,
+    rs.kind,
     case when rs.user_a = (select auth.uid()) then 'a' else 'b' end,
-    public.blind_state(rs, case when rs.user_a = (select auth.uid()) then 'a' else 'b' end),
-    rs.user_a = (select auth.uid()),
-    case when public.can_view_profile(o.id) then
+    (case when rs.user_a = (select auth.uid()) then rs.alias_b else rs.alias_a end)::int,
+    public.session_context(rs, (select auth.uid())),
+    case when rs.revealed_from_start and public.can_view_profile(o.id) then
       jsonb_build_object('id', o.id, 'display_name', o.display_name,
         'age', public.age_in_years(o.birth_date),
         'photo', (select jsonb_build_object('path', ph.storage_path, 'width', ph.width, 'height', ph.height)
                   from public.profile_photos ph where ph.profile_id = o.id order by ph.position limit 1))
     end,
-    rs.context,
+    rs.revealed_from_start,
     lm.body,
     lm.created_at,
     lm.sender_id = (select auth.uid()),
@@ -531,81 +477,20 @@ as $$
     select m.body, m.created_at, m.sender_id from public.random_chat_messages m
     where m.session_id = rs.id order by m.created_at desc, m.id desc limit 1
   ) lm on true
-  where rs.kind = 'status'
+  where rs.kind in ('post', 'prompt', 'status')
+    and rs.status = 'active'
     and (select auth.uid()) in (rs.user_a, rs.user_b)
-    and (rs.status = 'active' or rs.ended_at > now() - interval '7 days')
-  order by (rs.status = 'active') desc, coalesce(lm.created_at, rs.started_at) desc
+  order by coalesce(lm.created_at, rs.started_at) desc
   limit 100;
 $$;
 
--- randomizer_join must ignore non-blind conversations in its "already in a session" check,
--- otherwise an open status reply would block starting a blind date. Same patch as 220 (skipped
--- when already applied).
-do $$
-declare
-  r   record;
-  def text;
-  old constant text := 'where status = ''active'' and me.id in (user_a, user_b)';
-begin
-  for r in
-    select p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'randomizer_join'
-  loop
-    def := pg_get_functiondef(r.oid);
-    if def like '%kind = ''blind''%' then
-      continue;
-    elsif position(old in def) > 0 then
-      execute replace(def, old, 'where status = ''active'' and kind = ''blind'' and me.id in (user_a, user_b)');
-    else
-      raise warning 'randomizer_join: add "and kind = ''blind''" to its active-session check (20261009000271)';
-    end if;
-  end loop;
-end;
-$$;
-
 -- ---------------------------------------------------------------------------------------------
--- Pushes
+-- Pushes: claim_session_push (220) already covers every non-blind kind and names the sender when
+-- revealed_from_start; the app sends kind 'status' under this preference.
 -- ---------------------------------------------------------------------------------------------
 
-alter table public.notification_prefs add column if not exists status_replies boolean not null default true;
+alter table public.notification_prefs add column status_replies boolean not null default true;
 grant insert (status_replies), update (status_replies) on public.notification_prefs to authenticated;
-
--- Server only (after a message in a status conversation): who to notify, or null (other kinds,
--- ended sessions, blocked pairs, inactive recipients, or a push for this session went out in the
--- last 10 minutes). Claims the slot atomically.
-create function public.claim_status_push(p_message uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  m         public.random_chat_messages;
-  s         public.random_chat_sessions;
-  recipient uuid;
-begin
-  select * into m from public.random_chat_messages where id = p_message;
-  if m.id is null then
-    return null;
-  end if;
-  select * into s from public.random_chat_sessions where id = m.session_id for update;
-  if s.kind <> 'status' or s.status <> 'active' then
-    return null;
-  end if;
-  recipient := case when s.user_a = m.sender_id then s.user_b else s.user_a end;
-  if public.is_blocked_between(s.user_a, s.user_b)
-     or not exists (select 1 from public.profiles where id = recipient and is_active)
-     or s.last_push_at > now() - interval '10 minutes' then
-    return null;
-  end if;
-  update public.random_chat_sessions set last_push_at = now() where id = s.id;
-  return jsonb_build_object(
-    'recipient', recipient,
-    'session_id', s.id,
-    'sender_name', (select display_name from public.profiles where id = m.sender_id),
-    'is_first', (select count(*) from public.random_chat_messages where session_id = s.id) = 1);
-end;
-$$;
 
 -- ---------------------------------------------------------------------------------------------
 -- Reports: the subject of a status report is its author (newest reports_set_subject was
@@ -806,14 +691,12 @@ begin
     'clear_status()',
     'get_my_status()',
     'get_live_statuses(int)',
-    'start_status_conversation(uuid, text)',
-    'list_status_conversations()'
+    'start_status_conversation(uuid, text)'
   ] loop
     execute format('revoke execute on function public.%s from public, anon', fn);
     execute format('grant execute on function public.%s to authenticated', fn);
   end loop;
   foreach fn in array array[
-    'claim_status_push(uuid)',
     'admin_status_queue(uuid, text, int, int)',
     'admin_moderate_status(uuid, uuid, text, text)',
     'purge_live_statuses()'
