@@ -47,6 +47,10 @@ Variables (публичные значения, вшиваются в бандл
 - Node 22 (NodeSource), PM2 под `deploy` с автозапуском (`pm2-deploy.service`) и `pm2-logrotate`.
 - Nginx: `www` и `http` → `https://vibelydate.com`; лимит POST на `/{lang}/login|verify-otp`
   20/мин с IP (`/etc/nginx/conf.d/vibely-limits.conf`); прокси на `127.0.0.1:3000`.
+- Nginx: общий блок прокси `/etc/nginx/snippets/vibely-proxy.conf` (копия в `infra/nginx/vibely-proxy.conf`).
+  Обязательны `proxy_buffer_size 32k; proxy_buffers 8 32k; proxy_busy_buffers_size 64k;`: куки сессии
+  Supabase вместе с CSP и Link занимают больше 4 КБ, иначе nginx отвечает 502 «upstream sent too big header»
+  при входе и обновлении токена (браузер пишет «страницу не удалось загрузить»).
 - Swap 2 ГБ.
 
 ## Supabase Dashboard
