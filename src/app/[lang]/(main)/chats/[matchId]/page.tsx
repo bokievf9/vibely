@@ -89,6 +89,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
               name={partner.name}
               onUnmatch={unmatch.bind(null, matchId)}
               calls={callSettings ? calls : undefined}
+              introduce={{ partnerId: partner.id, partnerName: partner.name }}
             />
           </div>
         </div>
@@ -97,6 +98,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         key={matchId}
         matchId={matchId}
         viewerId={viewer.id}
+        partnerId={partner.id}
         partnerName={partner.name}
         initialMessages={room.messages}
         initialReactions={room.reactions}

@@ -2904,6 +2904,211 @@ export async function run(db) {
   })()
   // ===== end Blind Dating Nights x feed conversations =====
 
+  // ===== matchmaker & incognito (20261009000240) =====
+  await (async () => {
+    const ids = Array.from({ length: 14 }, (_, i) => `cc000000-0000-4000-8000-0000000000${String(i + 10)}`)
+    const [A, B, C, D, H, I, J, K, L, M, E, F, G, S] = ids
+    const males = new Set([A, F, S])
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601488800' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) {
+      const male = males.has(u)
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location)
+         values ($1,'1996-04-04',$2,$3,'Kuala Lumpur','SRID=4326;POINT(101.671 3.13)')`, ['Mm' + i, male ? 'male' : 'female', male ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [ids])
+    const pair = (a, b) => su(`select ensure_match($1::uuid, $2::uuid, 'swipe') id`, [a, b]).then((r) => r.rows[0].id)
+    const matchOf = async (a, b) => (await su(`select id, source from matches where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0]
+    const refer = (who, b, c, note = null) => as(who, `select create_referral($1, $2, $3) r`, [b, c, note]).then((r) => r.rows[0].r)
+    const card = (who, id) => as(who, `select get_referral_card($1) c`, [id]).then((r) => r.rows[0].c)
+    const decide = (who, id, yes) => as(who, `select decide_referral($1, $2) d`, [id, yes]).then((r) => r.rows[0].d)
+    const status = async (id) => (await su(`select * from matchmaker_referrals where id=$1`, [id])).rows[0]
+    const cardsIn = async (who, matchId) => (await as(who, `select kind, payload, body, sender_id, read_at from messages where match_id=$1 order by created_at`, [matchId])).rows
+    // A is matched with B, C, D, H, I, J, K, L, M
+    const ab = await pair(A, B); const ac = await pair(A, C)
+    for (const u of [D, H, I, J, K, L, M]) await pair(A, u)
+
+    // ----- rules -----
+    ok('mm: only your own matches', !!(await fails(() => refer(B, C, D))) && !!(await fails(() => refer(A, B, S))))
+    ok('mm: not yourself, not the same person twice', !!(await fails(() => refer(A, A, B))) && !!(await fails(() => refer(A, B, B))))
+    ok('mm: note at most 200 characters', !!(await fails(() => refer(A, B, C, 'x'.repeat(201)))))
+    ok('mm: referrals table closed to clients', !!(await fails(() => as(A, `select * from matchmaker_referrals`))))
+    ok('mm: clients cannot insert cards', !!(await fails(() => as(A, `insert into messages (match_id, kind, payload) values ($1, 'referral', '{"referral_id":"x"}')`, [ab]))))
+    const r1 = await refer(A, B, C, '  You both love hiking  ')
+    ok('mm: create returns the id and the A-B chat', !!r1?.id && r1.match_id === ab, JSON.stringify(r1))
+    const s1 = await status(r1.id)
+    ok('mm: stored pending with the trimmed note', s1.status === 'pending' && s1.note === 'You both love hiking' && s1.decision_b === null)
+    const abMsgs = await cardsIn(B, ab)
+    ok('mm: card delivered as a referral message in the A-B chat', abMsgs.length === 1 && abMsgs[0].kind === 'referral' && abMsgs[0].payload.referral_id === r1.id && abMsgs[0].body === null && abMsgs[0].sender_id === A, JSON.stringify(abMsgs))
+    ok('mm: nothing in the A-C chat yet', (await cardsIn(C, ac)).length === 0)
+    ok('mm: same pair cannot be introduced again within 90 days (either order)', !!(await fails(() => refer(A, B, C))) && !!(await fails(() => refer(A, C, B))))
+    const cardMsg = (await su(`select id from messages where match_id=$1`, [ab])).rows[0].id
+    ok('mm: referral card cannot be edited', !!(await fails(() => as(A, `select edit_message($1, 'hi')`, [cardMsg]))))
+
+    // ----- visibility -----
+    const cb = await card(B, r1.id)
+    ok('mm: B sees C, the note and an open card', cb?.role === 'b' && cb.state === 'open' && cb.person?.id === C && cb.person.name === 'Mm2' && cb.person.age === 30 && cb.note === 'You both love hiking' && cb.matchmaker_name === 'Mm0', JSON.stringify(cb))
+    ok('mm: C sees nothing before B accepts', (await card(C, r1.id)) === null)
+    ok('mm: strangers see nothing', (await card(D, r1.id)) === null && (await card(S, r1.id)) === null)
+    const ca = await card(A, r1.id)
+    ok('mm: A sees both people and pending', ca?.role === 'matchmaker' && ca.state === 'pending' && ca.b?.id === B && ca.c?.id === C && ca.person === null, JSON.stringify(ca))
+    ok('mm: C cannot decide before B', !!(await fails(() => decide(C, r1.id, true))))
+    ok('mm: A cannot decide', !!(await fails(() => decide(A, r1.id, true))))
+
+    // ----- B interested -> card for C -----
+    const d1 = await decide(B, r1.id, true)
+    ok('mm: B interested: waiting, C to be notified in the A-C chat', d1.state === 'interested' && d1.notify?.user_id === C && d1.notify.match_id === ac && d1.notify.matchmaker_name === 'Mm0', JSON.stringify(d1))
+    const acMsgs = await cardsIn(C, ac)
+    ok('mm: card now in the A-C chat (sender A)', acMsgs.length === 1 && acMsgs[0].kind === 'referral' && acMsgs[0].payload.referral_id === r1.id && acMsgs[0].sender_id === A)
+    const cc = await card(C, r1.id)
+    ok('mm: C sees B and an open card', cc?.role === 'c' && cc.state === 'open' && cc.person?.id === B && cc.note === 'You both love hiking', JSON.stringify(cc))
+    ok('mm: B sees "interested", A still pending', (await card(B, r1.id)).state === 'interested' && (await card(A, r1.id)).state === 'pending')
+    ok('mm: B cannot decide twice', !!(await fails(() => decide(B, r1.id, false))))
+    ok('mm: no match yet', !(await matchOf(B, C)))
+
+    // ----- C interested -> match, pinned note, reward -----
+    const vipBefore = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    const d2 = await decide(C, r1.id, true)
+    const bc = await matchOf(B, C)
+    ok('mm: both interested creates the match', d2.state === 'matched' && d2.just_matched === true && !!bc && d2.match_id === bc.id && bc.source === 'matchmaker', JSON.stringify(d2))
+    ok('mm: push data carries ids and names only', JSON.stringify(Object.keys(d2.notify).sort()) === '["b_id","b_name","c_id","c_name","matchmaker_id","matchmaker_name"]' && d2.notify.b_name === 'Mm1')
+    const bcMsgs = await cardsIn(B, bc.id)
+    ok('mm: note pinned as the first system message, already read', bcMsgs.length === 1 && bcMsgs[0].kind === 'system' && bcMsgs[0].body === 'You both love hiking' && bcMsgs[0].sender_id === A && bcMsgs[0].read_at !== null && bcMsgs[0].payload.referral_id === r1.id, JSON.stringify(bcMsgs))
+    ok('mm: C reads the note too, A cannot (not a participant)', (await cardsIn(C, bc.id)).length === 1 && (await cardsIn(A, bc.id)).length === 0)
+    await as(C, `update messages set read_at = now() where match_id=$1 and read_at is null`, [ac])
+    ok('mm: unread count ignores the pinned note', (await as(C, `select unread_message_count() n`)).rows[0].n === 0)
+    const noteMsg = (await su(`select id from messages where match_id=$1`, [bc.id])).rows[0].id
+    ok('mm: nobody can delete the pinned note', !!(await fails(() => as(A, `select delete_message($1)`, [noteMsg]))) && !!(await fails(() => as(B, `select delete_message($1)`, [noteMsg]))))
+    const s1b = await status(r1.id)
+    const vipAfter = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    const vipDays = (new Date(vipAfter) - Date.now()) / 86400000
+    ok('mm: status matched + rewarded', s1b.status === 'matched' && s1b.match_id === bc.id && s1b.rewarded_at !== null && s1b.decision_c === true)
+    ok('mm: A gets 7 VIP days', vipBefore === null && vipDays > 6.99 && vipDays <= 7.01, String(vipDays))
+    ok('mm: cards after the match', (await card(B, r1.id)).state === 'matched' && (await card(B, r1.id)).match_id === bc.id && (await card(C, r1.id)).state === 'matched' && (await card(A, r1.id)).state === 'matched' && (await card(A, r1.id)).match_id === null)
+    ok('mm: deciding a finished one just reports it', await decide(C, r1.id, true).then((d) => d.state === 'matched' && d.match_id === bc.id && !d.notify))
+    ok('mm: already matched pair cannot be introduced (after the 90-day window)', await (async () => {
+      await su(`update matchmaker_referrals set created_at = now() - interval '100 days' where id=$1`, [r1.id])
+      const err = await fails(() => refer(A, B, C))
+      await su(`update matchmaker_referrals set created_at = now() where id=$1`, [r1.id])
+      return !!err
+    })())
+
+    // ----- reward at most once per 7 days -----
+    const r2 = await refer(A, D, H)
+    await decide(D, r2.id, true); const d3 = await decide(H, r2.id, true)
+    const vipTwice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    ok('mm: second success within 7 days: match but no extra VIP', d3.state === 'matched' && String(vipTwice) === String(vipAfter) && (await status(r2.id)).rewarded_at === null, `${vipAfter} -> ${vipTwice}`)
+    ok('mm: match without a note has no pinned message', (await cardsIn(D, d3.match_id)).length === 0)
+    await su(`update matchmaker_referrals set rewarded_at = now() - interval '8 days' where id=$1`, [r1.id])
+    await su(`update matchmaker_referrals set created_at = now() - interval '8 days' where id=$1`, [r2.id])
+    const r2b = await refer(A, B, H, 'again')
+    await decide(B, r2b.id, true); await decide(H, r2b.id, true)
+    const vipThrice = (await su(`select vip_until from profiles where id=$1`, [A])).rows[0].vip_until
+    ok('mm: after 7 days the reward extends vip_until by 7 more days', Math.round((new Date(vipThrice) - new Date(vipAfter)) / 86400000) === 7, `${vipAfter} -> ${vipThrice}`)
+
+    // ----- declines are silent -----
+    const r3 = await refer(A, I, J, 'maybe')
+    const d4 = await decide(I, r3.id, false)
+    ok('mm: B declines: closed for B only', d4.state === 'closed' && (await status(r3.id)).status === 'b_declined' && (await card(I, r3.id)).state === 'closed' && (await card(A, r3.id)).state === 'pending' && (await card(J, r3.id)) === null)
+    ok('mm: no card ever reaches C after a decline', (await cardsIn(J, (await matchOf(A, J)).id)).length === 0)
+    const r4 = await refer(A, K, L)
+    await decide(K, r4.id, true)
+    const d5 = await decide(L, r4.id, false)
+    ok('mm: C declines: B keeps "interested", A keeps pending', d5.state === 'closed' && (await status(r4.id)).status === 'c_declined' && (await card(K, r4.id)).state === 'interested' && (await card(L, r4.id)).state === 'closed' && (await card(A, r4.id)).state === 'pending' && !(await matchOf(K, L)))
+
+    // ----- 5 per day -----
+    const r5 = await refer(A, I, M)
+    ok('mm: fifth introduction today still allowed', !!r5?.id)
+    const limitErr = await fails(() => refer(A, J, M))
+    ok('mm: sixth introduction today is rate limited', !!limitErr && /Rate limit/.test(limitErr), limitErr)
+    await su(`update matchmaker_referrals set created_at = now() - interval '2 days' where matchmaker_id=$1 and created_at > now() - interval '1 hour'`, [A])
+
+    // ----- blocks cancel -----
+    const r6 = await refer(A, C, I, 'blocked soon')
+    await decide(C, r6.id, true)
+    await as(I, `insert into blocks (blocked_id) values ($1)`, [C])
+    ok('mm: a block among the three cancels the introduction', (await status(r6.id)).status === 'cancelled' && (await card(C, r6.id)).state === 'closed' && (await card(C, r6.id)).person === null && (await card(A, r6.id)).state === 'closed')
+    ok('mm: deciding a cancelled one is closed', (await decide(I, r6.id, true)).state === 'closed')
+    const blockedPair = await fails(() => refer(A, I, C))
+    ok('mm: blocked people cannot be introduced', !!blockedPair && /Not available/.test(blockedPair), blockedPair)
+    const blockedErr = await fails(() => refer(A, I, L))
+    await as(I, `delete from blocks where blocked_id=$1`, [C])
+    ok('mm: new introduction with a block between B and C refused', await (async () => {
+      await as(L, `insert into blocks (blocked_id) values ($1)`, [M])
+      const err = await fails(() => refer(A, L, M))
+      await as(L, `delete from blocks where blocked_id=$1`, [M])
+      return !!err && blockedErr === null
+    })())
+
+    // ----- banned / muted -----
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [J])
+    ok('mm: muted people cannot be introduced', !!(await fails(() => refer(A, J, L))))
+    await su(`update profiles set muted_until = null where id=$1`, [J])
+    await su(`update profiles set muted_until = now() + interval '1 hour' where id=$1`, [A])
+    const mutedErr = await fails(() => refer(A, J, L))
+    await su(`update profiles set muted_until = null where id=$1`, [A])
+    ok('mm: a muted matchmaker cannot introduce', !!mutedErr && /muted/.test(mutedErr), mutedErr)
+    await su(`update profiles set banned_at = now(), ban_reason = 'x', is_active = false where id=$1`, [L])
+    ok('mm: banned people cannot be introduced', !!(await fails(() => refer(A, J, L))))
+    await su(`update profiles set banned_at = null, ban_reason = null, is_active = true where id=$1`, [L])
+
+    // ----- notification setting -----
+    ok('mm: notification toggle defaults on and is writable by the owner', !(await fails(() => as(B, `insert into notification_prefs (matchmaker) values (false)`))) &&
+       (await su(`select matchmaker from notification_prefs where user_id=$1`, [B])).rows[0].matchmaker === false &&
+       (await su(`select column_default d from information_schema.columns where table_name='notification_prefs' and column_name='matchmaker'`)).rows[0].d === 'true')
+    await as(B, `update notification_prefs set matchmaker = true`)
+    ok('mm: notification toggle updates', (await su(`select matchmaker from notification_prefs where user_id=$1`, [B])).rows[0].matchmaker === true)
+
+    // ----- retention + access -----
+    await su(`update matchmaker_referrals set created_at = now() - interval '91 days' where id=$1`, [r3.id])
+    const purged = (await su(`select purge_matchmaker_referrals() n`)).rows[0].n
+    ok('mm: referrals purged after 90 days; the card then reads as unavailable', purged === 1 && (await card(I, r3.id)) === null)
+    ok('mm: no anon access, no client purge', (await su(`select has_function_privilege('anon', 'public.create_referral(uuid, uuid, text)', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.purge_matchmaker_referrals()', 'execute') v`)).rows[0].v === false &&
+       (await su(`select has_function_privilege('authenticated', 'public.matchmaker_person(uuid)', 'execute') v`)).rows[0].v === false)
+
+    // ----- incognito -----
+    const deck = async (who, genders) => (await as(who, `select id from get_swipe_candidates($1, 18, 99, 50, 50)`, [genders])).rows.map((r) => r.id)
+    const eUsername = (await su(`select username from profiles where id=$1`, [E])).rows[0].username
+    const search = async (who) => (await as(who, `select id from search_profiles_by_username($1)`, [eUsername])).rows.map((r) => r.id)
+    const likers = async (who) => (await as(who, `select id from get_incoming_likes()`)).rows.map((r) => r.id)
+    ok('incognito: off by default and visible', (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === false && (await deck(F, '{female}')).includes(E) && (await search(F)).includes(E))
+    await as(E, `update profiles set is_incognito = true where id=$1`, [E])
+    ok('incognito: owner can turn it on', (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === true)
+    ok('incognito: others cannot change it', (await as(F, `update profiles set is_incognito = false where id=$1`, [E])).rows !== undefined && (await su(`select is_incognito v from profiles where id=$1`, [E])).rows[0].v === true)
+    ok('incognito: hidden from Discover', !(await deck(F, '{female}')).includes(E) && (await deck(F, '{female}')).includes(G))
+    ok('incognito: hidden from username search', !(await search(F)).includes(E) && (await search(S)).length === 0)
+    ok('incognito: own deck still works', (await deck(E, '{male}')).includes(F))
+    await as(E, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [F])
+    ok('incognito: shown to the people it liked', (await deck(F, '{female}')).includes(E) && !(await deck(S, '{female}')).includes(E))
+    ok('incognito: the like is hidden in "Who liked you"', !(await likers(F)).includes(E) && (await as(F, `select count_incoming_likes() n`)).rows[0].n === 0)
+    await as(G, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [F])
+    ok('incognito: regular likes still show', (await likers(F)).includes(G))
+    await su(`update profiles set discoverable = false where id=$1`, [E])
+    ok('incognito: pause still hides everything', !(await deck(F, '{female}')).includes(E))
+    await su(`update profiles set discoverable = true where id=$1`, [E])
+    await as(F, `insert into swipes (swiped_id, direction) values ($1, 'like')`, [E])
+    ok('incognito: mutual like still matches', !!(await matchOf(E, F)))
+    const efMatch = (await matchOf(E, F)).id
+    ok('incognito: the match sees the profile and the chat', (await as(F, `select count(*)::int c from profiles where id=$1`, [E])).rows[0].c === 1 &&
+       !(await fails(() => as(F, `insert into messages (match_id, body) values ($1, 'hi')`, [efMatch]))))
+    // crossed paths: no encounter is computed or shown for an incognito person
+    for (const u of [E, S]) await as(u, `select set_crossed_paths(true)`)
+    const ping = (u, h) => su(`insert into user_location_pings (user_id, cell, day, seen_hour, is_night)
+       select $1, 'w283c9', (h at time zone 'Asia/Kuala_Lumpur')::date, h, false from (select date_trunc('hour', now()) - make_interval(hours => $2) h) t`, [u, h])
+    for (const h of [5, 6]) { await ping(E, h); await ping(S, h) }
+    await su(`select compute_crossed_paths()`)
+    const crossed = async (a, b) => (await su(`select count(*)::int c from crossed_paths where user_a=least($1::uuid,$2::uuid) and user_b=greatest($1::uuid,$2::uuid)`, [a, b])).rows[0].c
+    ok('incognito: crossed paths never computed', (await crossed(E, S)) === 0)
+    await as(E, `update profiles set is_incognito = false where id=$1`, [E])
+    await su(`select compute_crossed_paths()`)
+    ok('incognito: off again: encounter computed and shown', (await crossed(E, S)) === 1 && (await as(S, `select id from get_crossed_paths()`)).rows.some((r) => r.id === E))
+    await as(E, `update profiles set is_incognito = true where id=$1`, [E])
+    ok('incognito: hidden from crossed paths at read time', !(await as(S, `select id from get_crossed_paths()`)).rows.some((r) => r.id === E))
+    await as(E, `update profiles set is_incognito = false where id=$1`, [E])
+    await su(`delete from user_location_pings where user_id = any($1)`, [[E, S]])
+    await su(`delete from crossed_paths where user_a = any($1) or user_b = any($1)`, [[E, S]])
+  })()
+  // ===== end matchmaker & incognito =====
   // ===== live statuses (20261009000270 / 271) =====
   // Set / replace / clear, hold per risk kind, carousel visibility, status conversations (kind
   // 'status' on the feed-conversations engine of 220: limits, context, Connect), report target,
@@ -2911,7 +3116,7 @@ export async function run(db) {
   await (async () => {
     const ids = Array.from({ length: 22 }, (_, i) => `57a70000-0000-4000-8000-0000000000${String(i + 10)}`)
     const [A, B, C, D, E, F, G, H, I, J, MOD, VIEW, ...L] = ids
-    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601488800' + String(i).padStart(2, '0')])
+    for (const [i, u] of ids.entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '601466600' + String(i).padStart(2, '0')])
     for (const [i, u] of ids.entries()) {
       const male = u === A || u === G || u === MOD || u === VIEW
       // C lives in Penang (far from everyone else in Bangsar, KL).

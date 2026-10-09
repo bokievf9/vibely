@@ -16,6 +16,7 @@ import { passwordEn, passwordErrorsEn } from './password/en'
 import { sanctionErrorsEn, sanctionsEn } from './sanctions/en'
 import { crossedEn, plansEn } from './nearby/en'
 import { statusErrorsEn, statusesEn } from './statuses/en'
+import { incognitoEn, matchmakerEn, matchmakerErrorsEn } from './matchmaker/en'
 import { eventErrorsEn, eventsEn } from './events/en'
 import { crushEn } from './crush/en'
 import { promoEn, promoErrorsEn } from './promo/en'
@@ -44,6 +45,7 @@ export const en = {
     ...passwordErrorsEn,
     ...sanctionErrorsEn,
     ...statusErrorsEn,
+    ...matchmakerErrorsEn,
     ...eventErrorsEn,
     ...promoErrorsEn,
     ...conversationErrorsEn,
@@ -401,6 +403,8 @@ export const en = {
   crossed: crossedEn,
   plans: plansEn,
   statuses: statusesEn,
+  matchmaker: matchmakerEn,
+  incognito: incognitoEn,
   events: eventsEn,
   crush: crushEn,
   promo: promoEn,

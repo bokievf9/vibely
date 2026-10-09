@@ -13,6 +13,7 @@ export const settingsEn = {
     new_people: 'New people nearby',
     status_replies: 'Replies to your status',
     calls: 'Incoming calls',
+    matchmaker: 'Introductions by friends',
     events: 'Blind Dating Nights',
     crush: 'Your crush likes you back',
     post_replies: 'Private replies to your posts',

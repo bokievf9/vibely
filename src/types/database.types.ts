@@ -111,6 +111,77 @@ export type Database = {
           },
         ]
       }
+      matchmaker_referrals: {
+        Row: {
+          created_at: string
+          decision_b: boolean | null
+          decision_c: boolean | null
+          id: string
+          match_id: string | null
+          matchmaker_id: string
+          note: string | null
+          rewarded_at: string | null
+          status: string
+          user_b: string
+          user_c: string
+        }
+        Insert: {
+          created_at?: string
+          decision_b?: boolean | null
+          decision_c?: boolean | null
+          id?: string
+          match_id?: string | null
+          matchmaker_id: string
+          note?: string | null
+          rewarded_at?: string | null
+          status?: string
+          user_b: string
+          user_c: string
+        }
+        Update: {
+          created_at?: string
+          decision_b?: boolean | null
+          decision_c?: boolean | null
+          id?: string
+          match_id?: string | null
+          matchmaker_id?: string
+          note?: string | null
+          rewarded_at?: string | null
+          status?: string
+          user_b?: string
+          user_c?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'matchmaker_referrals_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_matchmaker_id_fkey'
+            columns: ['matchmaker_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_user_b_fkey'
+            columns: ['user_b']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaker_referrals_user_c_fkey'
+            columns: ['user_c']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       user_plans: {
         Row: {
           created_at: string
@@ -560,12 +631,14 @@ export type Database = {
           image_height: number | null
           image_path: string | null
           image_width: number | null
+          kind: string
           match_id: string
           media_duration_ms: number | null
           media_expired_at: string | null
           media_kind: string | null
           media_mime: string | null
           media_path: string | null
+          payload: Json | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
@@ -580,12 +653,14 @@ export type Database = {
           image_height?: number | null
           image_path?: string | null
           image_width?: number | null
+          kind?: string
           match_id: string
           media_duration_ms?: number | null
           media_expired_at?: string | null
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
+          payload?: Json | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -600,12 +675,14 @@ export type Database = {
           image_height?: number | null
           image_path?: string | null
           image_width?: number | null
+          kind?: string
           match_id?: string
           media_duration_ms?: number | null
           media_expired_at?: string | null
           media_kind?: string | null
           media_mime?: string | null
           media_path?: string | null
+          payload?: Json | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -854,6 +931,7 @@ export type Database = {
           daily_prompt: boolean
           feed_replies: boolean
           likes: boolean
+          matchmaker: boolean
           messages: boolean
           new_matches: boolean
           new_people: boolean
@@ -870,6 +948,7 @@ export type Database = {
           daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
+          matchmaker?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
@@ -886,6 +965,7 @@ export type Database = {
           daily_prompt?: boolean
           feed_replies?: boolean
           likes?: boolean
+          matchmaker?: boolean
           messages?: boolean
           new_matches?: boolean
           new_people?: boolean
@@ -1232,6 +1312,7 @@ export type Database = {
           id: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active: boolean
+          is_incognito: boolean
           job_title: string | null
           languages: Database['public']['Enums']['spoken_language'][] | null
           last_active_at: string
@@ -1277,6 +1358,7 @@ export type Database = {
           id?: string
           interested_in: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          is_incognito?: boolean
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
@@ -1322,6 +1404,7 @@ export type Database = {
           id?: string
           interested_in?: Database['public']['Enums']['gender'][]
           is_active?: boolean
+          is_incognito?: boolean
           job_title?: string | null
           languages?: Database['public']['Enums']['spoken_language'][] | null
           last_active_at?: string
@@ -2351,6 +2434,10 @@ export type Database = {
       }
     }
     Functions: {
+      create_referral: { Args: { p_b: string; p_c: string; p_note?: string | null }; Returns: Json }
+      decide_referral: { Args: { p_id: string; p_interested: boolean }; Returns: Json }
+      get_referral_card: { Args: { p_id: string }; Returns: Json }
+      purge_matchmaker_referrals: { Args: never; Returns: number }
       accept_calls_notice: { Args: never; Returns: string }
       acknowledge_warning: { Args: { p_id: string }; Returns: undefined }
       admin_add_note: {
@@ -3518,7 +3605,7 @@ export type Database = {
       event_status: 'draft' | 'scheduled' | 'live' | 'ended' | 'cancelled'
       gender: 'male' | 'female' | 'other'
       habit_frequency: 'never' | 'sometimes' | 'often'
-      match_source: 'swipe' | 'randomizer'
+      match_source: 'swipe' | 'randomizer' | 'matchmaker'
       pets_status: 'none' | 'cat' | 'dog' | 'both' | 'other'
       random_session_status: 'active' | 'ended'
       relationship_goal: 'serious' | 'long_term_open' | 'casual' | 'friends' | 'not_sure'
@@ -3686,7 +3773,7 @@ export const Constants = {
       event_status: ['draft', 'scheduled', 'live', 'ended', 'cancelled'],
       gender: ['male', 'female', 'other'],
       habit_frequency: ['never', 'sometimes', 'often'],
-      match_source: ['swipe', 'randomizer'],
+      match_source: ['swipe', 'randomizer', 'matchmaker'],
       pets_status: ['none', 'cat', 'dog', 'both', 'other'],
       random_session_status: ['active', 'ended'],
       relationship_goal: ['serious', 'long_term_open', 'casual', 'friends', 'not_sure'],
