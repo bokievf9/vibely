@@ -104,6 +104,7 @@ async function Room({ params }: Pick<PageProps<'/[lang]/chats/[matchId]'>, 'para
         initialReactions={room.reactions}
         initialHasMore={room.hasMore}
         initialCalls={calls}
+        initialReceipts={room.receipts}
       />
     </ChatShell>
   )

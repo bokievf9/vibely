@@ -15,6 +15,7 @@ import { getStatuses } from '@/features/statuses/queries'
 import { SwipeDeck } from '@/features/swipe/components/swipe-deck'
 import { SearchButton } from '@/features/username/components/search-button'
 import { getDictionary } from '@/i18n/server'
+import { getPerkAccess } from '@/features/vip-perks/queries'
 import { DuoDiscover } from '@/features/duo/components/duo-discover'
 import { DiscoverModeToggle } from '@/features/duo/components/mode-toggle'
 import { getMyDuo, getOwnDuoPerson } from '@/features/duo/queries'
@@ -33,14 +34,16 @@ export default function SwipePage({ searchParams }: PageProps<'/[lang]/swipe'>) 
 
 async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchParams'>) {
   const [viewer, query] = await Promise.all([getViewer(), searchParams])
-  const [profile, plan, duo, statuses] = viewer
+  const [profile, plan, duo, statuses, perks] = viewer
     ? await Promise.all([
         getOwnProfile(viewer.id),
         getOwnPlan(viewer.id),
         getMyDuo(),
         getStatuses(),
+        // VIP perks (plans, 20261009000280/290): null hides "Like with a note".
+        getPerkAccess(),
       ])
-    : [null, undefined, undefined, null]
+    : [null, undefined, undefined, null, null]
   // Duo mode (?mode=duo) once Duo Dating exists on this database (migration 20261009000261).
   // Live statuses are a Solo thing: the Duo deck has no carousel.
   if (viewer && duo && query.mode === 'duo') {
@@ -65,6 +68,7 @@ async function Deck({ searchParams }: Pick<PageProps<'/[lang]/swipe'>, 'searchPa
         }}
         aboveDeck={<CrossedPathsStrip />}
         plansAvailable={plan !== undefined}
+        noteAccess={perks && { on: perks.noteOn, left: perks.notesLeft }}
         headerLeading={duo ? <DiscoverModeToggle mode="solo" /> : undefined}
         headerActions={
           <>

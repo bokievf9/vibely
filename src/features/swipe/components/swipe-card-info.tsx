@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { ChevronUp, MapPin } from 'lucide-react'
 import { VerifiedBadge } from '@/components/ui/verified-badge'
@@ -15,6 +15,8 @@ import {
 } from '@/features/profile/components/about-details'
 import { cn } from '@/lib/utils'
 import { PlanBadge } from '@/features/plans/components/plan-badge'
+import { recordProfileVisit } from '@/features/vip-perks/actions'
+import { NoteBubble } from '@/features/vip-perks/components/note-bubble'
 import type { Candidate } from '../schemas'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
@@ -30,6 +32,15 @@ const reveal = {
 export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
   const { dict } = useI18n()
   const [open, setOpen] = useState(false)
+  // Opening the details counts as a profile visit (once per card; the database dedupes per day).
+  const visited = useRef(false)
+  const toggle = () => {
+    if (!open && !visited.current) {
+      visited.current = true
+      void recordProfileVisit(candidate.id).catch(() => undefined)
+    }
+    setOpen((v) => !v)
+  }
   const badges = aboutBadges(candidate.about, dict.about)
   const hasMore =
     candidate.prompts.length > 0 ||
@@ -65,6 +76,11 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
             : 'pointer-events-none',
         )}
       >
+        {candidate.note && (
+          <motion.div layout="position" className="flex max-w-[92%]">
+            <NoteBubble note={candidate.note} />
+          </motion.div>
+        )}
         <motion.div layout="position" className="flex items-start justify-between gap-2">
           <h2 className="min-w-0 text-[2rem] leading-[1.1] font-bold tracking-[-0.03em] [overflow-wrap:anywhere] [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">
             {candidate.name},{' '}
@@ -79,7 +95,7 @@ export function SwipeCardInfo({ candidate }: { candidate: Candidate }) {
             <button
               type="button"
               data-no-drag
-              onClick={() => setOpen((v) => !v)}
+              onClick={toggle}
               aria-expanded={open}
               className="glass pointer-events-auto relative mt-1 flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-sm font-semibold transition-[transform,scale,background-color] duration-150 ease-out before:absolute before:-inset-x-1 before:-inset-y-1 active:scale-[0.96] active:bg-white/25"
             >

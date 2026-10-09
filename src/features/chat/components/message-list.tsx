@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n/client'
 import { dayKey, daysAgo, formatDay } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 import { groupMessages, type Outgoing } from '../chat-state'
+import { receiptFor, type ReadReceipts } from '../read-receipts'
 import type { ChatMessage, Reaction, ReplyPreview } from '../types'
 import { ReferralCard } from '@/features/matchmaker/components/referral-card'
 import { SystemNote } from '@/features/matchmaker/components/system-note'
@@ -26,6 +27,7 @@ type Props = {
   partnerId: string
   partnerName: string
   partnerTyping: boolean
+  receipts: ReadReceipts
   hasMore: boolean
   loadingEarlier: boolean
   highlightId: string | null
@@ -79,6 +81,7 @@ export function MessageList({
   partnerId,
   partnerName,
   partnerTyping,
+  receipts,
   hasMore,
   loadingEarlier,
   highlightId,
@@ -199,7 +202,7 @@ export function MessageList({
               quoteAuthor={quote?.senderId === viewerId ? dict.chats.yourself : partnerName}
               tail={item.groupEnd}
               first={item.groupStart}
-              seen={m.id === lastOwn?.id && !!m.readAt}
+              receipt={mine ? receiptFor(m, lastOwn?.id, receipts) : null}
               highlighted={highlightId === m.id}
               lifted={liftedId === m.id}
               reactions={reactions.get(m.id) ?? NO_REACTIONS}

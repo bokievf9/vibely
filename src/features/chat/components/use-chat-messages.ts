@@ -29,6 +29,9 @@ export function useChatMessages(matchId: string, viewerId: string, initial: Chat
   }
 
   const read = () => void markRead(matchId).then(signalUnreadChanged)
+  // Newest partner message already marked read. With 20261009000290 read_at stays null (the read
+  // state lives in match_reads), so "unread" is judged by time here.
+  const readUpTo = useRef(initial.at(-1)?.createdAt ?? null)
 
   const merge = (incoming: ChatMessage[], animate = true) => {
     if (!incoming.length) return
@@ -38,7 +41,17 @@ export function useChatMessages(matchId: string, viewerId: string, initial: Chat
       if (!latest.current || m.createdAt > latest.current) latest.current = m.createdAt
     }
     setMessages((prev) => mergeMessages(prev, incoming))
-    if (incoming.some((m) => m.senderId !== viewerId && !m.readAt && !m.deletedAt)) read()
+    const unread = incoming.filter(
+      (m) =>
+        m.senderId !== viewerId &&
+        !m.readAt &&
+        !m.deletedAt &&
+        (!readUpTo.current || m.createdAt > readUpTo.current),
+    )
+    if (unread.length) {
+      readUpTo.current = unread.reduce((a, m) => (m.createdAt > a ? m.createdAt : a), '')
+      read()
+    }
   }
 
   // Older pages go in front; they never move `latest` and never animate.

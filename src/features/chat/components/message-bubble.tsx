@@ -8,12 +8,13 @@ import {
   useMotionValueEvent,
   useTransform,
 } from 'framer-motion'
-import { AlertCircle, Ban, Clock, MoreHorizontal, Reply } from 'lucide-react'
+import { AlertCircle, Ban, Check, CheckCheck, Clock, MoreHorizontal, Reply } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import { formatTime } from '@/i18n/format'
 import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { RiskWarning } from '@/features/safety/components/risk-warning'
+import type { Receipt } from '../read-receipts'
 import type { ChatMessage, Reaction, ReactionEmoji, ReplyPreview } from '../types'
 import { MessageMedia } from './message-media'
 import { MessageQuote } from './message-quote'
@@ -37,7 +38,8 @@ type Props = {
   tail: boolean
   // First bubble of a run from the same sender (gets the full top corner).
   first?: boolean
-  seen: boolean
+  // Own messages: "sent" / "seen" tick (read receipts, see read-receipts.ts).
+  receipt: Receipt
   highlighted: boolean
   lifted: boolean
   reactions: Reaction[]
@@ -208,7 +210,7 @@ export function MessageBubble(props: Props) {
           <span className="text-muted px-1.5 pt-0.5 text-[11px] font-medium tabular-nums">
             {m.editedAt && !deleted && <>{dict.chats.edited} · </>}
             <time dateTime={m.createdAt}>{formatTime(m.createdAt, locale)}</time>
-            {props.seen && <> · {dict.chats.seen}</>}
+            {props.receipt && <ReceiptTick receipt={props.receipt} />}
           </span>
         )
       )}
@@ -261,5 +263,21 @@ function MenuButton({ onClick, label }: { onClick: () => void; label: string }) 
     >
       <MoreHorizontal className="size-4" />
     </button>
+  )
+}
+
+// Sent: one check. Seen: two checks in the accent colour (read receipts, VIP).
+function ReceiptTick({ receipt }: { receipt: NonNullable<Receipt> }) {
+  const { dict } = useI18n()
+  const Icon = receipt === 'seen' ? CheckCheck : Check
+  return (
+    <span className="ml-1 inline-flex items-center align-[-0.15em]">
+      <Icon
+        aria-hidden
+        className={cn('size-3.5', receipt === 'seen' ? 'text-accent' : 'text-muted')}
+        strokeWidth={2.5}
+      />
+      <span className="sr-only">{receipt === 'seen' ? dict.chats.seen : dict.chatui.sent}</span>
+    </span>
   )
 }

@@ -4,6 +4,7 @@ import { signPhotoPaths } from '@/features/profile/queries'
 import { hydrateMessages, loadReactionsFor } from './hydrate'
 import { previewKindOf } from './message-kind'
 import { MESSAGE_COLUMNS } from './message-row'
+import { toReadReceipts } from './read-receipts'
 import type { ChatPreview, Partner } from './types'
 
 const ROOM_HISTORY = 100
@@ -52,7 +53,7 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
   if (!matches?.length) return []
 
   const partnerRows = matches.map((m) => (m.a?.id === viewerId ? m.b : m.a))
-  const [partners, { data: messages }] = await Promise.all([
+  const [partners, { data: messages }, reads] = await Promise.all([
     toPartners(partnerRows),
     supabase
       .from('messages')
@@ -65,7 +66,16 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
       )
       .order('created_at', { ascending: false })
       .limit(500),
+    // The viewer's read-up-to per match (20261009000290); absent before it: read_at only.
+    supabase.rpc('my_match_reads'),
   ])
+  const readUpTo = new Map(
+    (reads.error ? [] : (reads.data ?? [])).map((r) => [r.match_id, r.last_read_at]),
+  )
+  const unreadIn = (matchId: string, msg: { created_at: string; read_at: string | null }) => {
+    const upTo = readUpTo.get(matchId)
+    return !msg.read_at && (!upTo || Date.parse(msg.created_at) > Date.parse(upTo))
+  }
 
   const previews = matches.flatMap((m, i) => {
     const partner = partners.get(partnerRows[i]?.id ?? '')
@@ -84,8 +94,9 @@ export async function getChatList(viewerId: string): Promise<ChatPreview[]> {
               at: last.created_at,
             }
           : null,
-        unread: own.filter((msg) => msg.sender_id !== viewerId && !msg.read_at && !msg.deleted_at)
-          .length,
+        unread: own.filter(
+          (msg) => msg.sender_id !== viewerId && !msg.deleted_at && unreadIn(m.id, msg),
+        ).length,
         createdAt: m.created_at,
       },
     ]
@@ -107,7 +118,7 @@ export async function getChatRoom(matchId: string, viewerId: string) {
   const row = match && (match.a?.id === viewerId ? match.b : match.a)
   if (!row) return null
 
-  const [partners, { data: messages }] = await Promise.all([
+  const [partners, { data: messages }, readState] = await Promise.all([
     toPartners([row]),
     supabase
       .from('messages')
@@ -115,6 +126,7 @@ export async function getChatRoom(matchId: string, viewerId: string) {
       .eq('match_id', matchId)
       .order('created_at', { ascending: false })
       .limit(ROOM_HISTORY + 1),
+    supabase.rpc('match_read_state', { p_match: matchId }),
   ])
   const partner = partners.get(row.id)
   if (!partner) return null
@@ -128,5 +140,11 @@ export async function getChatRoom(matchId: string, viewerId: string) {
       page.map((m) => m.id),
     ),
   ])
-  return { partner, messages: hydrated, reactions, hasMore: rows.length > ROOM_HISTORY }
+  return {
+    partner,
+    messages: hydrated,
+    reactions,
+    hasMore: rows.length > ROOM_HISTORY,
+    receipts: toReadReceipts(readState.data, readState.error),
+  }
 }

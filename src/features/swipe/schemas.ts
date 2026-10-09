@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { genderSchema } from '@/features/profile/schemas'
 import type { AboutInput, ProfilePrompt } from '@/features/profile/about-schemas'
 import type { PlanTag } from '@/features/plans/tags'
+import type { IncomingNote } from '@/features/vip-perks/types'
 
 export const AGE_MIN = 18
 export const AGE_MAX = 99
@@ -42,4 +43,6 @@ export type Candidate = {
   plan?: PlanTag | null
   // VIP right now (promo codes, 20261009000230): a small crown next to the name.
   vip?: boolean
+  // A note that came with this person's like to the viewer (20261009000290).
+  note?: IncomingNote | null
 }

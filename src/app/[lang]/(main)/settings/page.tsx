@@ -32,6 +32,8 @@ import { UsernameSettingsRows } from '@/features/username/components/username-se
 import { getUsernameSettings } from '@/features/username/queries'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
+import { ReadReceiptsToggle } from '@/features/vip-perks/components/read-receipts-toggle'
+import { getReadReceiptsSetting } from '@/features/vip-perks/queries'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).settings.title, robots: { index: false } }
@@ -55,7 +57,7 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito, duo] =
+  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito, duo, receipts] =
     await Promise.all([
       getPrivacySettings(viewer.id),
       getNotificationPrefs(viewer.id),
@@ -68,6 +70,8 @@ async function Settings() {
       getIncognito(viewer.id),
       // False until the Duo Dating migration (20261009000261): its switch is hidden then.
       duoAvailable(),
+      // Null until 20261009000290: the read receipts switch is hidden then.
+      getReadReceiptsSetting(),
     ])
 
   return (
@@ -89,6 +93,7 @@ async function Settings() {
       </SettingsSection>
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
+        {receipts && <ReadReceiptsToggle initial={receipts.send} available={receipts.available} />}
         <PauseToggle discoverable={privacy.discoverable} />
         {incognito !== null && <IncognitoToggle initial={incognito} />}
         {crossed !== null && <CrossedPathsToggle initial={crossed} />}

@@ -16,6 +16,7 @@ import { PlanBadge } from '@/features/plans/components/plan-badge'
 import { swipe } from '@/features/swipe/actions'
 import { MatchModal, type MatchInfo } from '@/features/swipe/components/match-modal'
 import type { Candidate } from '@/features/swipe/schemas'
+import { NoteBubble } from '@/features/vip-perks/components/note-bubble'
 import { LikeSheet } from './like-sheet'
 
 // "Who liked you": a photo grid; tapping opens the full card with Pass / Like back.
@@ -66,6 +67,13 @@ export function LikesGrid({ initial }: { initial: Candidate[] }) {
                       label={dict.plans.tags[person.plan]}
                       tone="dark"
                       className="absolute top-2 left-2 max-w-[calc(100%-1rem)]"
+                    />
+                  )}
+                  {person.note && (
+                    <NoteBubble
+                      note={person.note}
+                      clamp
+                      className="absolute inset-x-2 bottom-12 z-[1] py-1.5 text-[13px]"
                     />
                   )}
                   <span className="absolute inset-x-0 bottom-0 flex min-w-0 items-baseline bg-[linear-gradient(to_top,rgb(10_6_10/0.9),rgb(10_6_10/0.4)_55%,transparent)] px-3.5 pt-12 pb-3 text-[17px] font-bold tracking-[-0.02em] text-white">

@@ -6,7 +6,10 @@ import { PageHeader } from '@/components/layout/page-header'
 import { LIKES_VISIBLE_FREE } from '@/features/likes/config'
 import { LikesGrid } from '@/features/likes/components/likes-grid'
 import { LikesSkeleton } from '@/features/likes/components/likes-skeleton'
-import { countIncomingLikes, getIncomingLikes } from '@/features/likes/queries'
+import { countIncomingLikes, getIncomingLikes, getLockedLikeNotes } from '@/features/likes/queries'
+import { LockedNotes } from '@/features/vip-perks/components/locked-notes'
+import { VisitorsEntry } from '@/features/vip-perks/components/visitors-entry'
+import { getProfileVisitors } from '@/features/vip-perks/queries'
 import { viewerCanSeeLikes } from '@/features/promo/queries'
 import { fmt } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
@@ -20,6 +23,9 @@ export default async function LikesPage() {
   return (
     <>
       <PageHeader title={dict.likes.title} back={{ href: '/swipe', label: dict.common.back }} />
+      <Suspense fallback={null}>
+        <Visitors />
+      </Suspense>
       <Suspense fallback={<LikesSkeleton />}>
         <Likes />
       </Suspense>
@@ -32,12 +38,25 @@ async function Likes() {
   // with the see_likes perk (promo codes) gets the list while the VIP lasts.
   if (LIKES_VISIBLE_FREE || (await viewerCanSeeLikes()))
     return <LikesGrid initial={await getIncomingLikes()} />
-  const [count, dict] = await Promise.all([countIncomingLikes(), getDictionary()])
+  const [count, dict, notes] = await Promise.all([
+    countIncomingLikes(),
+    getDictionary(),
+    getLockedLikeNotes(),
+  ])
   return (
-    <EmptyState
-      icon={Heart}
-      title={count > 0 ? fmt(dict.likes.lockedTitle, { count }) : dict.likes.empty}
-      text={count > 0 ? dict.likes.lockedHint : dict.likes.emptyHint}
-    />
+    <>
+      <EmptyState
+        icon={Heart}
+        title={count > 0 ? fmt(dict.likes.lockedTitle, { count }) : dict.likes.empty}
+        text={count > 0 ? dict.likes.lockedHint : dict.likes.emptyHint}
+      />
+      {notes.length > 0 && <LockedNotes notes={notes} />}
+    </>
   )
+}
+
+// "Who viewed your profile" above the likes; hidden before 20261009000290.
+async function Visitors() {
+  const visitors = await getProfileVisitors()
+  return visitors && <VisitorsEntry count={visitors.count} className="mx-4 mb-4" />
 }

@@ -5,6 +5,7 @@ import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
+import { vipPerksLegal } from './vip-perks'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -79,6 +80,9 @@ export const en: LegalContent = {
       // --- live statuses (src/features/legal/content/statuses.ts) ---
       statusesLegal.en.privacy,
       // --- end live statuses ---
+      // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
+      vipPerksLegal.en.privacy,
+      // --- end read receipts, profile visits, notes ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [

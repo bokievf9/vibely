@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, useMotionValue } from 'framer-motion'
-import { Heart, SlidersHorizontal, X } from 'lucide-react'
+import { Heart, MessageSquareHeart, SlidersHorizontal, X } from 'lucide-react'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import { FormError } from '@/components/ui/field'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
-import { loadCandidates, swipe } from '../actions'
+import { loadCandidates, swipe, type SwipeResult } from '../actions'
+import { LikeNoteSheet, type NoteAccess } from '@/features/vip-perks/components/like-note-sheet'
 import { setNewPeopleAlert } from '../deck-end-actions'
 import type { Candidate, SwipeFilters } from '../schemas'
 import { DeckEnd } from './deck-end'
@@ -35,11 +36,15 @@ type Props = {
   plansAvailable?: boolean
   // Above the deck: the Blind Dating Night countdown (server-rendered, null when there is none).
   banner?: ReactNode
+  // "Like with a note" (20261009000290). Null: plans are not on this database, no button.
+  noteAccess?: NoteAccess | null
 }
 
 // Pass is the quieter, smaller action; like is the big gradient one (Fitts: the likely tap is larger).
 const passButton =
   'size-[3.75rem] rounded-full border border-border bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_10px_24px_-12px_rgb(0_0_0/0.9)] active:scale-[0.9] active:bg-fill'
+const noteButton =
+  'size-[3.25rem] rounded-full border border-border bg-surface-raised shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_10px_24px_-12px_rgb(0_0_0/0.9)] active:scale-[0.9] active:bg-fill'
 const likeButton =
   'size-[4.75rem] rounded-full active:scale-[0.9] shadow-[inset_0_1px_0_rgb(255_255_255/0.3),inset_0_-2px_0_rgb(0_0_0/0.12),0_14px_32px_-10px_rgb(255_77_125/0.7)]'
 
@@ -50,6 +55,7 @@ export function SwipeDeck({
   aboveDeck,
   plansAvailable,
   banner,
+  noteAccess,
 }: Props) {
   const { dict } = useI18n()
   const errorText = useErrorText()
@@ -60,6 +66,10 @@ export function SwipeDeck({
   const [error, setError] = useState<ErrorKey>()
   const [match, setMatch] = useState<MatchInfo | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [noting, setNoting] = useState<Candidate | null>(null)
+  const [access, setAccess] = useState(noteAccess ?? null)
+  // The like already went out with a note: the card leaves without a second swipe() call.
+  const noted = useRef(new Map<string, SwipeResult>())
   // The last card is still flying out: keep the stage mounted until it has left the screen.
   const [settling, setSettling] = useState(false)
   // Top card's drag progress (0..1), read by the back card without re-rendering the deck.
@@ -126,7 +136,10 @@ export function SwipeDeck({
     setCards(rest)
     if (rest.length === 0) setSettling(true)
     if (rest.length < REFILL_AT && !exhausted && !loading) void topUp()
-    const result = await swipe({ targetId: top.id, direction: dir })
+    const viaNote = noted.current.get(top.id)
+    const result = viaNote
+      ? { ok: true as const, data: viaNote }
+      : await swipe({ targetId: top.id, direction: dir })
     if (!result.ok) return setError(result.error)
     if (!result.data.matchId) return
     trackOnce('first_match')
@@ -213,6 +226,18 @@ export function SwipeDeck({
               >
                 <Heart className="size-9 fill-current drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" />
               </Button>
+              {access && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={noteButton}
+                  aria-label={dict.vipPerks.note.button}
+                  disabled={!top}
+                  onClick={() => top && setNoting(top)}
+                >
+                  <MessageSquareHeart className="text-accent size-6" strokeWidth={2.25} />
+                </Button>
+              )}
             </div>
           </>
         )}
@@ -224,6 +249,22 @@ export function SwipeDeck({
           onClose={() => setFiltersOpen(false)}
           onApply={changeFilters}
           plansAvailable={plansAvailable}
+        />
+      )}
+      {noting && access && (
+        <LikeNoteSheet
+          key={noting.id}
+          open
+          targetId={noting.id}
+          access={access}
+          onClose={() => setNoting(null)}
+          onSent={(result) => {
+            noted.current.set(noting.id, { matchId: result.matchId })
+            setAccess((a) => (a && a.left !== null ? { ...a, left: Math.max(0, a.left - 1) } : a))
+            setNoting(null)
+            // The noted card leaves like a liked one (decide() skips the second like).
+            if (cards[0]?.id === noting.id) press('like')
+          }}
         />
       )}
       <MatchModal match={match} onClose={() => setMatch(null)} />

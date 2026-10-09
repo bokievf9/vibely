@@ -3957,6 +3957,7 @@ export type Database = {
       }
       mark_match_read: { Args: { p_match: string }; Returns: string | null }
       match_read_state: { Args: { p_match: string }; Returns: Json }
+      my_access: { Args: never; Returns: Json }
       my_like_note: { Args: { p_target: string }; Returns: Json }
       my_match_reads: {
         Args: never

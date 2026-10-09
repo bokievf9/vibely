@@ -5,6 +5,7 @@ import { crushLegal } from './crush'
 import { duoLegal } from './duo'
 import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
+import { vipPerksLegal } from './vip-perks'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -82,6 +83,9 @@ export const ru: LegalContent = {
       // --- live statuses (src/features/legal/content/statuses.ts) ---
       statusesLegal.ru.privacy,
       // --- end live statuses ---
+      // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
+      vipPerksLegal.ru.privacy,
+      // --- end read receipts, profile visits, notes ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [

@@ -7,6 +7,7 @@ export const chatUiRu: ChatUiDictionary = {
   onlyNewMatches: 'Нажмите на новую пару, чтобы поздороваться.',
   goDiscover: 'Перейти к знакомствам',
   sending: 'Отправка',
+  sent: 'Отправлено',
   notSent: 'Не отправлено',
   retry: 'Повторить',
   discard: 'Удалить',
