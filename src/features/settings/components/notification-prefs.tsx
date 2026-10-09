@@ -2,6 +2,7 @@
 
 import {
   CalendarHeart,
+  Handshake,
   Heart,
   HeartHandshake,
   Lightbulb,
@@ -31,6 +32,7 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   random_reveal: VenetianMask,
   new_people: UserPlus,
   calls: Phone,
+  matchmaker: Handshake,
   events: CalendarHeart,
   crush: HeartHandshake,
   post_replies: MessageSquareLock,

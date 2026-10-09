@@ -1,5 +1,6 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
@@ -70,6 +71,9 @@ export const ru: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ru.privacy,
       // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.ru.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Жалобы, модерация и блокировка',
         paragraphs: [
@@ -189,6 +193,9 @@ export const ru: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.ru.terms,
       // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.ru.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Модерация',
         paragraphs: [

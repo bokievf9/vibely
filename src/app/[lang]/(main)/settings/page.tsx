@@ -14,6 +14,7 @@ import { LanguageSwitcher } from '@/features/profile/components/language-switche
 import { LastSeenToggle } from '@/features/presence/components/last-seen-toggle'
 import { PushToggle } from '@/features/push/components/push-toggle'
 import { BlockedUsers } from '@/features/settings/components/blocked-users'
+import { IncognitoToggle } from '@/features/settings/components/incognito-toggle'
 import { NotificationPrefsRows } from '@/features/settings/components/notification-prefs'
 import { PauseToggle } from '@/features/settings/components/pause-toggle'
 import { PromoSettingsRow } from '@/features/promo/components/promo-settings'
@@ -22,6 +23,7 @@ import { SettingsSection } from '@/features/settings/components/settings-section
 import { SettingsSkeleton } from '@/features/settings/components/settings-skeleton'
 import {
   getBlockedUsers,
+  getIncognito,
   getNotificationPrefs,
   getPrivacySettings,
 } from '@/features/settings/queries'
@@ -52,16 +54,18 @@ export default async function SettingsPage() {
 async function Settings() {
   const [viewer, locale, dict] = await Promise.all([getViewer(), getLocale(), getDictionary()])
   if (!viewer?.profile) return null
-  const [privacy, prefs, blocked, username, hasPassword, crossed, vip] = await Promise.all([
-    getPrivacySettings(viewer.id),
-    getNotificationPrefs(viewer.id),
-    getBlockedUsers(),
-    getUsernameSettings(),
-    getHasPassword(),
-    crossedPathsEnabled(),
-    // Null until the promo migration (20261009000230) is applied: the row is hidden then.
-    getVipStatus(),
-  ])
+  const [privacy, prefs, blocked, username, hasPassword, crossed, vip, incognito] =
+    await Promise.all([
+      getPrivacySettings(viewer.id),
+      getNotificationPrefs(viewer.id),
+      getBlockedUsers(),
+      getUsernameSettings(),
+      getHasPassword(),
+      crossedPathsEnabled(),
+      // Null until the promo migration (20261009000230) is applied: the row is hidden then.
+      getVipStatus(),
+      getIncognito(viewer.id),
+    ])
 
   return (
     <div className="flex flex-col gap-7 px-4 pt-1 pb-8">
@@ -83,6 +87,7 @@ async function Settings() {
       <SettingsSection title={dict.settings.privacy}>
         <LastSeenToggle initial={privacy.showLastSeen} />
         <PauseToggle discoverable={privacy.discoverable} />
+        {incognito !== null && <IncognitoToggle initial={incognito} />}
         {crossed !== null && <CrossedPathsToggle initial={crossed} />}
       </SettingsSection>
       {vip && (

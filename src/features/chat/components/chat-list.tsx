@@ -121,6 +121,8 @@ function ChatRow({ chat: c }: { chat: ChatPreview }) {
         return dict.media.previewVideo
       case 'expired':
         return m.body ?? dict.media.previewExpired
+      case 'referral':
+        return dict.matchmaker.preview
       default:
         return m.body ?? ''
     }

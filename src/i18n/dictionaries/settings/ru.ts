@@ -13,6 +13,7 @@ export const settingsRu: SettingsDictionary = {
     random_reveal: 'Мэтчи на свиданиях вслепую',
     new_people: 'Новые люди рядом',
     calls: 'Входящие звонки',
+    matchmaker: 'Знакомства через друзей',
     events: 'Вечера свиданий вслепую',
     crush: 'Взаимная симпатия по приглашению',
     post_replies: 'Личные ответы на ваши посты',

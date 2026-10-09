@@ -1,5 +1,6 @@
 import { callsLegal } from './calls'
 import { nearbyLegal } from './nearby'
+import { matchmakerLegal } from './matchmaker'
 import { crushLegal } from './crush'
 import { conversationsLegal } from './conversations'
 import type { LegalContent } from './types'
@@ -67,6 +68,9 @@ export const en: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.en.privacy,
       // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.en.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [
@@ -186,6 +190,9 @@ export const en: LegalContent = {
       // --- private replies & question of the day (src/features/legal/content/conversations.ts) ---
       conversationsLegal.en.terms,
       // --- end private replies & question of the day ---
+      // --- matchmaker & incognito (src/features/legal/content/matchmaker.ts) ---
+      matchmakerLegal.en.privacy,
+      // --- end matchmaker & incognito ---
       {
         heading: '6. Moderation',
         paragraphs: [
