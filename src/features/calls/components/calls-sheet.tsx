@@ -113,6 +113,7 @@ export function CallsSheet(props: Props) {
                   fullWidth
                   onClick={props.onLocked}
                   aria-describedby="calls-locked-hint"
+                  className="gap-1.5 px-3 whitespace-nowrap"
                 >
                   {kind === 'audio' ? <Phone className="size-5" /> : <Video className="size-5" />}
                   {kind === 'audio' ? t.audio : t.video}
