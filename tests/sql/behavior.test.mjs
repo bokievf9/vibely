@@ -4273,6 +4273,164 @@ export async function run(db) {
   })()
   // ===== end underage review =====
 
+  // ===== payments (20261011000100) =====
+  // Orders, idempotent mark_paid, grant math (fresh, stacked, Plus -> VIP), refunds and access.
+  await (async () => {
+    const id = (n) => `a1100000-0000-4000-8000-0000000000${String(n).padStart(2, '0')}`
+    const [B1, B2, B3, B4, B5, UNV, BAN, ADM, MOD, OWN] = Array.from({ length: 10 }, (_, i) => id(i + 1))
+    const everyone = [B1, B2, B3, B4, B5, UNV, BAN, ADM, MOD, OWN]
+    for (const [i, u] of everyone.entries()) {
+      await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '60193100' + String(i).padStart(3, '0')])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city, location) values ($1,'1995-05-05','female','{male}','Ipoh','SRID=4326;POINT(101.08 4.6)')`, ['Pay ' + i])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [everyone.filter((u) => u !== UNV)])
+    await su(`update profiles set banned_at = now(), ban_reason = 'test' where id = $1`, [BAN])
+    await su(`insert into admins (user_id, role) values ($1,'admin'),($2,'moderator'),($3,'owner')`, [ADM, MOD, OWN])
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const codeOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+    const days = (t) => (new Date(t) - Date.now()) / 864e5
+    const near = (t, d) => t !== null && Math.abs(days(t) - d) < 0.01
+    const create = async (u, plan, period, provider = 'stripe') => (await svc(`select payment_create_order($1,$2,$3,$4) o`, [u, plan, period, provider])).rows[0].o
+    const attach = (o, ref) => svc(`select payment_attach_checkout($1,$2,$3)`, [o, ref, 'https://pay.example/' + ref])
+    const paid = async (ref, amount, cur = 'MYR', provider = 'stripe') => (await svc(`select payment_mark_paid($1,$2,$3,$4,$5) r`, [provider, ref, amount, cur, { id: 'evt' }])).rows[0].r
+    const order = async (oid) => (await su(`select * from payment_orders where id=$1`, [oid])).rows[0]
+    const grantOf = async (gid) => (await su(`select * from plan_grants where id=$1`, [gid])).rows[0]
+    const planOf = async (u) => (await su(`select plan_of($1)::text p`, [u])).rows[0].p
+    const until = async (u) => (await su(`select plan_until($1) t`, [u])).rows[0].t
+    const setPrice = (a, plan, period, sen, active = true) => svc(`select admin_set_price($1,$2,$3,$4,$5)`, [a, plan, period, sen, active])
+
+    // ----- clients cannot touch payments -----
+    ok('payments: clients cannot read or write orders, prices or events',
+       !!(await codeOf(() => as(B1, `select * from payment_orders`))) && !!(await codeOf(() => as(B1, `select * from plan_prices`))) &&
+       !!(await codeOf(() => as(B1, `select * from payment_events`))) &&
+       !!(await codeOf(() => as(B1, `insert into payment_orders (user_id, plan, period_months, amount_sen, currency, provider) values ($1,'vip',1,1,'MYR','test')`, [B1]))))
+    ok('payments: clients cannot call the service functions', (await su(`select bool_or(has_function_privilege('authenticated', p.oid, 'execute')) v
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname='public' and (p.proname like 'payment\\_%' or p.proname in ('admin_set_price','admin_plan_prices','admin_payment_orders','admin_payment_stats'))`)).rows[0].v === false &&
+       !!(await codeOf(() => as(B1, `select payment_mark_paid('test','x',1,'MYR')`))) && !!(await codeOf(() => as(B1, `select payment_create_order($1,'plus',1,'test')`, [B1]))))
+
+    // ----- prices -----
+    ok('payments: no price, no order', (await codeOf(() => create(B1, 'plus', 1))) === 'P0002')
+    ok('payments: only the owner sets prices', (await codeOf(() => setPrice(ADM, 'plus', 1, 2990))) === '42501' && (await codeOf(() => setPrice(MOD, 'plus', 1, 2990))) === '42501')
+    await setPrice(OWN, 'plus', 1, 2990); await setPrice(OWN, 'plus', 3, 7990); await setPrice(OWN, 'vip', 1, 4990); await setPrice(OWN, 'vip', 3, 12990)
+    await setPrice(OWN, 'vip', 12, 39990, false)
+    ok('payments: price changes logged', (await su(`select count(*)::int c from moderation_actions where action='payment.price' and admin_id=$1`, [OWN])).rows[0].c === 5)
+    ok('payments: invalid price refused', (await codeOf(() => setPrice(OWN, 'plus', 2, 100))) === '22023' && (await codeOf(() => setPrice(OWN, 'plus', 1, 50))) === '22023' &&
+       (await codeOf(() => setPrice(OWN, 'free', 1, 500))) === '22023')
+    const pub = (await as(B1, `select * from plan_prices_public()`)).rows
+    ok('payments: users see active prices only', pub.length === 4 && !pub.some((p) => p.plan === 'vip' && p.period_months === 12), JSON.stringify(pub))
+
+    // ----- order creation validation -----
+    ok('payments: invalid plan, period or provider', (await codeOf(() => create(B1, 'free', 1))) === '22023' && (await codeOf(() => create(B1, 'plus', 2))) === '22023' &&
+       (await codeOf(() => create(B1, 'plus', 1, 'paypal'))) === '22023')
+    ok('payments: unverified and banned users refused', (await codeOf(() => create(UNV, 'plus', 1))) === '42501' && (await codeOf(() => create(BAN, 'plus', 1))) === '42501' &&
+       (await codeOf(() => create(id(99), 'plus', 1))) === '42501')
+    ok('payments: draft price only for the test provider', (await codeOf(() => create(B1, 'vip', 12))) === 'P0002')
+    const draft = await create(B5, 'vip', 12, 'test')
+    ok('payments: test provider may use a draft price', draft.amount_sen === 39990 && draft.status === 'pending')
+    await su(`update payment_orders set status='cancelled' where id=$1`, [draft.id])
+
+    const o1 = await create(B1, 'plus', 1)
+    ok('payments: order snapshots the price', o1.status === 'pending' && o1.amount_sen === 2990 && o1.currency === 'MYR' && o1.reused === false && o1.period_months === 1)
+    await attach(o1.id, 'cs_1')
+    const o1b = await create(B1, 'plus', 1)
+    ok('payments: one pending order per plan is reused', o1b.id === o1.id && o1b.reused === true && o1b.checkout_url === 'https://pay.example/cs_1')
+    const o2 = await create(B1, 'plus', 3)
+    ok('payments: another period cancels the old pending order', o2.id !== o1.id && (await order(o1.id)).status === 'cancelled' && o2.amount_sen === 7990)
+    await attach(o2.id, 'cs_2')
+    ok('payments: checkout ref attached once', (await codeOf(() => attach(o2.id, 'cs_other'))) === 'VP409')
+
+    // ----- mark paid -----
+    ok('payments: amount mismatch refused', (await codeOf(() => paid('cs_2', 2990))) === 'VP422' && (await order(o2.id)).status === 'pending')
+    ok('payments: currency mismatch refused', (await codeOf(() => paid('cs_2', 7990, 'USD'))) === 'VP422' && (await planOf(B1)) === 'free')
+    ok('payments: unknown order', (await codeOf(() => paid('cs_nope', 7990))) === 'P0002')
+    const r2 = await paid('cs_2', 7990)
+    const ord2 = await order(o2.id)
+    const g2 = await grantOf(ord2.grant_id)
+    ok('payments: paid grants the plan (fresh: 90 days from now)', r2.status === 'paid' && r2.already === false && ord2.status === 'paid' && !!ord2.paid_at &&
+       g2.source === 'purchase' && g2.plan === 'plus' && near(g2.ends_at, 90) && Math.abs(days(g2.starts_at)) < 0.01 && (await planOf(B1)) === 'plus', JSON.stringify([r2, g2]))
+    const again = await paid('cs_2', 7990)
+    ok('payments: mark_paid is idempotent', again.already === true && again.grant_id === ord2.grant_id &&
+       (await su(`select count(*)::int c from plan_grants where user_id=$1`, [B1])).rows[0].c === 1 &&
+       (await su(`select count(*)::int c from moderation_actions where action='payment.paid' and target_id=$1`, [o2.id])).rows[0].c === 1)
+    ok('payments: late payment on a cancelled order is honoured', (await paid('cs_1', 2990)).status === 'paid')
+    const g1 = await grantOf((await order(o1.id)).grant_id)
+    ok('payments: stacked purchase starts when the current plan ends', near(g1.starts_at, 90) && near(g1.ends_at, 120) && near(await until(B1), 120))
+
+    // ----- Plus -> VIP: VIP now, Plus paused -----
+    await su(`select grant_plan($1,'plus',30,'promo')`, [B2])
+    const ov = await create(B2, 'vip', 1); await attach(ov.id, 'cs_v')
+    await paid('cs_v', 4990)
+    const gv = await grantOf((await order(ov.id)).grant_id)
+    const plusB2 = (await su(`select * from plan_grants where user_id=$1 and plan='plus'`, [B2])).rows[0]
+    ok('payments: VIP over Plus starts now', (await planOf(B2)) === 'vip' && Math.abs(days(gv.starts_at)) < 0.01 && near(gv.ends_at, 30))
+    ok('payments: Plus time is paused, not lost', near(plusB2.ends_at, 60) && Math.abs(days(plusB2.starts_at)) < 0.01, JSON.stringify(plusB2))
+
+    // ----- VIP active -> Plus purchase queues after VIP -----
+    await su(`select grant_plan($1,'vip',30,'promo')`, [B3])
+    const op = await create(B3, 'plus', 1); await attach(op.id, 'cs_p3'); await paid('cs_p3', 2990)
+    const gp = await grantOf((await order(op.id)).grant_id)
+    ok('payments: Plus bought during VIP starts when VIP ends', near(gp.starts_at, 30) && near(gp.ends_at, 60) && (await planOf(B3)) === 'vip')
+
+    // ----- refunds -----
+    ok('payments: moderator cannot refund', (await codeOf(() => svc(`select payment_refund($1,$2,'x')`, [MOD, ov.id]))) === '42501' && (await order(ov.id)).status === 'paid')
+    const rf = (await svc(`select payment_refund($1,$2,'asked within 7 days') r`, [ADM, ov.id])).rows[0].r
+    const plusB2r = (await su(`select * from plan_grants where user_id=$1 and plan='plus'`, [B2])).rows[0]
+    ok('payments: refund revokes the VIP grant', rf.status === 'refunded' && (await order(ov.id)).status === 'refunded' && !!(await grantOf(gv.id)).revoked_at &&
+       (await grantOf(gv.id)).revoked_by === ADM && (await planOf(B2)) === 'plus')
+    ok('payments: refund gives the paused Plus time back', near(plusB2r.ends_at, 30), JSON.stringify(plusB2r))
+    ok('payments: refund logged', (await su(`select count(*)::int c from moderation_actions where action='payment.refund' and admin_id=$1 and target_id=$2`, [ADM, ov.id])).rows[0].c === 1)
+    const rf2 = (await svc(`select payment_refund($1,$2,'twice') r`, [ADM, ov.id])).rows[0].r
+    ok('payments: refund is idempotent', rf2.already === true && (await su(`select count(*)::int c from moderation_actions where action='payment.refund'`)).rows[0].c === 1)
+    // B1: plus [0,90] (o2) then [90,120] (o1). Refund o2: o1 moves to [0,30].
+    await svc(`select payment_refund($1,$2,null)`, [ADM, o2.id])
+    const g1r = await grantOf(g1.id)
+    ok('payments: queued grants move up after a refund', Math.abs(days(g1r.starts_at)) < 0.01 && near(g1r.ends_at, 30) && near(await until(B1), 30) && (await planOf(B1)) === 'plus', JSON.stringify(g1r))
+    // gateway-initiated refund
+    const gr = (await svc(`select payment_mark_refunded('stripe','cs_p3',null) r`)).rows[0].r
+    ok('payments: gateway refund revokes and is logged', gr.status === 'refunded' && !!(await grantOf(gp.id)).revoked_at &&
+       (await su(`select count(*)::int c from moderation_actions where action='payment.refund_gateway' and target_id=$1`, [op.id])).rows[0].c === 1)
+
+    // ----- failures, expiry -----
+    const of = await create(B4, 'vip', 1); await attach(of.id, 'cs_f')
+    ok('payments: refund of an unpaid order refused', (await codeOf(() => svc(`select payment_refund($1,$2,null)`, [ADM, of.id]))) === 'VP409')
+    ok('payments: failed', (await svc(`select payment_mark_failed('stripe','cs_f','failed','declined') s`)).rows[0].s === 'failed' &&
+       (await order(of.id)).failure_reason === 'declined' && (await planOf(B4)) === 'free')
+    ok('payments: failure never downgrades a paid order', (await svc(`select payment_mark_failed('stripe','cs_2','failed',null) s`)).rows[0].s === 'refunded')
+    const oe = await create(B4, 'plus', 1)
+    await su(`update payment_orders set expires_at = now() - interval '1 minute' where id=$1`, [oe.id])
+    ok('payments: stale pending orders expire', (await svc(`select payment_expire_stale() n`)).rows[0].n === 1 && (await order(oe.id)).status === 'expired')
+
+    // ----- rate limit: 5 new orders per 10 minutes (reuse does not count) -----
+    await su(`delete from payment_orders where user_id=$1`, [B4])
+    for (const p of [1, 3, 1, 3, 1]) await create(B4, 'plus', p)
+    ok('payments: checkout rate limited', (await codeOf(() => create(B4, 'plus', 3))) === 'P0429' && (await create(B4, 'plus', 1)).reused === true)
+
+    // ----- events: recorded once -----
+    const e1 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
+    const e2 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
+    ok('payments: events deduplicated', !!e1 && e2 === null && (await su(`select order_id from payment_events where id=$1`, [e1])).rows[0].order_id === o2.id)
+
+    // ----- my_payments -----
+    const mine = (await as(B1, `select my_payments() p`)).rows[0].p
+    ok('payments: my_payments lists own orders without gateway data', mine.length === 2 && mine.every((p) => !('raw_event' in p) && !('provider_ref' in p) && !('user_id' in p)) &&
+       mine.some((p) => p.status === 'refunded'), JSON.stringify(mine))
+    ok('payments: others see nothing of mine', (await as(B2, `select my_payments($1) p`, [o2.id])).rows[0].p.length === 0 &&
+       (await as(B1, `select my_payments($1) p`, [o2.id])).rows[0].p.length === 1)
+
+    // ----- admin reads -----
+    ok('payments: moderator cannot read orders', (await codeOf(() => svc(`select admin_payment_orders($1)`, [MOD]))) === '42501' &&
+       (await codeOf(() => svc(`select admin_payment_stats($1)`, [MOD]))) === '42501')
+    const list = (await svc(`select admin_payment_orders($1, 'refunded') l`, [ADM])).rows[0].l
+    ok('payments: admin lists orders by status', list.length === 3 && list.every((o) => o.status === 'refunded'))
+    const st = (await svc(`select admin_payment_stats($1) s`, [ADM])).rows[0].s
+    ok('payments: totals exclude test orders', st.paid.count === 1 && st.paid.sen === 2990 && st.refunded.count === 3 && st.test === 1, JSON.stringify(st))
+
+    // ----- account deletion keeps the financial record -----
+    await su(`delete from auth.users where id=$1`, [B1])
+    ok('payments: orders survive account deletion', (await su(`select count(*)::int c from payment_orders where id = any($1) and user_id is null`, [[o1.id, o2.id]])).rows[0].c === 2)
+  })()
+  // ===== end payments =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
