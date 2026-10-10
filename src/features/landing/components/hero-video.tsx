@@ -9,7 +9,10 @@ import { cn } from '@/lib/utils'
 // the LCP candidate; the video sources are only attached after the page has loaded and the main
 // thread is idle, so the video never competes with first paint. It plays only while visible,
 // and not at all for reduced motion or Save-Data: those visitors keep the poster.
-export function HeroVideo({ label }: { label: string }) {
+type Media = { poster: string; webm: string; mp4: string }
+
+// `media` holds the files of the page's language (src/features/landing/media.ts).
+export function HeroVideo({ label, media }: { label: string; media: Media }) {
   const video = useRef<HTMLVideoElement>(null)
   const [load, setLoad] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -60,7 +63,7 @@ export function HeroVideo({ label }: { label: string }) {
     >
       <div className="relative size-full">
         <Image
-          src="/landing/hero-poster.webp"
+          src={media.poster}
           alt=""
           fill
           priority
@@ -86,8 +89,8 @@ export function HeroVideo({ label }: { label: string }) {
         >
           {load && (
             <>
-              <source src="/landing/hero.webm" type="video/webm" />
-              <source src="/landing/hero.mp4" type="video/mp4" />
+              <source src={media.webm} type="video/webm" />
+              <source src={media.mp4} type="video/mp4" />
             </>
           )}
         </video>

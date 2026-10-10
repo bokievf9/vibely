@@ -1,13 +1,15 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
-import { DEFAULT_LOCALE, LOCALES, hasLocale } from '@/i18n/config'
+import { ogScreenPath } from '@/features/landing/media'
+import { DEFAULT_LOCALE, LOCALES, hasLocale, type Locale } from '@/i18n/config'
 import { getDictionary } from '@/i18n/server'
 
 // Share preview for the landing page, one per locale (prerendered at build time): the headline
 // on the left, the real Discover screen on the right. The bundled default font (Geist) covers
-// Latin and Cyrillic. The OG renderer does not read WebP, so a PNG copy of the Discover
-// screenshot sits in public/landing/og-discover.png (300 px wide; public/ ships with each release).
+// Latin and Cyrillic. The OG renderer does not read WebP, so a PNG copy of each language's Discover
+// screenshot sits in public/landing/og-discover-<locale>.png (300 px wide; public/ ships with each
+// release).
 export const alt = 'Vibely'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -16,9 +18,9 @@ export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }))
 }
 
-async function screenshot(): Promise<string | null> {
+async function screenshot(locale: Locale): Promise<string | null> {
   try {
-    const png = await readFile(join(process.cwd(), 'public/landing/og-discover.png'))
+    const png = await readFile(join(process.cwd(), ogScreenPath(locale)))
     return `data:image/png;base64,${png.toString('base64')}`
   } catch {
     return null
@@ -27,8 +29,9 @@ async function screenshot(): Promise<string | null> {
 
 export default async function OpengraphImage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params
-  const { landing } = await getDictionary(hasLocale(lang) ? lang : DEFAULT_LOCALE)
-  const shot = await screenshot()
+  const locale = hasLocale(lang) ? lang : DEFAULT_LOCALE
+  const { landing } = await getDictionary(locale)
+  const shot = await screenshot(locale)
 
   return new ImageResponse(
     <div

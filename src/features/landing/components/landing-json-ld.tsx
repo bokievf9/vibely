@@ -1,5 +1,6 @@
 import { LOCALES, localePath, type Locale } from '@/i18n/config'
 import type { LandingDictionary } from '@/i18n/dictionaries/landing/en'
+import { screenSrc, type ScreenName } from '../media'
 
 type Props = { locale: Locale; t: LandingDictionary; site: string }
 
@@ -42,9 +43,9 @@ export function LandingJsonLd({ locale, t, site: siteUrl }: Props) {
         operatingSystem: 'Android, iOS (installable web app)',
         countriesSupported: 'MY',
         inLanguage: [...LOCALES],
-        image: `${site}/landing/screens/discover.webp`,
-        screenshot: ['discover', 'blind-date', 'feed', 'duo'].map(
-          (s) => `${site}/landing/screens/${s}.webp`,
+        image: `${site}${screenSrc(locale, 'discover')}`,
+        screenshot: (['discover', 'blind-date', 'feed', 'duo'] as ScreenName[]).map(
+          (s) => `${site}${screenSrc(locale, s)}`,
         ),
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'MYR' },
         publisher: { '@id': `${site}/#organization` },
