@@ -1,10 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-// Same footprint as the deck (card + round buttons), so nothing jumps when the first card lands.
+// Same footprint as the deck (card + round buttons), so nothing jumps when the first card lands:
+// same 13rem card floor, same gap and the same 80px button row as SwipeDeck.
 export function DeckSkeleton() {
   return (
-    <div className="flex flex-1 flex-col gap-4" aria-busy="true">
-      <div className="relative min-h-[420px] flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-3" aria-busy="true">
+      <div className="relative min-h-[13rem] flex-1">
         <Skeleton className="absolute inset-0 rounded-3xl" />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-5">
           <Skeleton className="bg-fill h-8 w-1/2 rounded-full" />
@@ -15,9 +16,10 @@ export function DeckSkeleton() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center gap-8">
-        <Skeleton className="size-16 rounded-full" />
-        <Skeleton className="size-16 rounded-full" />
+      <div className="flex h-20 shrink-0 items-center justify-center gap-7 pt-1">
+        <Skeleton className="size-[3.75rem] rounded-full" />
+        <Skeleton className="size-[4.75rem] rounded-full" />
+        <Skeleton className="size-[3.75rem] rounded-full" />
       </div>
     </div>
   )
@@ -27,7 +29,7 @@ export function DeckSkeleton() {
 export function DiscoverSkeleton() {
   return (
     <>
-      <div className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+      <div className="flex h-[var(--header-h)] shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
         <Skeleton className="h-6 w-28 rounded-full" />
         <div className="flex gap-2">
           <Skeleton className="size-10 rounded-2xl" />
@@ -35,7 +37,7 @@ export function DiscoverSkeleton() {
           <Skeleton className="size-10 rounded-2xl" />
         </div>
       </div>
-      <div className="flex flex-1 flex-col px-4 pb-4">
+      <div className="deck-fit flex min-h-0 flex-1 flex-col px-3 pt-1 pb-3">
         <DeckSkeleton />
       </div>
     </>

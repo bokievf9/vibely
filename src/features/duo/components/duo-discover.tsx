@@ -11,6 +11,7 @@ import { FormError } from '@/components/ui/field'
 import { LocaleLink, useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { DeckSkeleton } from '@/features/swipe/components/deck-skeleton'
+import { cn } from '@/lib/utils'
 import { decideDuo, loadDuoCandidates, loadDuoInbox, refreshMyDuo } from '../actions'
 import { onDuoSignal } from '../signal'
 import type { DuoCandidate, DuoPerson, MyDuo } from '../types'
@@ -100,7 +101,10 @@ export function DuoDiscover({ initial, me, openInbox = false, headerActions }: P
           </>
         )}
       </PageHeader>
-      <section className="flex flex-1 flex-col gap-4 px-3 pt-1 pb-3">
+      {/* deck-fit (globals.css): the deck never runs under the tab bar, the card shrinks. */}
+      <section
+        className={cn('flex flex-1 flex-col gap-4 px-3 pt-1 pb-3', active && 'deck-fit min-h-0')}
+      >
         {active ? (
           <DuoDeck
             key={active.id}
@@ -195,7 +199,7 @@ function DuoDeck({ onMatch }: { onMatch: (groupId: string, theirs: DuoPerson[]) 
       )}
       {top && (
         <>
-          <div className="relative min-h-[360px] flex-1">
+          <div className="relative min-h-[13rem] flex-1">
             <AnimatePresence custom={exitTo}>
               {[next, top].map(
                 (c) => c && <DuoCard key={c.teamId} duo={c} top={c === top} exitTo={exitTo} />,
