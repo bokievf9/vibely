@@ -10,7 +10,11 @@ import { isWaitlistCity, normalizeMalaysianMobile } from './phone'
 import { verifyTurnstile } from './turnstile-verify'
 
 const TURNSTILE_ACTION = 'waitlist'
-const PHONE_ERRORS: readonly WaitlistError[] = ['phoneInvalid', 'phoneNotMalaysia', 'phoneNotMobile']
+const PHONE_ERRORS: readonly WaitlistError[] = [
+  'phoneInvalid',
+  'phoneNotMalaysia',
+  'phoneNotMobile',
+]
 
 const text = (form: FormData, key: string) => {
   const value = form.get(key)

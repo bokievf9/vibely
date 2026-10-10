@@ -12,7 +12,8 @@ export function FaqTracker({ children }: { children: ReactNode }) {
     if (!el) return
     const onToggle = (e: Event) => {
       const d = e.target
-      if (d instanceof HTMLDetailsElement && d.open) track('faq_open', { index: Number(d.dataset.faq) })
+      if (d instanceof HTMLDetailsElement && d.open)
+        track('faq_open', { index: Number(d.dataset.faq) })
     }
     el.addEventListener('toggle', onToggle, true)
     return () => el.removeEventListener('toggle', onToggle, true)

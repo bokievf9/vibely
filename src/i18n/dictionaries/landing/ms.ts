@@ -105,7 +105,8 @@ export const landingMs: LandingDictionary = {
   },
   plans: {
     title: 'Percuma, Plus dan VIP',
-    intro: 'Pelan percuma sudah cukup untuk bertemu janji di Vibely. Plus dan VIP menambah ciri tambahan.',
+    intro:
+      'Pelan percuma sudah cukup untuk bertemu janji di Vibely. Plus dan VIP menambah ciri tambahan.',
     caption: 'Apa yang ada dalam setiap pelan',
     feature: 'Ciri',
     free: 'Percuma',

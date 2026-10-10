@@ -43,6 +43,8 @@ export const ACTION_LABELS: Record<string, string> = {
   'view.phone': 'Просмотр номера телефона',
   'view.transcript': 'Просмотр переписки блайнд-дейта',
   'export.audit_log': 'Выгрузил журнал (CSV)',
+  'export.waitlist': 'Выгрузил лист ожидания (CSV)',
+  'waitlist.invite': 'Отметил приглашённым из листа ожидания',
   'legal.export': 'Выгрузил данные по юр. запросу',
   'event.create': 'Создал вечер свиданий вслепую',
   'event.update': 'Изменил вечер свиданий вслепую',

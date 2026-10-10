@@ -65,7 +65,13 @@ export default async function OpengraphImage({ params }: { params: Promise<{ lan
           <div style={{ fontSize: 52, fontWeight: 700, letterSpacing: -2 }}>Vibely</div>
         </div>
         <div
-          style={{ marginTop: 44, fontSize: 68, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2.5 }}
+          style={{
+            marginTop: 44,
+            fontSize: 68,
+            fontWeight: 700,
+            lineHeight: 1.05,
+            letterSpacing: -2.5,
+          }}
         >
           {landing.ogTagline}
         </div>
@@ -83,7 +89,6 @@ export default async function OpengraphImage({ params }: { params: Promise<{ lan
             marginTop: 120,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={shot} width={300} height={649} alt="" style={{ borderRadius: 34 }} />
         </div>
       )}

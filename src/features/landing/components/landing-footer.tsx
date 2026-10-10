@@ -6,7 +6,7 @@ import { chipClassName } from '@/components/ui/chip'
 export function LandingFooter({ locale, t }: { locale: Locale; t: LandingDictionary }) {
   return (
     <footer className="border-border mt-auto border-t">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 md:px-8 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:px-8">
         <nav aria-label={t.footer.language} className="flex flex-wrap gap-2">
           {LOCALES.map((l) => (
             <Link

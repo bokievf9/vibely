@@ -57,7 +57,10 @@ const plansSql = readFileSync(
 )
 const LEVELS = ['free', 'plus', 'vip']
 const minPlan = Object.fromEntries(
-  [...plansSql.matchAll(/\('([a-z0-9_]+)',\s+'[^']*',\s+'(free|plus|vip)'/g)].map((m) => [m[1], m[2]]),
+  [...plansSql.matchAll(/\('([a-z0-9_]+)',\s+'[^']*',\s+'(free|plus|vip)'/g)].map((m) => [
+    m[1],
+    m[2],
+  ]),
 )
 const limits = new Map(
   [
@@ -66,7 +69,10 @@ const limits = new Map(
     ),
   ].map((m) => [
     `${m[1]}:${m[2]}`,
-    { n: m[3] === 'null' ? null : Number(m[3]), period: m[4] === 'null' ? null : m[4].slice(1, -1) },
+    {
+      n: m[3] === 'null' ? null : Number(m[3]),
+      period: m[4] === 'null' ? null : m[4].slice(1, -1),
+    },
   ]),
 )
 
@@ -81,7 +87,8 @@ test('plan comparison matches the seeded matrix', () => {
         const limit = limits.get(`${feature}:${level}`)
         const where = `${row}/${feature}/${level}`
         assert.equal(has, cell.kind !== 'no', where)
-        if (cell.kind === 'limit') assert.deepEqual(limit, { n: cell.n, period: cell.period }, where)
+        if (cell.kind === 'limit')
+          assert.deepEqual(limit, { n: cell.n, period: cell.period }, where)
         if (cell.kind === 'unlimited' || cell.kind === 'yes')
           assert.ok(!limit || limit.n === null, where)
       }

@@ -94,7 +94,8 @@ function WaitlistForm({
   const phoneError = error && PHONE_ERRORS.includes(error) ? t.errors[error] : undefined
   const consentError = error === 'consentRequired' ? t.errors.consentRequired : undefined
   const cityError = error === 'cityInvalid' ? t.errors.cityInvalid : undefined
-  const formError = error && !phoneError && !consentError && !cityError ? t.errors[error] : undefined
+  const formError =
+    error && !phoneError && !consentError && !cityError ? t.errors[error] : undefined
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -249,7 +250,12 @@ function WaitlistForm({
       )}
 
       <FormError message={formError} />
-      <Button type="submit" loading={pending} fullWidth aria-label={pending ? t.sending : undefined}>
+      <Button
+        type="submit"
+        loading={pending}
+        fullWidth
+        aria-label={pending ? t.sending : undefined}
+      >
         {submitLabel}
       </Button>
     </form>

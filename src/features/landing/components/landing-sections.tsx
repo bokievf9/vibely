@@ -129,7 +129,10 @@ async function EventBlockInner({ locale, t }: Props) {
 export function PlansSection({ t }: { t: LandingDictionary }) {
   const p = t.plans
   return (
-    <section aria-labelledby="plans-title" className="mx-auto w-full max-w-4xl px-5 py-20 md:px-8 md:py-28">
+    <section
+      aria-labelledby="plans-title"
+      className="mx-auto w-full max-w-4xl px-5 py-20 md:px-8 md:py-28"
+    >
       <h2 id="plans-title" className={h2}>
         {p.title}
       </h2>
@@ -192,7 +195,10 @@ export function PlansSection({ t }: { t: LandingDictionary }) {
 
 export function FaqSection({ t }: { t: LandingDictionary }) {
   return (
-    <section aria-labelledby="faq-title" className="mx-auto w-full max-w-3xl px-5 py-20 md:px-8 md:py-28">
+    <section
+      aria-labelledby="faq-title"
+      className="mx-auto w-full max-w-3xl px-5 py-20 md:px-8 md:py-28"
+    >
       <h2 id="faq-title" className={`${h2} mb-8`}>
         {t.faqTitle}
       </h2>

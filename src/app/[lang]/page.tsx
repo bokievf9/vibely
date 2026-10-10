@@ -2,11 +2,7 @@ import type { Metadata } from 'next'
 import { BlindStory } from '@/features/landing/components/blind-story'
 import { CtaProvider } from '@/features/landing/components/cta'
 import { LandingFooter } from '@/features/landing/components/landing-footer'
-import {
-  LandingHeader,
-  LandingHero,
-  TrustStrip,
-} from '@/features/landing/components/landing-hero'
+import { LandingHeader, LandingHero, TrustStrip } from '@/features/landing/components/landing-hero'
 import { LandingJsonLd } from '@/features/landing/components/landing-json-ld'
 import {
   EventBlock,
@@ -48,7 +44,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: OG_LOCALE[locale],
       alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OG_LOCALE[l]),
     },
-    keywords: ['dating app Malaysia', 'aplikasi temu janji', 'blind date', 'verified dating', 'Vibely'],
+    keywords: [
+      'dating app Malaysia',
+      'aplikasi temu janji',
+      'blind date',
+      'verified dating',
+      'Vibely',
+    ],
     twitter: { card: 'summary_large_image', title: t.metaTitle, description: t.metaDescription },
   }
 }

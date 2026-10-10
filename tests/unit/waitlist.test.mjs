@@ -57,16 +57,24 @@ test('database errors map to form messages', () => {
   assert.equal(waitlistErrorFromDb({ code: '' }), 'generic')
 })
 
-const fakeFetch = (reply, calls = []) => async (url, init) => {
-  calls.push({ url, body: String(init.body) })
-  if (reply instanceof Error) throw reply
-  return { ok: true, json: async () => reply }
-}
+const fakeFetch =
+  (reply, calls = []) =>
+  async (url, init) => {
+    calls.push({ url, body: String(init.body) })
+    if (reply instanceof Error) throw reply
+    return { ok: true, json: async () => reply }
+  }
 
 test('turnstile: skipped without a secret, no request made', async () => {
   const calls = []
-  assert.equal(await verifyTurnstile({ secret: '', token: 'x', fetchImpl: fakeFetch({}, calls) }), 'skipped')
-  assert.equal(await verifyTurnstile({ secret: undefined, token: '', fetchImpl: fakeFetch({}, calls) }), 'skipped')
+  assert.equal(
+    await verifyTurnstile({ secret: '', token: 'x', fetchImpl: fakeFetch({}, calls) }),
+    'skipped',
+  )
+  assert.equal(
+    await verifyTurnstile({ secret: undefined, token: '', fetchImpl: fakeFetch({}, calls) }),
+    'skipped',
+  )
   assert.equal(calls.length, 0)
 })
 
@@ -85,14 +93,35 @@ test('turnstile: verifies with siteverify, action must match', async () => {
   assert.match(calls[0].body, /response=tok/)
   assert.match(calls[0].body, /remoteip=1\.2\.3\.4/)
   assert.equal(
-    await verifyTurnstile({ secret: 's', token: 't', action: 'waitlist', fetchImpl: fakeFetch({ success: true, action: 'send_otp' }) }),
+    await verifyTurnstile({
+      secret: 's',
+      token: 't',
+      action: 'waitlist',
+      fetchImpl: fakeFetch({ success: true, action: 'send_otp' }),
+    }),
     'failed',
   )
 })
 
 test('turnstile: fails closed', async () => {
-  assert.equal(await verifyTurnstile({ secret: 's', token: '', fetchImpl: fakeFetch({ success: true }) }), 'failed')
-  assert.equal(await verifyTurnstile({ secret: 's', token: 'x'.repeat(2049), fetchImpl: fakeFetch({ success: true }) }), 'failed')
-  assert.equal(await verifyTurnstile({ secret: 's', token: 't', fetchImpl: fakeFetch({ success: false }) }), 'failed')
-  assert.equal(await verifyTurnstile({ secret: 's', token: 't', fetchImpl: fakeFetch(new Error('offline')) }), 'failed')
+  assert.equal(
+    await verifyTurnstile({ secret: 's', token: '', fetchImpl: fakeFetch({ success: true }) }),
+    'failed',
+  )
+  assert.equal(
+    await verifyTurnstile({
+      secret: 's',
+      token: 'x'.repeat(2049),
+      fetchImpl: fakeFetch({ success: true }),
+    }),
+    'failed',
+  )
+  assert.equal(
+    await verifyTurnstile({ secret: 's', token: 't', fetchImpl: fakeFetch({ success: false }) }),
+    'failed',
+  )
+  assert.equal(
+    await verifyTurnstile({ secret: 's', token: 't', fetchImpl: fakeFetch(new Error('offline')) }),
+    'failed',
+  )
 })

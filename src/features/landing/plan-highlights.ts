@@ -62,7 +62,8 @@ export const PLAN_ROWS: PlanRow[] = [
 export function planCellText(cell: PlanCell, t: LandingDictionary['plans']): string | null {
   switch (cell.kind) {
     case 'limit': {
-      const template = cell.period === 'day' ? t.perDay : cell.period === 'week' ? t.perWeek : t.perMonth
+      const template =
+        cell.period === 'day' ? t.perDay : cell.period === 'week' ? t.perWeek : t.perMonth
       return template.replace('{n}', String(cell.n))
     }
     case 'unlimited':
