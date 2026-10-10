@@ -111,3 +111,11 @@ export const getMyPayments = cache(async (): Promise<MyPayment[] | null> => {
   if (error) return null
   return parsePayments(data)
 })
+
+// One of the viewer's orders, or null (not theirs, unknown, or the migration is missing).
+export async function getMyOrder(orderId: string): Promise<MyPayment | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('my_payments', { p_id: orderId })
+  if (error) return null
+  return parsePayments(data)[0] ?? null
+}
