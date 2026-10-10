@@ -187,9 +187,24 @@ export function SwipeDeck({
           <SlidersHorizontal className="size-[1.375rem]" />
         </button>
       </PageHeader>
-      <section className="flex flex-1 flex-col gap-3 px-3 pt-1 pb-3">
-        {banner}
-        {aboveDeck}
+      {/* While the deck (or its skeleton) is up, the section is exactly the space between the
+          header and the tab bar (deck-fit, globals.css) so the card shrinks instead of pushing the
+          buttons under the tab bar. The end-of-deck screen keeps normal page scrolling. */}
+      <section
+        className={cn(
+          'flex flex-1 flex-col gap-3 px-3 pt-1 pb-3',
+          (top || settling || loading) && 'deck-fit min-h-0',
+        )}
+      >
+        {/* Status carousel, event banner, crossed paths: full height while the card keeps at least
+            its floor; on the shortest screens with all of them up this strip scrolls instead. */}
+        <div
+          data-deck-strips
+          className="-mx-3 flex min-h-0 shrink [scrollbar-width:none] flex-col gap-3 overflow-y-auto overscroll-contain px-3 empty:hidden [&::-webkit-scrollbar]:hidden"
+        >
+          {banner}
+          {aboveDeck}
+        </div>
         <FormError message={errorText(error)} />
         {!top && !settling && loading && <DeckSkeleton />}
         {!top && !settling && !loading && (
@@ -203,8 +218,9 @@ export function SwipeDeck({
         )}
         {(top || settling) && (
           <>
-            {/* 360px (was 420px) so a compact strip above the deck still fits on a phone. */}
-            <div className="relative min-h-[360px] flex-1">
+            {/* Takes whatever height is left; the 13rem floor keeps a usable card on a 568px
+                screen (the strips above give way first, see data-deck-strips). */}
+            <div className="relative min-h-[13rem] flex-1">
               <AnimatePresence onExitComplete={() => setSettling(false)}>
                 {[next, top].map(
                   (c) =>

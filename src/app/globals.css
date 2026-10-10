@@ -405,6 +405,18 @@ button,
   }
 }
 
+/* Discover / Duo deck: the deck section is never taller than the space between the sticky header
+   and the fixed tab bar (minus the install banner while it shows), so the action buttons always sit
+   above the tab bar and the card absorbs the difference. */
+.deck-fit {
+  max-height: calc(100dvh - var(--header-h) - var(--tabbar-h));
+}
+body:has([data-install-prompt]) .deck-fit {
+  max-height: calc(
+    100dvh - var(--header-h) - var(--tabbar-h) - var(--install-prompt-h, 0px) - 0.75rem
+  );
+}
+
 /* The install banner floats above the tab bar; while it is visible the page gets extra bottom
    padding so the banner never covers the last row of content (height set by the banner). */
 body:has([data-install-prompt]) [data-main] {
