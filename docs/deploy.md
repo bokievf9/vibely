@@ -19,6 +19,10 @@ Push в `main` → GitHub Actions: проверки (typecheck, lint, SQL- и un
 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODERATORS_CHAT_ID`,
 `CRON_SECRET` (≥ 32 символов, `openssl rand -hex 32`; без него `POST /api/cron/retention` отвечает 503
 и 90-дневная очистка медиа и селфи не работает).
+Лист ожидания на лендинге (опционально): `TURNSTILE_SECRET_KEY` (секретный ключ Cloudflare Turnstile
+того же виджета, что и `NEXT_PUBLIC_TURNSTILE_SITE_KEY`). С ним server action `joinWaitlist` проверяет
+токен через `siteverify`; без него проверка пропускается, а лимиты в базе (`join_waitlist`: 3 попытки
+в минуту на номер, 60 в минуту на всех) работают всегда.
 Telegram-бот модерации (опционально, см. раздел ниже): `TELEGRAM_WEBHOOK_SECRET`,
 `TELEGRAM_BOT_USERNAME`, `TELEGRAM_SEND_SELFIES`, `TELEGRAM_TOPIC_SELFIES`, `TELEGRAM_TOPIC_REPORTS`,
 `TELEGRAM_TOPIC_ALERTS`.
@@ -39,7 +43,9 @@ Telegram-бот модерации (опционально, см. раздел �
 
 Variables (публичные значения, вшиваются в бандл при сборке): `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`; опционально `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
-`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_ANALYTICS_SRC`, `NEXT_PUBLIC_ANALYTICS_SITE_ID`.
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_ANALYTICS_SRC`, `NEXT_PUBLIC_ANALYTICS_SITE_ID`,
+`NEXT_PUBLIC_SIGNUP_OPEN` (`true`: кнопка на лендинге ведёт на `/login`; иначе открывает лист
+ожидания раннего доступа, `/admin/waitlist`).
 
 ## Сервер
 

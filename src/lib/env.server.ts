@@ -55,3 +55,11 @@ export function getCronSecret(): string | null {
   cronCached = parsed.success ? parsed.data : null
   return cronCached
 }
+
+// Cloudflare Turnstile secret for forms the app verifies itself (the early access waitlist).
+// Optional: without it the token is not checked and only the database rate limits apply.
+// The sign-in captcha is verified by Supabase Auth with its own copy of the secret.
+export function getTurnstileSecret(): string | null {
+  const value = process.env.TURNSTILE_SECRET_KEY?.trim()
+  return value ? value : null
+}

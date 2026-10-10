@@ -33,7 +33,8 @@ jobs:
   # Repository variables (public values, inlined into the client bundle at build time):
   #   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SITE_URL
   #   optional: NEXT_PUBLIC_VAPID_PUBLIC_KEY, NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-  #             NEXT_PUBLIC_ANALYTICS_SRC, NEXT_PUBLIC_ANALYTICS_SITE_ID
+  #             NEXT_PUBLIC_ANALYTICS_SRC, NEXT_PUBLIC_ANALYTICS_SITE_ID,
+  #             NEXT_PUBLIC_SIGNUP_OPEN ("true" sends the landing CTA to /login instead of the waitlist)
   # Server-only secrets live in /var/www/vibely/shared/.env.production on the VPS.
   deploy:
     needs: check
@@ -47,6 +48,7 @@ jobs:
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
       NEXT_PUBLIC_ANALYTICS_SRC: ${{ vars.NEXT_PUBLIC_ANALYTICS_SRC }}
       NEXT_PUBLIC_ANALYTICS_SITE_ID: ${{ vars.NEXT_PUBLIC_ANALYTICS_SITE_ID }}
+      NEXT_PUBLIC_SIGNUP_OPEN: ${{ vars.NEXT_PUBLIC_SIGNUP_OPEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
