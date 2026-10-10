@@ -64,7 +64,13 @@ export function SafetyMenu({ userId, name, onUnmatch, photos, calls, introduce }
 
   return (
     <>
-      <Button variant="ghost" size="icon" aria-label="…" onClick={() => setOpen('menu')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="…"
+        data-tip={introduce ? 'matchmaker' : undefined}
+        onClick={() => setOpen('menu')}
+      >
         <EllipsisVertical className="size-6" />
       </Button>
       <Modal open={open === 'menu'} onClose={() => setOpen(null)} title={name}>

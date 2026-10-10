@@ -78,6 +78,8 @@ export function CrossedPathsStrip() {
       {visible && state && (
         <motion.section
           aria-label={t.title}
+          data-tip="crossed_paths"
+          data-tour="swipe-crossed"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto', transition: { duration: 0.28, ease: EASE_OUT } }}
           exit={{ opacity: 0, height: 0, transition: { duration: 0.18, ease: EASE_OUT } }}

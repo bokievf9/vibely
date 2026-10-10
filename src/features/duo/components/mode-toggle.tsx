@@ -12,6 +12,8 @@ export function DiscoverModeToggle({ mode }: { mode: 'solo' | 'duo' }) {
   return (
     <nav
       aria-label={t.modeLabel}
+      data-tour={mode === 'solo' ? 'swipe-mode' : undefined}
+      data-tip={mode === 'duo' ? 'duo' : undefined}
       className="bg-surface-raised flex shrink-0 rounded-full p-0.5 shadow-[inset_0_0_0_1px_var(--border)]"
     >
       {(['solo', 'duo'] as const).map((m) => (

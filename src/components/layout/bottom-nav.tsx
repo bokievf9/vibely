@@ -95,6 +95,7 @@ function NavBar({ activePath, unread }: { activePath: string | null; unread: num
               <LocaleLink
                 href={href}
                 aria-current={active ? 'page' : undefined}
+                data-tour={`tab-${key}`}
                 onClick={onClick}
                 draggable={false}
                 className={cn(

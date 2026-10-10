@@ -100,7 +100,7 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
           )}
         </div>
       </div>
-      <div className="border-border flex flex-col gap-1.5 border-t pt-3">
+      <div data-tip="crush" className="border-border flex flex-col gap-1.5 border-t pt-3">
         <div className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2 font-medium">
             <Heart className="text-accent size-5 shrink-0" aria-hidden /> {tc.inviteOption}

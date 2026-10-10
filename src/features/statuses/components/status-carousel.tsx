@@ -128,7 +128,12 @@ export function StatusCarousel({ initial, className, compact = false }: Props) {
 
   return (
     <>
-      <section aria-label={t.title} className={cn('shrink-0', className)}>
+      <section
+        aria-label={t.title}
+        data-tip="statuses"
+        data-tour={compact ? 'swipe-statuses' : undefined}
+        className={cn('shrink-0', className)}
+      >
         <ul
           className={cn(
             'flex snap-x [scrollbar-width:none] overflow-x-auto overscroll-x-contain px-3 [&::-webkit-scrollbar]:hidden',

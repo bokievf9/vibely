@@ -12,6 +12,7 @@ export async function SearchButton() {
       href={localePath(locale, '/search')}
       aria-label={dict.username.searchOpen}
       className={headerActionClassName}
+      data-tour="swipe-people"
     >
       <Search className="size-[1.375rem]" />
     </Link>

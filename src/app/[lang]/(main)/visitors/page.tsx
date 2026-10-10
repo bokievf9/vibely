@@ -36,7 +36,13 @@ async function Visitors() {
   const data = await getProfileVisitors()
   // Before 20261009000290 there is nothing to show.
   if (!data) notFound()
-  return <VisitorsList data={data} />
+  return (
+    <>
+      {/* First visit: the one-time "Who viewed you" tip (src/features/tour). */}
+      <span data-tip="visitors" hidden />
+      <VisitorsList data={data} />
+    </>
+  )
 }
 
 function VisitorsSkeleton() {

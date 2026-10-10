@@ -39,7 +39,10 @@ export function StartScreen({ tags, initial, pending, error, onStart, banner }: 
   return (
     <div className="flex flex-col gap-6 pb-6">
       {banner}
-      <section className="bg-surface border-border relative overflow-hidden rounded-3xl border p-5">
+      <section
+        data-tour="blind-intro"
+        className="bg-surface border-border relative overflow-hidden rounded-3xl border p-5"
+      >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -top-16 h-48 bg-[radial-gradient(55%_60%_at_50%_40%,rgb(255_77_125/0.22),transparent)]"

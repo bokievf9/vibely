@@ -5,7 +5,8 @@
 // Discover header buttons): the spotlight then wraps all of them. Tips use `data-tip` markers: a
 // tip shows the first time its marker is on screen.
 
-export type TourRoute = '/swipe' | '/blind-date' | '/feed' | '/chats' | '/profile' | '/settings' | '/plans'
+export type TourRoute =
+  '/swipe' | '/blind-date' | '/feed' | '/chats' | '/profile' | '/settings' | '/plans'
 
 // Tab order of the app: the tour walks through it once, left to right, then into Settings.
 export const ROUTE_ORDER: readonly TourRoute[] = [
@@ -19,13 +20,7 @@ export const ROUTE_ORDER: readonly TourRoute[] = [
 ]
 
 export type TipKey =
-  | 'duo'
-  | 'statuses'
-  | 'crossed_paths'
-  | 'event'
-  | 'visitors'
-  | 'crush'
-  | 'matchmaker'
+  'duo' | 'statuses' | 'crossed_paths' | 'event' | 'visitors' | 'crush' | 'matchmaker'
 
 export const TIP_KEYS: readonly TipKey[] = [
   'statuses',
@@ -140,7 +135,8 @@ export function isAutoStartPath(pathname: string): boolean {
 }
 
 // Never over the admin panel, sign-in and onboarding, legal pages, chat rooms or calls.
-const BLOCKED = /^\/(admin|login|verify-otp|onboarding|selfie-verification|banned|terms|privacy|~offline)(\/|$)/
+const BLOCKED =
+  /^\/(admin|login|verify-otp|onboarding|selfie-verification|banned|terms|privacy|~offline)(\/|$)/
 export function isTourAllowedPath(pathname: string): boolean {
   if (pathname.startsWith('/admin')) return false
   const path = appPath(pathname)

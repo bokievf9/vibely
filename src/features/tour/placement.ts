@@ -35,7 +35,8 @@ export function unionRect(rects: readonly Rect[]): Rect | null {
   return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
-const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), Math.max(min, max))
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), Math.max(min, max))
 
 export function place(
   target: Rect,
@@ -61,10 +62,20 @@ export function place(
   const arrow = () => clamp(centerX - x, 24, width - 24)
 
   if (bottom - (spot.y + spot.height + GAP) >= cardHeight) {
-    return { spot, card: { x, y: spot.y + spot.height + GAP, width }, side: 'below', arrowX: arrow() }
+    return {
+      spot,
+      card: { x, y: spot.y + spot.height + GAP, width },
+      side: 'below',
+      arrowX: arrow(),
+    }
   }
   if (spot.y - GAP - top >= cardHeight) {
-    return { spot, card: { x, y: spot.y - GAP - cardHeight, width }, side: 'above', arrowX: arrow() }
+    return {
+      spot,
+      card: { x, y: spot.y - GAP - cardHeight, width },
+      side: 'above',
+      arrowX: arrow(),
+    }
   }
   // A tall target (a card, a list): light up its top part and put the card under that.
   const trimmedBottom = bottom - cardHeight - GAP
