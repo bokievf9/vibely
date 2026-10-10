@@ -34,6 +34,7 @@ import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { ReadReceiptsToggle } from '@/features/vip-perks/components/read-receipts-toggle'
 import { PlansSettingsRow } from '@/features/plans/components/plan-entries'
+import { PaymentHistorySettings } from '@/features/payments/components/payment-history'
 import { ReplayTourRow } from '@/features/tour/components/replay-tour-row'
 import { getReadReceiptsSetting } from '@/features/vip-perks/queries'
 
@@ -106,6 +107,7 @@ async function Settings() {
           {crossed !== null && <CrossedPathsToggle initial={crossed} />}
         </SettingsSection>
       </div>
+      <PaymentHistorySettings />
       {vip && (
         <SettingsSection title={dict.promo.section}>
           <PromoSettingsRow initial={vip} />

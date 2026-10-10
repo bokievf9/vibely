@@ -26,6 +26,7 @@ import { vipPerksMs, vipPerksErrorsMs } from './vip-perks/ms'
 import { duoMs, duoErrorsMs } from './duo/ms'
 import { conversationErrorsMs, conversationsMs } from './conversations/ms'
 import { tourMs } from './tour/ms'
+import { paymentErrorsMs, paymentsMs } from './payments/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -54,6 +55,7 @@ export const ms: Dictionary = {
     ...eventErrorsMs,
     ...promoErrorsMs,
     ...planErrorsMs,
+    ...paymentErrorsMs,
     ...vipPerksErrorsMs,
     ...duoErrorsMs,
     ...conversationErrorsMs,
@@ -423,6 +425,7 @@ export const ms: Dictionary = {
   crossed: crossedMs,
   presets: presetsMs,
   plans: plansMs,
+  payments: paymentsMs,
   statuses: statusesMs,
   matchmaker: matchmakerMs,
   incognito: incognitoMs,

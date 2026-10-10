@@ -4,14 +4,16 @@ import { PageHeader } from '@/components/layout/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlansScreen } from '@/features/plans/components/plans-screen'
 import { getAccess, getPlanCatalog, getPlanInterest } from '@/features/plans/queries'
+import { getCheckoutView } from '@/features/payments/queries'
 import { getDictionary } from '@/i18n/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).plans.screen.title, robots: { index: false } }
 }
 
-// Free, Plus and VIP with the comparison from the live matrix (features, plan_limits). Payments
-// are not connected: the paid cards say "Coming soon" and record interest instead.
+// Free, Plus and VIP with the comparison from the live matrix (features, plan_limits). While
+// checkout is off (payments not enabled; test mode is for staff only) the paid cards say "Coming
+// soon" and record interest instead.
 export default async function PlansPage() {
   const dict = await getDictionary()
   return (
@@ -28,10 +30,11 @@ export default async function PlansPage() {
 }
 
 async function Plans() {
-  const [access, catalog, interest] = await Promise.all([
+  const [access, catalog, interest, checkout] = await Promise.all([
     getAccess(),
     getPlanCatalog(),
     getPlanInterest(),
+    getCheckoutView(),
   ])
   return (
     <PlansScreen
@@ -40,6 +43,7 @@ async function Plans() {
       isStaff={access.isStaff}
       catalog={catalog}
       interest={interest}
+      checkout={checkout}
     />
   )
 }

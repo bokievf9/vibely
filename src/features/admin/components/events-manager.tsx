@@ -252,7 +252,9 @@ function EventList({
               )}
             </div>
             <p className="text-sm">
-              {formatMalaysia(e.startsAt)} - {formatMalaysia(e.endsAt, { weekday: undefined, day: undefined, month: undefined })} MYT
+              {formatMalaysia(e.startsAt)} -{' '}
+              {formatMalaysia(e.endsAt, { weekday: undefined, day: undefined, month: undefined })}{' '}
+              MYT
               {e.theme && <span className="text-muted"> · {e.theme}</span>}
             </p>
             <dl className="text-muted flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums">

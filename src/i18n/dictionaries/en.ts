@@ -25,6 +25,7 @@ import { vipPerksEn, vipPerksErrorsEn } from './vip-perks/en'
 import { duoEn, duoErrorsEn } from './duo/en'
 import { conversationErrorsEn, conversationsEn } from './conversations/en'
 import { tourEn } from './tour/en'
+import { paymentErrorsEn, paymentsEn } from './payments/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -53,6 +54,7 @@ export const en = {
     ...eventErrorsEn,
     ...promoErrorsEn,
     ...planErrorsEn,
+    ...paymentErrorsEn,
     ...vipPerksErrorsEn,
     ...duoErrorsEn,
     ...conversationErrorsEn,
@@ -416,6 +418,7 @@ export const en = {
   crossed: crossedEn,
   presets: presetsEn,
   plans: plansEn,
+  payments: paymentsEn,
   statuses: statusesEn,
   matchmaker: matchmakerEn,
   incognito: incognitoEn,
