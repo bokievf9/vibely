@@ -4,7 +4,7 @@ export const landingMs: LandingDictionary = {
   metaTitle: 'Vibely: temu janji di Malaysia dengan profil yang swafotonya disemak',
   metaDescription:
     'Kenali orang sebenar berdekatan anda di Malaysia. Pasukan kami menyemak setiap swafoto. Temu janji buta, Teroka, Duo dan suapan tanpa nama. Sertai akses awal.',
-  ogTagline: 'Jumpa orang sebenar, dekat dengan anda',
+  ogTagline: 'Orang sebenar, dekat dengan anda',
   header: {
     haveAccount: 'Sudah ada akaun?',
     signIn: 'Log masuk',
@@ -14,7 +14,7 @@ export const landingMs: LandingDictionary = {
     open: 'Sertai Vibely',
   },
   hero: {
-    title: 'Jumpa orang sebenar, dekat dengan anda',
+    title: 'Orang sebenar, dekat dengan anda',
     subtitle:
       'Vibely ialah aplikasi temu janji untuk Malaysia. Pasukan kami menyemak setiap swafoto sebelum sesuatu profil disiarkan.',
     videoLabel: 'Pratonton ringkas aplikasi Vibely: Teroka, temu janji buta, padanan dan sembang',

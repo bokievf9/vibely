@@ -72,7 +72,7 @@ export default async function LandingPage() {
     <CtaProvider locale={locale} t={{ cta: t.cta, waitlist: t.waitlist }}>
       <LandingJsonLd locale={locale} t={t} site={publicEnv.NEXT_PUBLIC_SITE_URL} />
       <LandingHeader locale={locale} t={t} />
-      <main className="relative flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col overflow-x-clip">
         <ScrollDepth />
         <LandingHero t={t} />
         <TrustStrip t={t} />

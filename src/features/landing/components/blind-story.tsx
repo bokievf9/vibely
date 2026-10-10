@@ -61,7 +61,7 @@ export function BlindStory({ title, steps }: { title: string; steps: Step[] }) {
             </div>
           </div>
         </div>
-        <ol className="flex flex-col gap-14 md:gap-0">
+        <ol className="flex flex-col gap-12 md:gap-0">
           {steps.map((step, i) => (
             <li
               key={step.title}
@@ -69,7 +69,7 @@ export function BlindStory({ title, steps }: { title: string; steps: Step[] }) {
                 refs.current[i] = el
               }}
               data-index={i}
-              className="md:flex md:min-h-[78dvh] md:flex-col md:justify-center"
+              className="md:flex md:min-h-[min(72dvh,40rem)] md:flex-col md:justify-center"
             >
               <div
                 className={cn(
@@ -82,8 +82,9 @@ export function BlindStory({ title, steps }: { title: string; steps: Step[] }) {
                   {step.text}
                 </p>
               </div>
-              <div className="mt-8 w-[min(64vw,240px)] pl-5 md:hidden">
-                <PhoneScreen src={step.src} alt={step.alt} sizes="64vw" />
+              {/* Phones: the top of the screen is enough to show the step; the rest fades out. */}
+              <div className="mt-6 ml-5 h-[19rem] w-[min(60vw,220px)] overflow-hidden [mask-image:linear-gradient(to_bottom,black_70%,transparent)] md:hidden">
+                <PhoneScreen src={step.src} alt={step.alt} sizes="60vw" />
               </div>
             </li>
           ))}

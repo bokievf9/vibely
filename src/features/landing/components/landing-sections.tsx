@@ -54,11 +54,13 @@ export function SafetySection({ locale, t }: Props) {
           ))}
         </ul>
       </div>
-      <div className="mx-auto w-[min(64vw,260px)] md:w-[260px] lg:w-[280px]">
+      {/* Phones show only the lower half, where the safety menu is. */}
+      <div className="relative mx-auto h-[17rem] w-[min(64vw,250px)] overflow-hidden [mask-image:linear-gradient(to_top,black_75%,transparent)] md:h-auto md:w-[260px] md:overflow-visible md:[mask-image:none] lg:w-[280px]">
         <PhoneScreen
           src="/landing/screens/safety.webp"
           alt={t.safety.imageAlt}
           sizes="(min-width: 1024px) 280px, 260px"
+          className="max-md:absolute max-md:inset-x-0 max-md:bottom-0"
         />
       </div>
     </section>
@@ -142,14 +144,14 @@ export function PlansSection({ t }: { t: LandingDictionary }) {
           <caption className="sr-only">{p.caption}</caption>
           <thead>
             <tr className="bg-surface-raised">
-              <th scope="col" className="text-muted px-4 py-3.5 font-medium sm:px-6">
+              <th scope="col" className="text-muted px-3 py-3.5 font-medium sm:px-6">
                 {p.feature}
               </th>
               {PLAN_LEVELS.map((level) => (
                 <th
                   key={level}
                   scope="col"
-                  className="text-headline w-[22%] px-2 py-3.5 text-center sm:w-[18%]"
+                  className="text-headline w-[20%] px-1 py-3.5 text-center sm:w-[18%] sm:px-2"
                 >
                   {p[level]}
                 </th>
@@ -159,14 +161,14 @@ export function PlansSection({ t }: { t: LandingDictionary }) {
           <tbody>
             {PLAN_ROWS.map(({ row, cells }) => (
               <tr key={row} className="even:bg-white/[0.025]">
-                <th scope="row" className="px-4 py-3.5 font-normal sm:px-6">
+                <th scope="row" className="px-3 py-3.5 font-normal sm:px-6">
                   {p.rows[row]}
                 </th>
                 {PLAN_LEVELS.map((level) => {
                   const cell = cells[level]
                   const text = planCellText(cell, p)
                   return (
-                    <td key={level} className="px-2 py-3.5 text-center">
+                    <td key={level} className="px-1 py-3.5 text-center sm:px-2">
                       {text ? (
                         <span className="font-medium">{text}</span>
                       ) : cell.kind === 'yes' ? (

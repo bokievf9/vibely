@@ -59,9 +59,9 @@ function BentoTile({
   return (
     <li
       className={cn(
-        'landing-reveal rounded-card relative isolate flex min-h-[25rem] flex-col overflow-hidden border',
+        'landing-reveal rounded-card relative isolate flex min-h-[21rem] flex-col overflow-hidden border',
         hero
-          ? 'border-accent/30 bg-surface min-h-[34rem] bg-[radial-gradient(90%_70%_at_70%_100%,rgb(255_77_125/0.30),transparent_70%)] md:min-h-[38rem] lg:min-h-0'
+          ? 'border-accent/30 bg-surface min-h-[31rem] bg-[radial-gradient(90%_70%_at_70%_100%,rgb(255_77_125/0.30),transparent_70%)] md:min-h-[38rem] lg:min-h-0'
           : 'border-border bg-surface bg-[radial-gradient(70%_60%_at_50%_110%,rgb(255_77_125/0.10),transparent_70%)] lg:min-h-0',
         wide && 'lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-6',
         tile.className,

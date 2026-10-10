@@ -7,7 +7,7 @@ import { getDictionary } from '@/i18n/server'
 // Share preview for the landing page, one per locale (prerendered at build time): the headline
 // on the left, the real Discover screen on the right. The bundled default font (Geist) covers
 // Latin and Cyrillic. The OG renderer does not read WebP, so a PNG copy of the Discover
-// screenshot lives next to the landing code (src/features/landing/og-discover.png, 300 px wide).
+// screenshot sits in public/landing/og-discover.png (300 px wide; public/ ships with each release).
 export const alt = 'Vibely'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -18,7 +18,7 @@ export function generateStaticParams() {
 
 async function screenshot(): Promise<string | null> {
   try {
-    const png = await readFile(join(process.cwd(), 'src/features/landing/og-discover.png'))
+    const png = await readFile(join(process.cwd(), 'public/landing/og-discover.png'))
     return `data:image/png;base64,${png.toString('base64')}`
   } catch {
     return null
