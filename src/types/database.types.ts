@@ -38,6 +38,78 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_orders: {
+        Row: {
+          amount_sen: number
+          checkout_url: string | null
+          created_at: string
+          currency: string
+          expires_at: string
+          failed_at: string | null
+          failure_reason: string | null
+          grant_id: string | null
+          id: string
+          paid_at: string | null
+          period_months: number
+          plan: Database['public']['Enums']['plan_level']
+          provider: string
+          provider_ref: string | null
+          raw_event: Json | null
+          refund_reason: string | null
+          refunded_at: string | null
+          refunded_by: string | null
+          status: Database['public']['Enums']['payment_status']
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_sen: number
+          checkout_url?: string | null
+          created_at?: string
+          currency: string
+          expires_at?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          grant_id?: string | null
+          id?: string
+          paid_at?: string | null
+          period_months: number
+          plan: Database['public']['Enums']['plan_level']
+          provider: string
+          provider_ref?: string | null
+          raw_event?: Json | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          status?: Database['public']['Enums']['payment_status']
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_sen?: number
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          grant_id?: string | null
+          id?: string
+          paid_at?: string | null
+          period_months?: number
+          plan?: Database['public']['Enums']['plan_level']
+          provider?: string
+          provider_ref?: string | null
+          raw_event?: Json | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          status?: Database['public']['Enums']['payment_status']
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       plan_prices: {
         Row: {
           active: boolean
@@ -4294,6 +4366,7 @@ export type Database = {
     }
     Enums: {
       admin_role: 'viewer' | 'moderator' | 'admin' | 'owner'
+      payment_status: 'pending' | 'paid' | 'failed' | 'refunded' | 'cancelled' | 'expired'
       call_kind: 'audio' | 'video'
       call_recording_status: 'none' | 'pending' | 'recording' | 'ready' | 'failed' | 'purged'
       call_status: 'ringing' | 'active' | 'ended' | 'missed' | 'declined'
@@ -4466,6 +4539,7 @@ export const Constants = {
   public: {
     Enums: {
       admin_role: ['viewer', 'moderator', 'admin', 'owner'],
+      payment_status: ['pending', 'paid', 'failed', 'refunded', 'cancelled', 'expired'],
       call_kind: ['audio', 'video'],
       call_recording_status: ['none', 'pending', 'recording', 'ready', 'failed', 'purged'],
       call_status: ['ringing', 'active', 'ended', 'missed', 'declined'],

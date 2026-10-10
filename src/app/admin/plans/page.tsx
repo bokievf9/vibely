@@ -3,10 +3,19 @@ import type { Metadata } from 'next'
 import { PageSpinner } from '@/components/ui/spinner'
 import { PlansGrants } from '@/features/admin/components/plans-grants'
 import { PlansMatrix } from '@/features/admin/components/plans-matrix'
-import { requireAdmin } from '@/features/admin/guard'
+import { PaymentOrders, PaymentPrices } from '@/features/admin/components/payments-panel'
+import { getAdmin, requireAdmin } from '@/features/admin/guard'
+import { hasRole } from '@/features/admin/roles'
 import { PLAN_LABELS, sourceLabel } from '@/features/admin/plans-labels'
 import { PLAN_LEVELS } from '@/features/admin/plans-schemas'
 import { getPlanMatrix, getPlanStats, type PlanStats } from '@/features/admin/queries/plans'
+import {
+  getAdminPrices,
+  getPaymentStats,
+  getRecentOrders,
+  type PaymentStats,
+} from '@/features/admin/queries/payments'
+import { formatSen, PAYMENTS_ENABLED } from '@/features/plans/pricing'
 
 export const metadata: Metadata = { title: 'Планы' }
 
@@ -29,7 +38,14 @@ export default function PlansPage() {
 
 async function Plans() {
   await requireAdmin({ min: 'admin' })
-  const [matrix, stats] = await Promise.all([getPlanMatrix(), getPlanStats()])
+  const [matrix, stats, payments, orders, prices, admin] = await Promise.all([
+    getPlanMatrix(),
+    getPlanStats(),
+    getPaymentStats(),
+    getRecentOrders(),
+    getAdminPrices(),
+    getAdmin(),
+  ])
   if (!matrix) {
     return (
       <p className="bg-surface rounded-2xl px-4 py-3 text-sm text-amber-400">
@@ -40,6 +56,12 @@ async function Plans() {
   return (
     <div className="flex flex-col gap-6">
       {stats && <Stats stats={stats} />}
+      <Payments
+        stats={payments}
+        orders={orders}
+        prices={prices}
+        canEditPrices={hasRole(admin.role, 'owner')}
+      />
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Выдать или отозвать план</h2>
         <PlansGrants />
@@ -103,6 +125,87 @@ function Stats({ stats }: { stats: PlanStats }) {
           ))}
         </ul>
       )}
+    </section>
+  )
+}
+
+// Orders, totals, prices and refunds (20261011000100). Before the migration: a notice only.
+function Payments({
+  stats,
+  orders,
+  prices,
+  canEditPrices,
+}: {
+  stats: PaymentStats | null
+  orders: Awaited<ReturnType<typeof getRecentOrders>>
+  prices: Awaited<ReturnType<typeof getAdminPrices>>
+  canEditPrices: boolean
+}) {
+  if (!stats) {
+    return (
+      <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold">Оплата</h2>
+        <p className="bg-surface rounded-2xl px-4 py-3 text-sm text-amber-400">
+          Раздел недоступен: миграция 20261011000100_payments ещё не применена к базе.
+        </p>
+      </section>
+    )
+  }
+  const tiles = [
+    {
+      label: 'Оплачено, всего',
+      value: formatSen(stats.paid.sen),
+      hint: `${stats.paid.count} заказов`,
+    },
+    {
+      label: 'За 30 дней',
+      value: formatSen(stats.paid30d.sen),
+      hint: `${stats.paid30d.count} заказов`,
+    },
+    {
+      label: 'Возвраты',
+      value: formatSen(stats.refunded.sen),
+      hint: `${stats.refunded.count} заказов`,
+    },
+    {
+      label: 'Ожидают / ошибки',
+      value: `${stats.pending} / ${stats.failed}`,
+      hint: `тестовых: ${stats.test}`,
+    },
+  ]
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold">Оплата</h2>
+      <p className="text-muted -mt-1 text-sm">
+        {PAYMENTS_ENABLED
+          ? 'Оплата включена. Суммы без тестовых заказов.'
+          : 'Оплата для пользователей выключена (PAYMENTS_ENABLED = false): кнопки «Скоро». Команда может проверить весь путь тестовой оплатой, если включён тестовый режим. Суммы без тестовых заказов.'}
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {tiles.map((t) => (
+          <div key={t.label} className="bg-surface flex flex-col rounded-2xl px-4 py-3">
+            <span className="text-muted text-xs">{t.label}</span>
+            <span className="text-xl font-bold tabular-nums">{t.value}</span>
+            <span className="text-muted text-xs">{t.hint}</span>
+          </div>
+        ))}
+      </div>
+      {stats.eventsWithErrors > 0 && (
+        <p className="bg-surface rounded-2xl px-4 py-3 text-sm text-amber-400">
+          Уведомлений платёжной системы с ошибкой за 30 дней: {stats.eventsWithErrors}. Например,
+          сумма не совпала с заказом: такой заказ не оплачивается автоматически, проверьте его в
+          кабинете платёжной системы.
+        </p>
+      )}
+      <h3 className="text-sm font-semibold">Цены</h3>
+      <p className="text-muted -mt-2 text-xs">
+        {canEditPrices
+          ? 'Меняет только владелец. Черновик виден и работает только в тестовой оплате. Заказ запоминает цену в момент создания.'
+          : 'Цены меняет только владелец.'}
+      </p>
+      <PaymentPrices initial={prices} canEdit={canEditPrices} />
+      <h3 className="text-sm font-semibold">Заказы</h3>
+      <PaymentOrders initial={orders} />
     </section>
   )
 }
