@@ -41,7 +41,7 @@ export async function LegalPage({ id }: { id: LegalDocumentId }) {
       </header>
       <p className="leading-relaxed">{doc.intro}</p>
       {doc.sections.map((section) => (
-        <section key={section.heading} className="flex flex-col gap-2">
+        <section key={section.heading} id={section.id} className="flex scroll-mt-20 flex-col gap-2">
           <h2 className="text-lg font-semibold">{section.heading}</h2>
           {section.paragraphs.map((paragraph) => (
             <p key={paragraph} className="text-foreground/90 leading-relaxed">

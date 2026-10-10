@@ -7,6 +7,7 @@ import { conversationsLegal } from './conversations'
 import { statusesLegal } from './statuses'
 import { plansLegal } from './plans'
 import { vipPerksLegal } from './vip-perks'
+import { waitlistLegal } from './waitlist'
 import type { LegalContent } from './types'
 
 // Draft for review by a Malaysian lawyer before launch (see ./index.ts).
@@ -87,6 +88,9 @@ export const en: LegalContent = {
       // --- read receipts, profile visits, notes (src/features/legal/content/vip-perks.ts) ---
       vipPerksLegal.en.privacy,
       // --- end read receipts, profile visits, notes ---
+      // --- early access waitlist (src/features/legal/content/waitlist.ts) ---
+      waitlistLegal.en.privacy,
+      // --- end early access waitlist ---
       {
         heading: '6. Reports, moderation and blocking',
         paragraphs: [

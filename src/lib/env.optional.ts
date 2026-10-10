@@ -21,3 +21,7 @@ export const analyticsConfig =
 
 // Cloudflare Turnstile (captcha on the phone form). The secret lives in Supabase Auth settings.
 export const turnstileSiteKey = pick(siteId, process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+
+// SMS sign-up switch (build time). Until it is "true" the landing page CTA opens the early access
+// waitlist; afterwards the same CTA goes to /login.
+export const signupOpen = process.env.NEXT_PUBLIC_SIGNUP_OPEN === 'true'

@@ -420,3 +420,22 @@ body[data-immersive] [data-install-prompt] {
 body[data-immersive] [data-main] {
   padding-bottom: 0;
 }
+
+/* Landing page: blocks fade and rise in as they scroll into view. Scroll-driven, so it runs on
+   the compositor with no JS; browsers without view timelines (and reduced motion) show the
+   blocks as they are. */
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .landing-reveal {
+      animation: landing-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}

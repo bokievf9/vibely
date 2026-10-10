@@ -4093,6 +4093,60 @@ export type Database = {
       record_profile_visit: { Args: { p_target: string }; Returns: boolean }
       send_like_note: { Args: { p_body: string; p_target: string }; Returns: Json }
       set_read_receipts: { Args: { p_send: boolean }; Returns: boolean }
+      // Early access waitlist (20261009000300) and the public event (20261009000301).
+      join_waitlist: {
+        Args: {
+          p_city?: string | null
+          p_consent?: boolean
+          p_locale?: string
+          p_phone: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
+      admin_waitlist_stats: { Args: { p_admin: string }; Returns: Json }
+      admin_waitlist_list: {
+        Args: { p_admin: string; p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          city: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          locale: string
+          phone_masked: string
+          source: string
+          total: number
+        }[]
+      }
+      admin_waitlist_export: {
+        Args: { p_admin: string; p_status?: string }
+        Returns: {
+          city: string | null
+          consent_at: string
+          created_at: string
+          id: string
+          invited_at: string | null
+          locale: string
+          phone: string
+          source: string
+        }[]
+      }
+      admin_waitlist_mark_invited: { Args: { p_admin: string; p_ids: string[] }; Returns: number }
+      purge_waitlist: { Args: never; Returns: number }
+      get_public_event: {
+        Args: never
+        Returns: {
+          ends_at: string
+          id: string
+          server_now: string
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          theme: string | null
+          title_en: string
+          title_ms: string
+          title_ru: string
+        }[]
+      }
       vip_ids: { Args: { p_ids: string[] }; Returns: string[] }
     }
     Enums: {

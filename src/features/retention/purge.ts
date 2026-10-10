@@ -24,6 +24,8 @@ export type RetentionReport = {
   // null: the Duo Dating functions are not deployed yet (step skipped).
   groupMediaExpired: number | null
   duoRowsPurged: number | null
+  // Early access numbers 90 days after the invite (20261009000300); null before the migration.
+  waitlistPurged: number | null
 }
 
 async function removeFiles(db: Admin, bucket: string, paths: string[]): Promise<number> {
@@ -89,6 +91,14 @@ async function purgeDuoData(db: Admin): Promise<number | null> {
   return data
 }
 
+// Waitlist numbers 90 days after their invite, and day-old rate-limit attempts.
+async function purgeWaitlist(db: Admin): Promise<number | null> {
+  const { data, error } = await db.rpc('purge_waitlist')
+  if (error?.code === MISSING_RPC) return null
+  if (error) throw new Error(`retention: purge waitlist failed: ${error.message}`)
+  return data
+}
+
 // Lists due paths with `rpc` and removes them until nothing is left (or no progress is made).
 async function purgeListed(
   db: Admin,
@@ -140,6 +150,7 @@ export async function runRetention(): Promise<RetentionReport> {
   const deletedMessages = await purgeDeletedMessages(db)
   const selfies = await purgeListed(db, 'selfies', 'retention_selfies')
   const duoRowsPurged = await purgeDuoData(db)
+  const waitlistPurged = await purgeWaitlist(db)
   return {
     chatMediaExpired,
     chatMediaOrphans,
@@ -148,5 +159,6 @@ export async function runRetention(): Promise<RetentionReport> {
     liftedBans,
     groupMediaExpired,
     duoRowsPurged,
+    waitlistPurged,
   }
 }
