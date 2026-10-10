@@ -50,7 +50,7 @@ export const tourEn = {
     },
     feed: {
       title: 'Anonymous feed',
-      text: 'People post here without their names. Like a post or reply in private.',
+      text: 'Posts here can be anonymous. Like one, or reply in private to start a chat.',
     },
     chats: {
       title: 'Chats',
@@ -66,7 +66,7 @@ export const tourEn = {
     },
     plans: {
       title: 'Free, Plus and VIP',
-      text: 'Vibely is free to use. Plus and VIP add extras, and you can compare them here.',
+      text: 'See what Plus and VIP add, side by side. The basics stay free.',
     },
   },
   settings: {

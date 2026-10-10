@@ -50,7 +50,7 @@ export const tourMs: TourDictionary = {
     },
     feed: {
       title: 'Suapan tanpa nama',
-      text: 'Orang menulis di sini tanpa nama. Suka hantaran atau balas secara peribadi.',
+      text: 'Hantaran di sini boleh tanpa nama. Suka, atau balas secara peribadi untuk mula bersembang.',
     },
     chats: {
       title: 'Sembang',
@@ -66,7 +66,7 @@ export const tourMs: TourDictionary = {
     },
     plans: {
       title: 'Percuma, Plus dan VIP',
-      text: 'Vibely percuma untuk digunakan. Plus dan VIP beri ciri tambahan, dan anda boleh bandingkan di sini.',
+      text: 'Lihat apa yang Plus dan VIP tambah, sebelah-menyebelah. Yang asas kekal percuma.',
     },
   },
   settings: {

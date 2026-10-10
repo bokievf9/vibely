@@ -18,6 +18,13 @@ export function tipPresent(key: string): boolean {
   return [...document.querySelectorAll(`[data-tip~="${key}"]`)].some((el) => el.isConnected)
 }
 
+// Top of the bottom tab bar, null where there is none (immersive screens hide it).
+export function tabBarTop(): number | null {
+  const bar = document.querySelector('[data-tabbar]')
+  if (!bar || bar.getClientRects().length === 0) return null
+  return bar.getBoundingClientRect().top
+}
+
 // Something modal is open (a sheet, a dialog, a full-screen viewer): tips wait.
 export function modalOpen(): boolean {
   return document.querySelector('[role="dialog"][aria-modal="true"]') !== null

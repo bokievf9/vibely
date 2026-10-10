@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { cardWidth, place, unionRect, type Rect } from '../placement'
 import {
   appPath,
+  OPTIONAL_TIMEOUT_MS,
   stepAfter,
   targetTimeout,
   TOUR_STEPS,
@@ -33,7 +34,7 @@ import {
   type TipKey,
   type TourStepId,
 } from '../steps'
-import { findTargets, rectOf, safeInsets, trapTab } from './dom'
+import { findTargets, rectOf, safeInsets, tabBarTop, trapTab } from './dom'
 
 // Motion (.claude/skills/emil-design-eng, animate). Rare, first-run UI: the delight budget lives
 // here. The spotlight and the card travel between targets on one spring so they read as a single
@@ -44,6 +45,8 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const
 const INSTANT = { duration: 0 } as const
 // How long a route change may take before its step is given up.
 const NAV_TIMEOUT_MS = 8000
+// A screen still showing skeletons gets this long to load before its step shows anyway.
+const LOADING_GRACE_MS = 3000
 // Before the first measurement: a typical card, so the first frame is already close.
 const CARD_ESTIMATE = 188
 
@@ -93,10 +96,11 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   const [rect, setRect] = useState<Rect | null>(null)
   const [viewport, setViewport] = useState({ width: 390, height: 844 })
   const [insets, setInsets] = useState({ top: 8, bottom: 8 })
+  // Top edge of the tab bar: the card stays above it unless the tab bar is what lights up.
+  const [tabTop, setTabTop] = useState<number | null>(null)
   const [cardHeight, setCardHeight] = useState(CARD_ESTIMATE)
   const cardRef = useRef<HTMLDivElement>(null)
   const welcomeRef = useRef<HTMLDivElement>(null)
-  const primaryRef = useRef<HTMLButtonElement>(null)
   const routeSince = useRef(0)
   const lastPath = useRef<string | null>(null)
 
@@ -142,11 +146,19 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
 
     const show = (key: string) => {
       done = true
-      const els = findTargets(key)
-      const union = unionRect(els.map(rectOf))
-      // Off screen (a section further down Settings): bring it to the middle first.
-      if (union && (union.y < 64 || union.y + union.height > window.innerHeight - 80)) {
-        els[0]?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' })
+      const union = unionRect(findTargets(key).map(rectOf))
+      // Off screen (a section further down Settings): scroll it in first. A tall target goes
+      // just under the sticky header, a small one to the middle of the screen.
+      const header = document.querySelector('[data-main] header')?.getBoundingClientRect().bottom
+      const top = (header ?? 56) + 12
+      const bottom = tabBarTop() ?? window.innerHeight
+      if (union && (union.y < top || union.y + union.height > bottom - 12)) {
+        const tall = union.height > (bottom - top) / 2
+        const to = tall ? top : (top + bottom - union.height) / 2
+        window.scrollTo({
+          top: window.scrollY + union.y - to,
+          behavior: reduce ? 'auto' : 'smooth',
+        })
       }
       setShown({ index, key })
     }
@@ -172,6 +184,12 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
       if (matchedAt === null) {
         matchedAt = now
         budget = targetTimeout(current, now - routeSince.current)
+      }
+      // Never explain a screen over its loading skeletons.
+      const loading = document.querySelector('[data-main] .skeleton-shimmer') !== null
+      if (loading && now - matchedAt < LOADING_GRACE_MS) {
+        budget += 100
+        return
       }
       if (findTargets(current.target).length) return show(current.target)
       if (now - matchedAt < budget) return
@@ -208,6 +226,7 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
     let frame = 0
     const measure = () => {
       frame = 0
+      setTabTop(tabBarTop())
       const next = unionRect(findTargets(shown.key).map(rectOf))
       if (!next) return
       setRect((prev) =>
@@ -237,6 +256,24 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
       window.removeEventListener('resize', schedule)
       if (frame) cancelAnimationFrame(frame)
     }
+  }, [shown])
+
+  // Optional features of this screen that are not here once it has settled are dropped right
+  // away, so the dots count what the user will actually see.
+  useEffect(() => {
+    if (!shown) return
+    const here = TOUR_STEPS[shown.index]!.route
+    const prune = () => {
+      const gone = TOUR_STEPS.filter(
+        (s, i) =>
+          i > shown.index && s.optional && s.route === here && !findTargets(s.target).length,
+      ).map((s) => s.id)
+      if (gone.length)
+        setMissing((m) => (gone.every((id) => m.has(id)) ? m : new Set([...m, ...gone])))
+    }
+    const wait = Math.max(0, OPTIONAL_TIMEOUT_MS - (performance.now() - routeSince.current))
+    const timer = window.setTimeout(prune, wait)
+    return () => window.clearTimeout(timer)
   }, [shown])
 
   // A step was reached: analytics, and its tip counts as seen.
@@ -280,7 +317,8 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   }, [skip, mode])
 
   useEffect(() => {
-    if (mode === 'welcome' || ready) primaryRef.current?.focus({ preventScroll: true })
+    const el = mode === 'welcome' ? welcomeRef.current : ready ? cardRef.current : null
+    if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
   }, [mode, ready, shown])
 
   // Focus goes back where it was when the tour ends.
@@ -328,7 +366,14 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   }
 
   // ---- Layout -------------------------------------------------------------------------------
-  const placement = mode === 'steps' && rect ? place(rect, viewport, cardHeight, insets) : null
+  const aboveTabs = rect && tabTop !== null && rect.y + rect.height <= tabTop + 1
+  const placement =
+    mode === 'steps' && rect
+      ? place(rect, viewport, cardHeight, {
+          top: insets.top,
+          bottom: aboveTabs ? Math.max(insets.bottom, viewport.height - tabTop + 8) : insets.bottom,
+        })
+      : null
   // Welcome: no cut-out yet, a point in the middle that opens up into the first target.
   const spot = placement?.spot ?? {
     x: viewport.width / 2,
@@ -405,7 +450,6 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
           <WelcomeCard
             key="welcome"
             ref={welcomeRef}
-            primaryRef={primaryRef}
             name={name}
             titleId={titleId}
             textId={textId}
@@ -424,7 +468,8 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
           aria-label={t.label}
           aria-labelledby={titleId}
           aria-describedby={textId}
-          className="card-raised absolute top-0 left-0 touch-auto rounded-[1.375rem] px-4 pt-3 pb-3.5 select-text"
+          tabIndex={-1}
+          className="card-raised absolute top-0 left-0 touch-auto rounded-[1.375rem] px-4 pt-3 pb-3.5 outline-none select-text"
           style={{ width }}
           initial={{ opacity: 0, x: cardX, y: cardY + (reduce ? 0 : 10), scale: reduce ? 1 : 0.97 }}
           animate={{ opacity: ready ? 1 : 0, x: cardX, y: cardY, scale: 1 }}
@@ -488,7 +533,7 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
                 {t.back}
               </Button>
             )}
-            <Button ref={primaryRef} size="sm" onClick={next} className="min-w-24 px-5">
+            <Button size="sm" onClick={next} className="min-w-24 px-5">
               {isLast ? t.done : t.next}
             </Button>
           </div>
@@ -521,7 +566,6 @@ function Dots({ count, current }: { count: number; current: number }) {
 
 type WelcomeProps = {
   ref: Ref<HTMLDivElement>
-  primaryRef: Ref<HTMLButtonElement>
   name: string
   titleId: string
   textId: string
@@ -535,7 +579,6 @@ type WelcomeProps = {
 // line and two choices. A modal, so it stays centered (no trigger to scale from).
 function WelcomeCard({
   ref,
-  primaryRef,
   name,
   titleId,
   textId,
@@ -582,7 +625,8 @@ function WelcomeCard({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={textId}
-        className="card-raised relative my-auto flex w-full max-w-[360px] touch-auto flex-col items-center overflow-hidden px-5 pt-7 pb-5 text-center select-text"
+        tabIndex={-1}
+        className="card-raised relative my-auto flex w-full max-w-[360px] touch-auto flex-col items-center overflow-hidden px-5 pt-7 pb-5 text-center outline-none select-text"
         initial={{ opacity: 0, y: reduce ? 0 : 16, scale: reduce ? 1 : 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: EASE_OUT } }}
       >
@@ -621,7 +665,7 @@ function WelcomeCard({
           {t.text}
         </motion.p>
         <motion.div {...rise(2)} className="relative mt-6 flex w-full flex-col gap-1.5">
-          <Button ref={primaryRef} fullWidth onClick={onStart}>
+          <Button fullWidth onClick={onStart}>
             {t.start}
           </Button>
           <Button variant="ghost" fullWidth onClick={onSkip} className="text-muted">
