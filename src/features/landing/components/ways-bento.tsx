@@ -1,11 +1,13 @@
+import type { Locale } from '@/i18n/config'
 import type { LandingDictionary } from '@/i18n/dictionaries/landing/en'
 import { cn } from '@/lib/utils'
+import { screenSrc, type ScreenName } from '../media'
 import { container } from './landing-hero'
 import { PhoneScreen } from './phone-screen'
 
 type Tile = {
   key: 'blind' | 'discover' | 'feed' | 'duo' | 'statuses'
-  src: string
+  screen: ScreenName
   className: string
   // How far the screenshot slides up inside the tile (% of the phone's height), so the part
   // that tells the story is in view (the status text sits low on its screen).
@@ -20,16 +22,16 @@ type Tile = {
 const TILES: Tile[] = [
   {
     key: 'blind',
-    src: '/landing/screens/blind-date.webp',
+    screen: 'blind-date',
     className: 'md:col-span-2 lg:row-span-2',
   },
-  { key: 'discover', src: '/landing/screens/discover.webp', className: '' },
-  { key: 'feed', src: '/landing/screens/feed.webp', className: '' },
-  { key: 'duo', src: '/landing/screens/duo.webp', className: '' },
-  { key: 'statuses', src: '/landing/screens/statuses.webp', className: 'lg:col-span-2', shift: 46 },
+  { key: 'discover', screen: 'discover', className: '' },
+  { key: 'feed', screen: 'feed', className: '' },
+  { key: 'duo', screen: 'duo', className: '' },
+  { key: 'statuses', screen: 'statuses', className: 'lg:col-span-2', shift: 46 },
 ]
 
-export function WaysBento({ t }: { t: LandingDictionary }) {
+export function WaysBento({ locale, t }: { locale: Locale; t: LandingDictionary }) {
   return (
     <section aria-labelledby="ways-title" className={`${container} py-20 md:py-28`}>
       <h2
@@ -40,7 +42,12 @@ export function WaysBento({ t }: { t: LandingDictionary }) {
       </h2>
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-[repeat(3,22rem)]">
         {TILES.map((tile) => (
-          <BentoTile key={tile.key} tile={tile} copy={t.ways[tile.key]} />
+          <BentoTile
+            key={tile.key}
+            tile={tile}
+            src={screenSrc(locale, tile.screen)}
+            copy={t.ways[tile.key]}
+          />
         ))}
       </ul>
     </section>
@@ -49,9 +56,11 @@ export function WaysBento({ t }: { t: LandingDictionary }) {
 
 function BentoTile({
   tile,
+  src,
   copy,
 }: {
   tile: Tile
+  src: string
   copy: { title: string; text: string; alt: string }
 }) {
   const hero = tile.key === 'blind'
@@ -88,7 +97,7 @@ function BentoTile({
       {/* The phone peeks in from the bottom edge; the tile crops it. */}
       <div className={cn('relative min-h-0 flex-1 overflow-hidden', wide && 'lg:h-full')}>
         <PhoneScreen
-          src={tile.src}
+          src={src}
           alt={copy.alt}
           sizes={
             hero

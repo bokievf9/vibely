@@ -8,7 +8,7 @@ rm -rf "$OUT" && mkdir -p "$OUT/.next"
 cp -R .next/standalone/. "$OUT/"
 cp -R .next/static "$OUT/.next/static"
 # The standalone output may already contain public/ (files traced by the build, e.g. the OG
-# image reads public/landing/og-discover.png). `cp -R public "$OUT/public"` would then nest it
+# image reads public/landing/og-discover-<locale>.png). `cp -R public "$OUT/public"` would then nest it
 # as public/public and every static file (icons, sw.js, landing media) would 404. Merge instead.
 mkdir -p "$OUT/public" && cp -R public/. "$OUT/public/"
 test -f "$OUT/public/sw.js" && test ! -e "$OUT/public/public" || { echo "public/ was not assembled correctly"; exit 1; }

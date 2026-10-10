@@ -5,6 +5,7 @@ import { fmt, localePath, TIME_ZONE, type Locale } from '@/i18n/config'
 import type { LandingDictionary } from '@/i18n/dictionaries/landing/en'
 import { signupOpen } from '@/lib/env.optional'
 import { PLAN_LEVELS } from '@/features/plans/access'
+import { screenSrc } from '../media'
 import { PLAN_ROWS, planCellText } from '../plan-highlights'
 import { getLandingEvent } from '../queries'
 import { CtaButton } from './cta'
@@ -57,7 +58,7 @@ export function SafetySection({ locale, t }: Props) {
       {/* Phones show only the lower half, where the safety menu is. */}
       <div className="relative mx-auto h-[17rem] w-[min(64vw,250px)] overflow-hidden [mask-image:linear-gradient(to_top,black_75%,transparent)] md:h-auto md:w-[260px] md:overflow-visible md:[mask-image:none] lg:w-[280px]">
         <PhoneScreen
-          src="/landing/screens/safety.webp"
+          src={screenSrc(locale, 'safety')}
           alt={t.safety.imageAlt}
           sizes="(min-width: 1024px) 280px, 260px"
           className="max-md:absolute max-md:inset-x-0 max-md:bottom-0"

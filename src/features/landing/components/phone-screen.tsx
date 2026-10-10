@@ -2,7 +2,7 @@ import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 
-// Real app screenshot (1170x2532, public/landing/screens) in a thin device bezel. The bezel is
+// Real app screenshot (1170x2532, public/landing/screens/<locale>) in a thin device bezel. The bezel is
 // plain CSS around a real image, not a drawn UI.
 export const SCREEN_RATIO = 'aspect-[1170/2532]'
 

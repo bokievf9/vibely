@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Heart, ScanFace, ShieldCheck, Smartphone } from 'lucide-react'
 import { localePath, type Locale } from '@/i18n/config'
 import type { LandingDictionary } from '@/i18n/dictionaries/landing/en'
+import { heroMedia } from '../media'
 import { CtaButton } from './cta'
 import { HeroVideo } from './hero-video'
 
@@ -43,7 +44,7 @@ export function LandingHeader({ locale, t }: Props) {
 
 // Asymmetric split: copy left, the app in a phone on the right (below the copy on phones).
 // Hero stack: headline, subtitle, one CTA. Nothing else.
-export function LandingHero({ t }: { t: LandingDictionary }) {
+export function LandingHero({ locale, t }: Props) {
   return (
     <section
       aria-labelledby="hero-title"
@@ -71,7 +72,7 @@ export function LandingHero({ t }: { t: LandingDictionary }) {
           className="absolute -inset-x-16 -inset-y-10 -z-10 bg-[radial-gradient(closest-side,rgb(255_77_125/0.22),transparent)]"
         />
         <div className="motion-safe:animate-rise [animation-delay:180ms]">
-          <HeroVideo label={t.hero.videoLabel} />
+          <HeroVideo label={t.hero.videoLabel} media={heroMedia(locale)} />
         </div>
       </div>
     </section>

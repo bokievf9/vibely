@@ -13,6 +13,7 @@ import {
 } from '@/features/landing/components/landing-sections'
 import { ScrollDepth } from '@/features/landing/components/scroll-depth'
 import { WaysBento } from '@/features/landing/components/ways-bento'
+import { screenSrc, type ScreenName } from '@/features/landing/media'
 import { DEFAULT_LOCALE, LOCALES, localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { publicEnv } from '@/lib/env'
@@ -55,11 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-const STORY_SCREENS = [
-  '/landing/screens/blind-date.webp',
-  '/landing/screens/match.webp',
-  '/landing/screens/chat.webp',
-]
+const STORY_SCREENS: ScreenName[] = ['blind-date', 'match', 'chat']
 
 // Sections in order: hero, trust strip, five ways (bento), Blind Dating story, safety, next
 // Blind Dating Night (only when scheduled), plans, FAQ, final CTA. Each uses its own layout
@@ -74,12 +71,15 @@ export default async function LandingPage() {
       <LandingHeader locale={locale} t={t} />
       <main className="relative flex flex-1 flex-col overflow-x-clip">
         <ScrollDepth />
-        <LandingHero t={t} />
+        <LandingHero locale={locale} t={t} />
         <TrustStrip t={t} />
-        <WaysBento t={t} />
+        <WaysBento locale={locale} t={t} />
         <BlindStory
           title={t.story.title}
-          steps={t.story.steps.map((step, i) => ({ ...step, src: STORY_SCREENS[i] ?? '' }))}
+          steps={t.story.steps.map((step, i) => ({
+            ...step,
+            src: screenSrc(locale, STORY_SCREENS[i] ?? 'blind-date'),
+          }))}
         />
         <SafetySection locale={locale} t={t} />
         <EventBlock locale={locale} t={t} />
