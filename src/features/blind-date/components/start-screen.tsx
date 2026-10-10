@@ -14,6 +14,7 @@ import type { JoinFilters } from '../schemas'
 import { AliasAvatar } from './alias-avatar'
 import { SearchingNow } from './searching-now'
 import { useAccess } from '@/features/plans/components/access-provider'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
 
 type Props = {
   tags: Tag[]
@@ -31,7 +32,7 @@ export function StartScreen({ tags, initial, pending, error, onStart, banner }: 
   const t = dict.blindDate
   const [f, setF] = useState(initial)
   // Regular Blind Dates per day (20261009000280): free 3, Plus 10, VIP unlimited.
-  const { limit, remaining, showUpgrade } = useAccess()
+  const { limit, remaining, showUpgrade, plan, isStaff } = useAccess()
   const dailyLimit = limit('blind_dating_per_day')
   const left = remaining('blind_dating_per_day')
 
@@ -106,6 +107,10 @@ export function StartScreen({ tags, initial, pending, error, onStart, banner }: 
           <p className="text-muted text-footnote text-center tabular-nums">
             {fmt(dict.plans.blindLeft, { count: left, limit: dailyLimit })}
           </p>
+        )}
+        {/* Used up for today and a higher plan has more: shown before Start is tapped. */}
+        {left === 0 && plan !== 'vip' && !isStaff && (
+          <UpgradeCard feature="blind_dating_per_day" reason="limit" compact />
         )}
         <p className="text-muted px-2 text-center text-xs text-pretty">{t.safetyNote}</p>
       </div>

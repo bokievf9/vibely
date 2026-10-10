@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n/client'
 import { REF_PARAM } from '@/features/referrals/constants'
 import { createCrushInvite } from '@/features/crush/actions'
 import { useAccess } from '@/features/plans/components/access-provider'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
 
 // Invite friends: Web Share sheet on phones, copy-to-clipboard elsewhere.
 // "I have a crush on this person" turns the share into a single-use crush link (created on the
@@ -26,7 +27,7 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   // Crush links per 30 days from the plan (free 1, Plus 3, VIP 5; 20261009000280).
-  const { limit, remaining, recordUse, showUpgrade } = useAccess()
+  const { limit, remaining, recordUse, showUpgrade, plan, isStaff } = useAccess()
   const crushLimit = limit('crush_links_per_30d')
   const crushLeft = remaining('crush_links_per_30d')
   const link = (c: string) => `${publicEnv.NEXT_PUBLIC_SITE_URL}/${locale}?${REF_PARAM}=${c}`
@@ -114,6 +115,10 @@ export function InviteCard({ code, invited }: { code: string; invited: number })
                 ? fmt(dict.plans.crushLeft, { count: crushLeft, limit: crushLimit })
                 : tc.inviteLimit}
             </p>
+            {/* Used up and a higher plan has more: say so before Share is tapped. */}
+            {crushLeft === 0 && plan !== 'vip' && !isStaff && (
+              <UpgradeCard feature="crush_links_per_30d" reason="limit" compact className="mt-1" />
+            )}
           </>
         )}
         {note && (

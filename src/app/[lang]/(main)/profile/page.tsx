@@ -16,6 +16,7 @@ import { ownCandidate } from '@/features/profile/own-card'
 import { getOwnPhotos, getOwnProfile, getTags } from '@/features/profile/queries'
 import { getVipStatus } from '@/features/promo/queries'
 import { BoostRow } from '@/features/plans/components/boost-row'
+import { PlanProfileRow } from '@/features/plans/components/plan-entries'
 import { crossedPathsEnabled } from '@/features/crossed-paths/actions'
 import { CrossedPathsPromoRow } from '@/features/crossed-paths/components/crossed-paths-promo-row'
 import { localePath } from '@/i18n/config'
@@ -98,6 +99,7 @@ async function OwnProfile() {
               <ChevronRight className="text-muted size-5 shrink-0" aria-hidden />
             </Link>
           )}
+          <PlanProfileRow />
           <BoostRow />
           {card && <ProfilePreview candidate={card} />}
           {/* Crossed paths is opt-in: invited here (and in Settings), not on top of Discover. */}

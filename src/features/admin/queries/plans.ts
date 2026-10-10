@@ -20,6 +20,8 @@ export type PlanStats = {
   byPlan: Record<PlanLevel, number>
   staff: number
   bySource: { source: string; active: number; total: number; last30d: number }[]
+  // "Notify me when it launches" (plan_interest, 20261009000310); null before that migration.
+  interest: Record<'plus' | 'vip', { total: number; last7d: number }> | null
 }
 
 type Obj = { [key: string]: Json | undefined }
@@ -62,7 +64,13 @@ export async function getPlanStats(): Promise<PlanStats | null> {
   if (error) return null
   const s = obj(data)
   const byPlan = obj(s.by_plan)
+  const interest = s.interest === undefined ? null : obj(s.interest)
+  const wanted = (p: 'plus' | 'vip') => {
+    const o = obj(interest?.[p])
+    return { total: num(o.total), last7d: num(o.last_7d) }
+  }
   return {
+    interest: interest ? { plus: wanted('plus'), vip: wanted('vip') } : null,
     byPlan: { free: num(byPlan.free), plus: num(byPlan.plus), vip: num(byPlan.vip) },
     staff: num(s.staff),
     bySource: (Array.isArray(s.by_source) ? s.by_source : []).map((r) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { Rocket } from 'lucide-react'
+import { Lock, Rocket } from 'lucide-react'
 import { groupedRowClassName } from '@/components/ui/grouped'
 import { Spinner } from '@/components/ui/spinner'
 import { fmt } from '@/i18n/config'
@@ -18,7 +18,7 @@ export function BoostRow() {
   const { dict, locale } = useI18n()
   const t = dict.plans
   const errorText = useErrorText()
-  const { access, has, remaining, recordUse, showUpgrade } = useAccess()
+  const { access, has, remaining, recordUse, showUpgrade, upgradePlan } = useAccess()
   const upgradeOr = useUpgradeHandler()
   const [until, setUntil] = useState(access.boostUntil)
   const [error, setError] = useState<ErrorKey>()
@@ -55,7 +55,9 @@ export function BoostRow() {
       ? fmt(t.boostActive, { time: formatTime(until, locale) })
       : has('boost') && left !== null && period
         ? `${t.boostHint} ${fmt(t.boostLeft, { count: left, period: t.periods[period] })}`
-        : t.boostHint
+        : has('boost')
+          ? t.boostHint
+          : `${t.boostHint} ${fmt(t.availableIn, { plan: t.names[upgradePlan('boost')] })}.`
 
   return (
     <button
@@ -79,6 +81,7 @@ export function BoostRow() {
         </span>
       </span>
       {pending && <Spinner className="size-5 shrink-0" />}
+      {!pending && !has('boost') && <Lock className="text-muted size-4 shrink-0" aria-hidden />}
     </button>
   )
 }

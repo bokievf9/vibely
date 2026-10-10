@@ -4113,6 +4113,47 @@ export async function run(db) {
     ok('public event: anon still cannot call get_current_event', !!(await fails(() => anonq(`select * from get_current_event()`))))
   })()
   // ===== end waitlist =====
+  // ===== plan interest (20261009000310) =====
+  // "Notify me when it launches": one row per user and plan, rate limited, own rows readable,
+  // counts in admin_plan_stats for admins only.
+  await (async () => {
+    const ids = Array.from({ length: 4 }, (_, i) => `a3100000-0000-4000-8000-00000000000${i + 1}`)
+    const [A, B, ADM, MOD] = ids
+    for (const [i, u] of ids.entries()) {
+      await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6019310000' + i])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city) values ($1,'1995-03-03','female','{male}','Ipoh')`, ['Pi' + i])
+    }
+    await su(`insert into admins (user_id, role) values ($1, 'admin'), ($2, 'moderator')`, [ADM, MOD])
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const codeOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+    const reg = async (u, plan) => (await as(u, `select register_plan_interest($1) r`, [plan])).rows[0].r
+    const age = (u, s) => su(`update plan_interest set updated_at = updated_at - $2::interval where user_id = $1`, [u, `${s} seconds`])
+    const stats = async () => (await svc(`select admin_plan_stats($1) s`, [ADM])).rows[0].s
+
+    ok('interest: anon cannot register', (await su(`select has_function_privilege('anon', 'public.register_plan_interest(text)', 'execute') v`)).rows[0].v === false)
+    ok('interest: needs a signed-in user', (await codeOf(async () => { await db.exec(`reset role; select set_config('request.jwt.claim.sub','',false); set role authenticated;`); try { await db.query(`select register_plan_interest('plus')`) } finally { await db.exec('reset role') } })) === '42501')
+    ok('interest: free is not a plan to wait for', (await codeOf(() => reg(A, 'free'))) === '22023' && (await codeOf(() => reg(A, 'gold'))) === '22023')
+    ok('interest: first tap records it', (await reg(A, 'plus')) === true)
+    ok('interest: a second tap within 10 s is rate limited', (await codeOf(() => reg(A, 'vip'))) === 'P0429' && (await codeOf(() => reg(A, 'plus'))) === 'P0429')
+    await age(A, 11)
+    ok('interest: a repeat tap only refreshes the row', (await reg(A, 'plus')) === false &&
+       (await su(`select count(*)::int c from plan_interest where user_id=$1`, [A])).rows[0].c === 1)
+    await age(A, 11)
+    ok('interest: another plan is its own row', (await reg(A, 'vip')) === true)
+    await reg(B, 'vip')
+    ok('interest: own rows readable, others not', (await as(A, `select count(*)::int c from plan_interest`)).rows[0].c === 2 &&
+       (await as(B, `select plan from plan_interest`)).rows.map((r) => r.plan).join() === 'vip')
+    ok('interest: clients cannot write the table', !!(await codeOf(() => as(A, `insert into plan_interest (user_id, plan) values ($1, 'plus')`, [B]))) &&
+       !!(await codeOf(() => as(A, `delete from plan_interest where user_id=$1`, [A]))))
+    const s = await stats()
+    ok('interest: admin sees counts per plan', s.interest.plus.total === 1 && s.interest.vip.total === 2 && s.interest.vip.last_7d === 2 &&
+       s.by_plan && Array.isArray(s.by_source), JSON.stringify(s.interest))
+    ok('interest: moderators and clients cannot read the stats', !!(await codeOf(() => svc(`select admin_plan_stats($1)`, [MOD]))) &&
+       !!(await codeOf(() => as(ADM, `select admin_plan_stats($1)`, [ADM]))))
+    await su(`delete from auth.users where id=$1`, [B])
+    ok('interest: rows go with the account', (await su(`select count(*)::int c from plan_interest where user_id=$1`, [B])).rows[0].c === 0)
+  })()
+  // ===== end plan interest =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail

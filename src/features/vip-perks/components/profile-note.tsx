@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquareHeart } from 'lucide-react'
+import { Crown, MessageSquareHeart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n, useLocaleRouter } from '@/i18n/client'
 import { useAccess } from '@/features/plans/components/access-provider'
@@ -43,6 +43,9 @@ export function ProfileNote({ userId, sent }: { userId: string; sent: SentNote |
       >
         <MessageSquareHeart className="text-accent size-5" aria-hidden />
         {t.button}
+        {!has('message_before_match') && (
+          <Crown className="text-vip fill-vip/25 size-4" aria-label={dict.plans.names.vip} />
+        )}
       </Button>
       {open && (
         <LikeNoteSheet
