@@ -4155,6 +4155,57 @@ export async function run(db) {
   })()
   // ===== end plan interest =====
 
+  // ===== onboarding tour (20261010000200) =====
+  // Per-user tour state: own row only, written through RPCs, auto-start for new profiles only.
+  await (async () => {
+    const ids = Array.from({ length: 3 }, (_, i) => `a1020000-0000-4000-8000-00000000000${i + 1}`)
+    const [A, B, OLD] = ids
+    for (const [i, u] of ids.entries()) {
+      await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6019102000' + i])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city) values ($1,'1996-04-04','female','{male}','Melaka')`, ['Tour' + i])
+    }
+    // An account from before the tour existed: never interrupted by it.
+    await su(`update profiles set created_at = now() - interval '30 days' where id = $1`, [OLD])
+    const codeOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+    const anonq = async (sql, p) => { await db.exec('reset role; set role anon;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const state = async (u) => (await as(u, `select my_tour_state() s`)).rows[0].s
+
+    const fresh = await state(A)
+    ok('tour: a new profile auto-starts with nothing seen', fresh.auto === true && fresh.completed_at === null && Array.isArray(fresh.seen_tips) && fresh.seen_tips.length === 0, JSON.stringify(fresh))
+    ok('tour: an old profile does not auto-start', (await state(OLD)).auto === false)
+    ok('tour: anon has no access', (await su(`select has_function_privilege('anon', 'public.my_tour_state()', 'execute') a, has_function_privilege('anon', 'public.tour_mark(text, integer)', 'execute') b, has_function_privilege('anon', 'public.tour_tip_seen(text)', 'execute') c, has_table_privilege('anon', 'public.onboarding_tour', 'select') d`)).rows.every((r) => !r.a && !r.b && !r.c && !r.d) &&
+       !!(await codeOf(() => anonq(`select * from onboarding_tour`))) && !!(await codeOf(() => anonq(`select my_tour_state()`))))
+    ok('tour: needs a signed-in user', (await codeOf(async () => { await db.exec(`reset role; select set_config('request.jwt.claim.sub','',false); set role authenticated;`); try { await db.query(`select my_tour_state()`) } finally { await db.exec('reset role') } })) === '42501')
+
+    await as(A, `select tour_mark('skip', 3)`)
+    const skipped = await state(A)
+    ok('tour: skip is stored and stops auto-start', skipped.skipped_at !== null && skipped.auto === false &&
+       (await su(`select skipped_step s from onboarding_tour where user_id=$1`, [A])).rows[0].s === 3)
+    await as(A, `select tour_mark('complete')`)
+    ok('tour: a replay can complete it later, first skip kept', (await state(A)).completed_at !== null &&
+       (await su(`select skipped_step s from onboarding_tour where user_id=$1`, [A])).rows[0].s === 3)
+    ok('tour: unknown events and steps are refused', (await codeOf(() => as(A, `select tour_mark('reset')`))) === '22023' &&
+       (await codeOf(() => as(A, `select tour_mark('skip', 99)`))) === '22023')
+
+    await as(B, `select tour_tip_seen('duo')`); await as(B, `select tour_tip_seen('duo')`); await as(B, `select tour_tip_seen('crossed_paths')`)
+    const tips = (await state(B)).seen_tips
+    ok('tour: tips are stored once each', JSON.stringify(tips) === '["duo","crossed_paths"]', JSON.stringify(tips))
+    ok('tour: seeing a tip does not end the tour', (await state(B)).auto === true)
+    ok('tour: bad tip keys are refused', (await codeOf(() => as(B, `select tour_tip_seen('Duo!')`))) === '22023' &&
+       (await codeOf(() => as(B, `select tour_tip_seen($1)`, ['x'.repeat(40)]))) === '22023')
+    for (let i = 0; i < 40; i++) await as(B, `select tour_tip_seen($1)`, ['tip_' + String.fromCharCode(97 + (i % 26)) + String.fromCharCode(97 + Math.floor(i / 26))])
+    ok('tour: at most 32 tips are kept', (await state(B)).seen_tips.length === 32)
+
+    ok('tour: own row only', (await as(A, `select user_id from onboarding_tour`)).rows.map((r) => r.user_id).join() === A &&
+       (await as(OLD, `select count(*)::int c from onboarding_tour`)).rows[0].c === 0)
+    ok('tour: clients cannot write the table', !!(await codeOf(() => as(A, `insert into onboarding_tour (user_id) values ($1)`, [OLD]))) &&
+       !!(await codeOf(() => as(A, `update onboarding_tour set completed_at = null where user_id = $1`, [A]))) &&
+       !!(await codeOf(() => as(B, `delete from onboarding_tour where user_id = $1`, [B]))))
+    await su(`delete from auth.users where id=$1`, [B])
+    ok('tour: the row goes with the account', (await su(`select count(*)::int c from onboarding_tour where user_id=$1`, [B])).rows[0].c === 0)
+  })()
+  // ===== end onboarding tour =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
