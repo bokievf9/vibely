@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { animate, useReducedMotion } from 'framer-motion'
 import { Heart } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 import { useI18n } from '@/i18n/client'
 import { haptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
@@ -46,7 +47,8 @@ export function LikeButton({
       const result = await toggleLike(postId)
       if (!result.ok) {
         setState(prev)
-        upgradeOr(result)
+        // Plan gates open the upgrade sheet; anything else (rate limit, network) gets a toast.
+        if (!upgradeOr(result)) toast(dict.errors[result.error] ?? dict.errors.generic, 'error')
       }
     })
   }

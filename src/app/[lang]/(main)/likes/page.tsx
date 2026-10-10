@@ -9,6 +9,8 @@ import { countIncomingLikes, getIncomingLikes, getLockedLikeNotes } from '@/feat
 import { BlurredLikes } from '@/features/likes/components/blurred-likes'
 import { hasFeature } from '@/features/plans/access'
 import { getAccess } from '@/features/plans/queries'
+import { PlansChip } from '@/features/plans/components/plan-entries'
+import { UpgradeCard } from '@/features/plans/components/upgrade-card'
 import { LockedNotes } from '@/features/vip-perks/components/locked-notes'
 import { VisitorsEntry } from '@/features/vip-perks/components/visitors-entry'
 import { getProfileVisitors } from '@/features/vip-perks/queries'
@@ -22,7 +24,11 @@ export default async function LikesPage() {
   const dict = await getDictionary()
   return (
     <>
-      <PageHeader title={dict.likes.title} back={{ href: '/swipe', label: dict.common.back }} />
+      <PageHeader title={dict.likes.title} back={{ href: '/swipe', label: dict.common.back }}>
+        <Suspense fallback={null}>
+          <PlansChip />
+        </Suspense>
+      </PageHeader>
       <Suspense fallback={null}>
         <Visitors />
       </Suspense>
@@ -43,8 +49,19 @@ async function Likes() {
     getDictionary(),
     getLockedLikeNotes(),
   ])
+  // No likes yet: still say that Plus shows who they are, once they come.
   if (count === 0)
-    return <EmptyState icon={Heart} title={dict.likes.empty} text={dict.likes.emptyHint} />
+    return (
+      <>
+        <EmptyState icon={Heart} title={dict.likes.empty} text={dict.likes.emptyHint} />
+        <UpgradeCard
+          feature="who_liked_you"
+          compact
+          text={dict.plans.likesBlurredBody}
+          className="mx-4 mb-6 w-auto"
+        />
+      </>
+    )
   return (
     <>
       <BlurredLikes count={count} dict={dict} />

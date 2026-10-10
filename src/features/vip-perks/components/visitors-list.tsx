@@ -25,6 +25,7 @@ export function VisitorsList({ data }: { data: ProfileVisitors }) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 pb-8">
         <EmptyState icon={Eye} title={t.empty} text={t.emptyHint} />
+        {!data.full && <UpgradeCard feature="profile_visitors" compact text={t.lockedText} />}
         <p className="text-muted px-1 text-center text-sm">{t.incognitoHint}</p>
       </div>
     )

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { VisitorsList } from '@/features/vip-perks/components/visitors-list'
+import { PlansChip } from '@/features/plans/components/plan-entries'
 import { getProfileVisitors } from '@/features/vip-perks/queries'
 import { getDictionary } from '@/i18n/server'
 
@@ -18,7 +19,11 @@ export default async function VisitorsPage() {
       <PageHeader
         title={dict.vipPerks.visitors.title}
         back={{ href: '/profile', label: dict.common.back }}
-      />
+      >
+        <Suspense fallback={null}>
+          <PlansChip />
+        </Suspense>
+      </PageHeader>
       <Suspense fallback={<VisitorsSkeleton />}>
         <Visitors />
       </Suspense>

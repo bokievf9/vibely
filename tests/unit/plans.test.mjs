@@ -121,7 +121,7 @@ test('plans copy: every feature has a line in every language, no em or en dashes
     assert.doesNotMatch(JSON.stringify(dict), /[–—]/)
   }
   for (const errors of [planErrorsEn, planErrorsMs, planErrorsRu]) {
-    assert.deepEqual(Object.keys(errors).sort(), ['planLimit', 'planRequired'])
+    assert.deepEqual(Object.keys(errors).sort(), ['planInterestUnavailable', 'planLimit', 'planRequired'])
     assert.doesNotMatch(JSON.stringify(errors), /[–—]/)
   }
 })

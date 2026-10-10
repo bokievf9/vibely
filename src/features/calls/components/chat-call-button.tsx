@@ -27,7 +27,7 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
   const [error, setError] = useState<ErrorKey>()
   const [pending, startTransition] = useTransition()
   const both = settings.meAllowed && settings.partnerAllowed
-  const { has } = useAccess()
+  const { has, showUpgrade } = useAccess()
   const canCall = has('calls')
 
   const refresh = useCallback(async () => {
@@ -95,6 +95,10 @@ export function ChatCallButton({ matchId, partnerName, initial }: Props) {
         onToggle={toggle}
         onAcceptNotice={acceptNotice}
         onCall={call}
+        onLocked={() => {
+          setOpen(false)
+          showUpgrade({ feature: 'calls', reason: 'feature' })
+        }}
       />
     </>
   )
