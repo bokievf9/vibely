@@ -4040,6 +4040,80 @@ export async function run(db) {
   })()
   // ===== end VIP perks =====
 
+  // ===== Early access waitlist (20261009000300) and the public event (20261009000301) =====
+  await (async () => {
+    const anonq = async (sql, p) => { await db.exec('reset role; set role anon;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const svcq = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const join = (phone, opts = {}) => anonq(`select join_waitlist($1, $2, $3, $4, $5)`,
+      [phone, opts.city ?? null, opts.locale ?? 'en', opts.source ?? 'landing', opts.consent ?? true])
+    const rows = async () => (await su(`select phone, city, locale, source, consent_at, invited_at from waitlist order by created_at, phone`)).rows
+    const [VIEW, ADM, OWN, NOBODY, U1] = ['9a110000-0000-4000-8000-000000000001', '9a110000-0000-4000-8000-000000000002',
+      '9a110000-0000-4000-8000-000000000003', '9a110000-0000-4000-8000-000000000004', '9a110000-0000-4000-8000-000000000005']
+    for (const [i, u] of [VIEW, ADM, OWN, NOBODY, U1].entries()) await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '60137771' + String(i).padStart(3, '0')])
+    await su(`insert into admins (user_id, role) values ($1,'viewer'),($2,'admin'),($3,'owner')`, [VIEW, ADM, OWN])
+
+    // validation and consent
+    await join('+60 12-345 6789', { city: 'penang', locale: 'ms' })
+    const r = await rows()
+    ok('waitlist: anon joins, stored as E.164 with consent time', r.length === 1 && r[0].phone === '+60123456789' && r[0].city === 'penang' && r[0].locale === 'ms' && r[0].source === 'landing' && !!r[0].consent_at, JSON.stringify(r))
+    await join('012-345 6780'); await join('11 2345 6789')
+    ok('waitlist: local formats normalised (0..., without 0)', (await su(`select count(*)::int c from waitlist where phone in ('+60123456780', '+601123456789')`)).rows[0].c === 2)
+    ok('waitlist: consent required', (await fails(() => join('+60123450001', { consent: false })))?.includes('Consent required') && (await fails(() => anonq(`select join_waitlist('+60123450001')`)))?.includes('Consent required'))
+    for (const bad of ['+65 9123 4567', '+60 3-1234 5678', '', '6012345', '+60 12-345 678901', 'call me'])
+      ok(`waitlist: rejects ${JSON.stringify(bad)}`, (await fails(() => join(bad)))?.includes('Malaysian mobile'))
+    ok('waitlist: unknown city refused', (await fails(() => join('+60123450002', { city: 'singapore' })))?.includes('Unknown city'))
+    await join('+60123450003', { locale: 'de', source: 'Bad Source!' })
+    ok('waitlist: unknown locale and source fall back', JSON.stringify((await su(`select locale, source from waitlist where phone='+60123450003'`)).rows[0]) === '{"locale":"en","source":"landing"}')
+    // idempotent, and the same answer for a number already on the list
+    const again = await fails(() => join('+60 12 345 6789', { city: 'ipoh', locale: 'ru' }))
+    const one = (await su(`select count(*)::int c, max(city) city from waitlist where phone='+60123456789'`)).rows[0]
+    ok('waitlist: joining twice is a no-op without an error', again === null && one.c === 1 && one.city === 'penang', JSON.stringify({ again, one }))
+    // rate limits
+    ok('waitlist: third attempt in a minute still fine', (await fails(() => join('+60123456789'))) === null)
+    ok('waitlist: per-number limit (3 a minute)', (await fails(() => join('+60123456789')))?.includes('Rate limit'))
+    await su(`update waitlist_attempts set created_at = now() - interval '2 minutes'`)
+    ok('waitlist: per-number limit resets after a minute', (await fails(() => join('+60123456789'))) === null)
+    await su(`insert into waitlist_attempts (phone_key) select md5(g::text) from generate_series(1, 60) g`)
+    ok('waitlist: global limit (60 a minute)', (await fails(() => join('+60123450004')))?.includes('Rate limit') && (await su(`select count(*)::int c from waitlist where phone='+60123450004'`)).rows[0].c === 0)
+    await su(`update waitlist_attempts set created_at = now() - interval '2 minutes'`)
+    ok('waitlist: global limit resets', (await fails(() => join('+60123450004'))) === null)
+    ok('waitlist: attempts keep a hash, never the number', (await su(`select count(*)::int c from waitlist_attempts where phone_key like '%6012%' or phone_key like '+%'`)).rows[0].c === 0)
+    // no client access
+    ok('waitlist: anon cannot read', !!(await fails(() => anonq(`select * from waitlist`))) && !!(await fails(() => anonq(`select * from waitlist_attempts`))))
+    ok('waitlist: users cannot read or write', !!(await fails(() => as(U1, `select * from waitlist`))) && !!(await fails(() => as(U1, `insert into waitlist (phone, consent_at) values ('+60123450009', now())`))))
+    ok('waitlist: clients cannot call the panel RPCs', !!(await fails(() => as(U1, `select * from admin_waitlist_list($1)`, [OWN]))) && !!(await fails(() => anonq(`select admin_waitlist_stats($1)`, [OWN]))) &&
+       !!(await fails(() => anonq(`select purge_waitlist()`))) && (await su(`select has_function_privilege('anon', 'public.admin_waitlist_export(uuid, text)', 'execute') v`)).rows[0].v === false)
+    // panel
+    const list = (await svcq(`select * from admin_waitlist_list($1, 'all', 2, 0)`, [VIEW])).rows
+    ok('waitlist: viewer lists masked numbers, newest first, with total', list.length === 2 && list.every((x) => /^\+60 •••• \d{4}$/.test(x.phone_masked)) && Number(list[0].total) === 5 && !('phone' in list[0]), JSON.stringify(list))
+    ok('waitlist: non-members refused', !!(await fails(() => svcq(`select * from admin_waitlist_list($1)`, [NOBODY]))))
+    const stats = (await svcq(`select admin_waitlist_stats($1) s`, [VIEW])).rows[0].s
+    ok('waitlist: stats', stats.total === 5 && stats.pending === 5 && stats.invited === 0 && stats.last_24h === 5 && stats.by_city.penang === 1 && stats.by_locale.ms === 1, JSON.stringify(stats))
+    ok('waitlist: viewer cannot export or invite', !!(await fails(() => svcq(`select * from admin_waitlist_export($1)`, [VIEW]))) && !!(await fails(() => svcq(`select admin_waitlist_mark_invited($1, $2)`, [VIEW, []]))))
+    const exp = (await svcq(`select * from admin_waitlist_export($1, 'pending')`, [ADM])).rows
+    ok('waitlist: admin exports full numbers, logged', exp.length === 5 && exp.some((x) => x.phone === '+60123456789') &&
+       (await su(`select reason from moderation_actions where action='export.waitlist' and admin_id=$1`, [ADM])).rows[0]?.reason === '5 rows, status=pending')
+    const ids = (await su(`select id from waitlist where phone in ('+60123456789', '+60123456780') order by phone`)).rows.map((x) => x.id)
+    ok('waitlist: admin marks invited, logged per entry', (await svcq(`select admin_waitlist_mark_invited($1, $2) n`, [ADM, ids])).rows[0].n === 2 &&
+       (await su(`select count(*)::int c from moderation_actions where action='waitlist.invite' and admin_id=$1`, [ADM])).rows[0].c === 2)
+    ok('waitlist: marking again changes nothing', (await svcq(`select admin_waitlist_mark_invited($1, $2) n`, [OWN, ids])).rows[0].n === 0)
+    ok('waitlist: status filter', (await svcq(`select count(*)::int c from admin_waitlist_list($1, 'invited')`, [VIEW])).rows[0].c === 2 && (await svcq(`select count(*)::int c from admin_waitlist_list($1, 'pending')`, [VIEW])).rows[0].c === 3)
+    // retention
+    await su(`update waitlist set invited_at = now() - interval '91 days' where id = $1`, [ids[0]])
+    await su(`update waitlist_attempts set created_at = now() - interval '2 days'`)
+    ok('waitlist: purge 90 days after the invite, attempts after a day', (await svcq(`select purge_waitlist() n`)).rows[0].n === 1 &&
+       (await su(`select count(*)::int c from waitlist`)).rows[0].c === 4 && (await su(`select count(*)::int c from waitlist_attempts`)).rows[0].c === 0)
+
+    // public event: titles and times only, no counts, anon may read it
+    await su(`update scheduled_events set status = 'cancelled' where status in ('scheduled', 'live')`)
+    ok('public event: none scheduled', (await anonq(`select * from get_public_event()`)).rows.length === 0)
+    await su(`insert into scheduled_events (title_en, title_ms, title_ru, starts_at, ends_at, created_by) values ('Friday Night', 'Malam Jumaat', 'Пятница', now() + interval '2 days', now() + interval '2 days 2 hours', $1)`, [OWN])
+    const pe = (await anonq(`select * from get_public_event()`)).rows
+    ok('public event: anon reads the next one without counts', pe.length === 1 && pe[0].title_ms === 'Malam Jumaat' && pe[0].status === 'scheduled' && !('joined' in pe[0]) && !('in_room' in pe[0]), JSON.stringify(pe))
+    ok('public event: anon still cannot call get_current_event', !!(await fails(() => anonq(`select * from get_current_event()`))))
+  })()
+  // ===== end waitlist =====
+
   console.log(`${pass} passed, ${fail} failed`)
   return fail
 }
