@@ -33,7 +33,11 @@ const PROD = { NODE_ENV: 'production' }
 
 test('payments stay off in production code', () => {
   assert.equal(PAYMENTS_ENABLED, false)
-  for (const periods of Object.values(PLAN_PRICES))
+  // Display prices only (owner, 2026-10-11): monthly Plus RM 9.90, VIP RM 19.90, nothing longer.
+  assert.deepEqual(PLAN_PRICES.plus, { month: { amount: 9.9, currency: 'MYR' }, quarter: null, year: null })
+  assert.deepEqual(PLAN_PRICES.vip, { month: { amount: 19.9, currency: 'MYR' }, quarter: null, year: null })
+  // With checkout open only database prices count: no rows, no buy buttons.
+  for (const periods of Object.values(priceTable([])))
     for (const price of Object.values(periods)) assert.equal(price, null)
 })
 
@@ -133,8 +137,8 @@ test('prices: database rows in sen over the static table', () => {
   assert.deepEqual(planPrice('plus', 'month', table), { amount: 29.9, currency: 'MYR' })
   assert.deepEqual(planPrice('vip', 'year', table), { amount: 399, currency: 'MYR' })
   assert.equal(planPrice('plus', 'quarter', table), null)
-  assert.equal(planPrice('plus', 'month'), null)
-  assert.equal(PLAN_PRICES.plus.month, null)
+  assert.equal(planPrice('vip', 'month', table), null)
+  assert.deepEqual(planPrice('plus', 'month'), { amount: 9.9, currency: 'MYR' })
   assert.match(formatSen(2990), /^RM\s?29\.90$/)
   assert.match(formatSen(39900), /^RM\s?399$/)
 })

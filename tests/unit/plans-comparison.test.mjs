@@ -15,6 +15,7 @@ import {
 } from '../../src/features/plans/comparison.ts'
 import {
   PLAN_PRICES,
+  OFFERED_PERIODS,
   PAYMENTS_ENABLED,
   formatPrice,
   monthlyEquivalent,
@@ -218,10 +219,14 @@ test('Plus vs VIP rows lead with the tapped feature', () => {
   )
 })
 
-test('pricing is not set and payments are off', () => {
+test('monthly prices only and payments are off', () => {
   assert.equal(PAYMENTS_ENABLED, false)
-  for (const p of Object.values(PLAN_PRICES))
-    for (const v of Object.values(p)) assert.equal(v, null)
+  assert.deepEqual(OFFERED_PERIODS, ['month'])
+  for (const p of Object.values(PLAN_PRICES)) {
+    assert.ok(p.month && p.month.amount > 0)
+    assert.equal(p.quarter, null)
+    assert.equal(p.year, null)
+  }
   assert.match(formatPrice({ amount: 29.9, currency: 'MYR' }), /RM\s?29\.90/)
   assert.deepEqual(monthlyEquivalent({ amount: 120, currency: 'MYR' }, 'year'), {
     amount: 10,

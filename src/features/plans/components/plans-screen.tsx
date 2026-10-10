@@ -18,7 +18,7 @@ import {
 } from '../comparison'
 import {
   BILLING_MONTHS,
-  BILLING_PERIODS,
+  OFFERED_PERIODS,
   formatPrice,
   monthlyEquivalent,
   PLAN_PRICES,
@@ -77,7 +77,7 @@ export function PlansScreen({
       </p>
       {isStaff && <p className="card text-callout px-4 py-3 text-pretty">{t.staff}</p>}
 
-      <BillingToggle value={period} onChange={setPeriod} />
+      {OFFERED_PERIODS.length > 1 && <BillingToggle value={period} onChange={setPeriod} />}
 
       <div className="flex flex-col gap-4">
         {(['plus', 'vip'] as const).map((p) => (
@@ -122,7 +122,7 @@ function BillingToggle({
       data-tour="plans-billing"
       className="bg-surface border-border grid grid-cols-3 gap-1 rounded-full border p-1"
     >
-      {BILLING_PERIODS.map((p) => {
+      {OFFERED_PERIODS.map((p) => {
         const selected = value === p
         return (
           <button
