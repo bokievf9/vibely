@@ -17,14 +17,17 @@ import {
   type Cell,
 } from '../comparison'
 import {
+  BILLING_MONTHS,
   BILLING_PERIODS,
   formatPrice,
   monthlyEquivalent,
-  PAYMENTS_ENABLED,
+  PLAN_PRICES,
   planPrice,
   type BillingPeriod,
   type PaidPlan,
+  type PriceTable,
 } from '../pricing'
+import { CheckoutButton } from '@/features/payments/components/checkout-button'
 import { benefitText, CellView, NotifyButton, PlanMark, PromoLink } from './plan-ui'
 
 type Props = {
@@ -33,16 +36,39 @@ type Props = {
   isStaff: boolean
   catalog: Catalog | null
   interest: PaidPlan[]
+  // Checkout (src/features/payments): 'off' keeps every card on "Coming soon" with the static
+  // prices; 'live' and 'test' (staff) show the database prices and a buy button.
+  checkout?: { mode: 'live' | 'test' | 'off'; prices: PriceTable; drafts: string[] }
+}
+
+const CHECKOUT_OFF: NonNullable<Props['checkout']> = {
+  mode: 'off',
+  prices: PLAN_PRICES,
+  drafts: [],
 }
 
 const PILL_SPRING = { type: 'spring', duration: 0.35, bounce: 0.15 } as const
 
-// /plans: Free, Plus and VIP side by side in one column, the price area (no prices yet), and the
-// comparison generated from the live matrix. Nothing here can take a payment.
-export function PlansScreen({ plan, planUntil, isStaff, catalog, interest }: Props) {
+// /plans: Free, Plus and VIP side by side in one column, the price area, and the comparison
+// generated from the live matrix. While checkout is off (PAYMENTS_ENABLED false, no test mode)
+// nothing here can start a payment: the paid cards say "Coming soon".
+export function PlansScreen({
+  plan,
+  planUntil,
+  isStaff,
+  catalog,
+  interest,
+  checkout = CHECKOUT_OFF,
+}: Props) {
   const { dict } = useI18n()
   const t = dict.plans.screen
   const [period, setPeriod] = useState<BillingPeriod>('month')
+  const legal =
+    checkout.mode === 'live'
+      ? dict.payments.legalLive
+      : checkout.mode === 'test'
+        ? dict.payments.testMode
+        : t.legal
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-10">
@@ -63,6 +89,7 @@ export function PlansScreen({ plan, planUntil, isStaff, catalog, interest }: Pro
             planUntil={plan === p ? planUntil : null}
             catalog={catalog}
             interest={interest}
+            checkout={checkout}
           />
         ))}
         <FreeCard current={!isStaff && plan === 'free'} catalog={catalog} />
@@ -70,7 +97,7 @@ export function PlansScreen({ plan, planUntil, isStaff, catalog, interest }: Pro
 
       <div className="flex flex-col items-center gap-3">
         <PromoLink className="py-1" />
-        <p className="text-muted text-footnote max-w-[34ch] text-center text-pretty">{t.legal}</p>
+        <p className="text-muted text-footnote max-w-[34ch] text-center text-pretty">{legal}</p>
       </div>
 
       {catalog && <Comparison catalog={catalog} current={isStaff ? null : plan} />}
@@ -138,10 +165,20 @@ function CurrentPill({ planUntil }: { planUntil: string | null }) {
   )
 }
 
-function Price({ plan, period }: { plan: PaidPlan; period: BillingPeriod }) {
+function Price({
+  plan,
+  period,
+  prices,
+  draft,
+}: {
+  plan: PaidPlan
+  period: BillingPeriod
+  prices: PriceTable
+  draft: boolean
+}) {
   const { dict } = useI18n()
   const t = dict.plans.screen
-  const price = planPrice(plan, period)
+  const price = planPrice(plan, period, prices)
   if (!price) {
     return <p className="text-title2 text-muted tracking-tight">{t.priceSoon}</p>
   }
@@ -155,6 +192,9 @@ function Price({ plan, period }: { plan: PaidPlan; period: BillingPeriod }) {
         <p className="text-muted text-footnote tabular-nums">
           {fmt(t.perMonth, { price: formatPrice(monthly) })}
         </p>
+      )}
+      {draft && (
+        <p className="text-footnote font-medium text-amber-400">{dict.payments.draftPrice}</p>
       )}
     </div>
   )
@@ -197,6 +237,7 @@ function PaidCard({
   planUntil,
   catalog,
   interest,
+  checkout,
 }: {
   plan: PaidPlan
   period: BillingPeriod
@@ -204,11 +245,14 @@ function PaidCard({
   planUntil: string | null
   catalog: Catalog | null
   interest: PaidPlan[]
+  checkout: NonNullable<Props['checkout']>
 }) {
   const { dict } = useI18n()
   const t = dict.plans
   const benefits = catalog ? planBenefits(catalog, plan) : []
   const vip = plan === 'vip'
+  // A buy button only with checkout open and a price for this period (buying again extends).
+  const canBuy = checkout.mode !== 'off' && planPrice(plan, period, checkout.prices) !== null
 
   return (
     <section
@@ -240,7 +284,12 @@ function PaidCard({
         </div>
       </div>
 
-      <Price plan={plan} period={period} />
+      <Price
+        plan={plan}
+        period={period}
+        prices={checkout.prices}
+        draft={checkout.drafts.includes(`${plan}:${BILLING_MONTHS[period]}`)}
+      />
 
       {benefits.length > 0 && (
         <div className="flex flex-col gap-2.5">
@@ -253,20 +302,26 @@ function PaidCard({
         </div>
       )}
 
-      {!current && (
+      {canBuy ? (
         <div className="flex flex-col gap-2 pt-1">
-          <button
-            type="button"
-            disabled={!PAYMENTS_ENABLED}
-            className={cn(
-              'bg-fill text-muted flex h-[3.25rem] w-full items-center justify-center rounded-2xl',
-              'text-[1.0625rem] font-semibold tracking-[-0.012em] select-none disabled:cursor-not-allowed',
-            )}
-          >
-            {t.screen.comingSoon}
-          </button>
-          <NotifyButton plan={plan} known={interest} />
+          <CheckoutButton plan={plan} period={period} test={checkout.mode === 'test'} />
         </div>
+      ) : (
+        !current && (
+          <div className="flex flex-col gap-2 pt-1">
+            <button
+              type="button"
+              disabled
+              className={cn(
+                'bg-fill text-muted flex h-[3.25rem] w-full items-center justify-center rounded-2xl',
+                'text-[1.0625rem] font-semibold tracking-[-0.012em] select-none disabled:cursor-not-allowed',
+              )}
+            >
+              {t.screen.comingSoon}
+            </button>
+            <NotifyButton plan={plan} known={interest} />
+          </div>
+        )
       )}
     </section>
   )

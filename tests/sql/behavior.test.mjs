@@ -4408,7 +4408,13 @@ export async function run(db) {
     // ----- events: recorded once -----
     const e1 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
     const e2 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
-    ok('payments: events deduplicated', !!e1 && e2 === null && (await su(`select order_id from payment_events where id=$1`, [e1])).rows[0].order_id === o2.id)
+    await svc(`select payment_finish_event($1, 'VP409: transient')`, [e1])
+    const e3 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
+    await svc(`select payment_finish_event($1, null)`, [e1])
+    const e4 = (await svc(`select payment_record_event('stripe','evt_1','paid','cs_2',7990,'MYR','{}') e`)).rows[0].e
+    ok('payments: events recorded once, retried until processed', !!e1 && e2 === e1 && e3 === e1 && e4 === null &&
+       (await su(`select count(*)::int c from payment_events where event_id='evt_1'`)).rows[0].c === 1 &&
+       (await su(`select order_id from payment_events where id=$1`, [e1])).rows[0].order_id === o2.id)
 
     // ----- my_payments -----
     const mine = (await as(B1, `select my_payments() p`)).rows[0].p

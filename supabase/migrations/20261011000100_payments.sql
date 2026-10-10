@@ -322,8 +322,9 @@ begin
 end;
 $$;
 
--- Records a verified gateway event once. Returns the event id, or null when it was already
--- recorded (a re-delivery: the caller skips processing).
+-- Records a verified gateway event once. Returns the event id to process, or null when it was
+-- already processed successfully (a re-delivery: the caller skips it). A re-delivery of an event
+-- whose processing failed or never finished is returned again (processing is idempotent).
 create function public.payment_record_event(
   p_provider text, p_event_id text, p_type text, p_provider_ref text,
   p_amount_sen int, p_currency text, p_payload jsonb
@@ -342,6 +343,10 @@ begin
           p_amount_sen, p_currency, p_payload)
   on conflict (provider, event_id) do nothing
   returning id into eid;
+  if eid is null then
+    select e.id into eid from public.payment_events e
+    where e.provider = p_provider and e.event_id = p_event_id and (e.processed_at is null or e.error is not null);
+  end if;
   return eid;
 end;
 $$;

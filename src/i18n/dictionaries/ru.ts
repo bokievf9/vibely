@@ -26,6 +26,7 @@ import { vipPerksRu, vipPerksErrorsRu } from './vip-perks/ru'
 import { duoRu, duoErrorsRu } from './duo/ru'
 import { conversationErrorsRu, conversationsRu } from './conversations/ru'
 import { tourRu } from './tour/ru'
+import { paymentErrorsRu, paymentsRu } from './payments/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -56,6 +57,7 @@ export const ru: Dictionary = {
     ...eventErrorsRu,
     ...promoErrorsRu,
     ...planErrorsRu,
+    ...paymentErrorsRu,
     ...vipPerksErrorsRu,
     ...duoErrorsRu,
     ...conversationErrorsRu,
@@ -421,6 +423,7 @@ export const ru: Dictionary = {
   crossed: crossedRu,
   presets: presetsRu,
   plans: plansRu,
+  payments: paymentsRu,
   statuses: statusesRu,
   matchmaker: matchmakerRu,
   incognito: incognitoRu,

@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_prices: {
+        Row: {
+          active: boolean
+          amount_sen: number
+          currency: string
+          period_months: number
+          plan: Database['public']['Enums']['plan_level']
+          provider_price_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount_sen: number
+          currency?: string
+          period_months: number
+          plan: Database['public']['Enums']['plan_level']
+          provider_price_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount_sen?: number
+          currency?: string
+          period_months?: number
+          plan?: Database['public']['Enums']['plan_level']
+          provider_price_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       plan_interest: {
         Row: {
           created_at: string
@@ -2855,6 +2888,79 @@ export type Database = {
       tour_tip_seen: { Args: { p_key: string }; Returns: undefined }
       my_access: { Args: never; Returns: Json }
       register_plan_interest: { Args: { p_plan: string }; Returns: boolean }
+      plan_prices_public: {
+        Args: never
+        Returns: { plan: string; period_months: number; currency: string; amount_sen: number }[]
+      }
+      my_payments: { Args: { p_id?: string | null }; Returns: Json }
+      admin_plan_prices: { Args: { p_admin: string }; Returns: Json }
+      admin_set_price: {
+        Args: {
+          p_admin: string
+          p_plan: Database['public']['Enums']['plan_level']
+          p_period: number
+          p_amount_sen: number | null
+          p_active?: boolean
+          p_provider_price_id?: string | null
+        }
+        Returns: undefined
+      }
+      payment_create_order: {
+        Args: { p_user: string; p_plan: string; p_period: number; p_provider: string }
+        Returns: Json
+      }
+      payment_attach_checkout: {
+        Args: { p_order: string; p_provider_ref: string; p_checkout_url: string | null }
+        Returns: undefined
+      }
+      payment_order: { Args: { p_order: string; p_user: string }; Returns: Json }
+      payment_record_event: {
+        Args: {
+          p_provider: string
+          p_event_id: string
+          p_type: string
+          p_provider_ref: string | null
+          p_amount_sen: number | null
+          p_currency: string | null
+          p_payload: Json
+        }
+        Returns: string | null
+      }
+      payment_finish_event: { Args: { p_event: string; p_error: string | null }; Returns: undefined }
+      payment_mark_paid: {
+        Args: {
+          p_provider: string
+          p_provider_ref: string
+          p_amount_sen: number
+          p_currency: string
+          p_event?: Json | null
+        }
+        Returns: Json
+      }
+      payment_mark_failed: {
+        Args: {
+          p_provider: string
+          p_provider_ref: string
+          p_status?: string
+          p_reason?: string | null
+          p_event?: Json | null
+        }
+        Returns: string
+      }
+      payment_mark_refunded: {
+        Args: { p_provider: string; p_provider_ref: string; p_event?: Json | null }
+        Returns: Json
+      }
+      payment_refund: {
+        Args: { p_admin: string; p_order: string; p_reason?: string | null }
+        Returns: Json
+      }
+      payment_expire_stale: { Args: never; Returns: number }
+      admin_payment_orders: {
+        Args: { p_admin: string; p_status?: string | null; p_limit?: number }
+        Returns: Json
+      }
+      admin_payment_stats: { Args: { p_admin: string }; Returns: Json }
       activate_boost: { Args: never; Returns: string }
       admin_plan_matrix: { Args: { p_admin: string }; Returns: Json }
       admin_plan_stats: { Args: { p_admin: string }; Returns: Json }
