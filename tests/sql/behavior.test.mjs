@@ -4205,6 +4205,73 @@ export async function run(db) {
     ok('tour: the row goes with the account', (await su(`select count(*)::int c from onboarding_tour where user_id=$1`, [B])).rows[0].c === 0)
   })()
   // ===== end onboarding tour =====
+  // ===== underage review (20261010000100) =====
+  // "Looks under 18" on a selfie: reject + ban 'underage' + hide + log, in one RPC; underage report
+  // cases sort first in the queue.
+  await (async () => {
+    const ids = Array.from({ length: 9 }, (_, i) => `a1010000-0000-4000-8000-00000000000${i + 1}`)
+    const [K1, K2, K3, VIEW, MOD, ADM, R1, R2, R3] = ids
+    for (const [i, u] of ids.entries()) {
+      await su(`insert into auth.users(id, phone) values ($1, $2)`, [u, '6019101000' + i])
+      await as(u, `insert into profiles (display_name, birth_date, gender, interested_in, city) values ($1,'2007-01-01',$2,$3,'Johor Bahru')`,
+        ['Ug' + i, i % 2 ? 'male' : 'female', i % 2 ? '{female}' : '{male}'])
+    }
+    await su(`update profiles set verification_status='approved' where id = any($1)`, [[VIEW, MOD, ADM, R1, R2, R3]])
+    await su(`insert into admins (user_id, role) values ($1,'viewer'),($2,'moderator'),($3,'admin')`, [VIEW, MOD, ADM])
+    const svc = async (sql, p) => { await db.exec('reset role; set role service_role;'); try { return await db.query(sql, p) } finally { await db.exec('reset role') } }
+    const codeOf = async (fn) => { try { await fn(); return null } catch (e) { return e.code } }
+    const submit = async (u) => { await as(u, `insert into verification_requests (selfie_path, challenge) values ($1, 'peace')`, [`${u}/u.jpg`]); return (await su(`select id from verification_requests where user_id=$1 and status='pending'`, [u])).rows[0].id }
+    const reject = async (a, req, days = null) => (await svc(`select admin_reject_underage($1,$2,$3) r`, [a, req, days])).rows[0].r
+    const prof = async (u) => (await su(`select banned_at, banned_until, ban_reason, is_active, discoverable, verification_status::text from profiles where id=$1`, [u])).rows[0]
+    const req1 = await submit(K1), req2 = await submit(K2), req3 = await submit(K3)
+
+    ok('underage: clients cannot call it', (await su(`select has_function_privilege('authenticated', 'public.admin_reject_underage(uuid, uuid, int)', 'execute') v`)).rows[0].v === false &&
+       !!(await codeOf(() => as(MOD, `select admin_reject_underage($1,$2)`, [MOD, req1]))))
+    ok('underage: viewer cannot', (await codeOf(() => reject(VIEW, req1))) === '42501' &&
+       (await su(`select status::text s from verification_requests where id=$1`, [req1])).rows[0].s === 'pending')
+    ok('underage: moderator cannot ban longer than 7 days', (await codeOf(() => reject(MOD, req1, 30))) === '42501' &&
+       (await su(`select status::text s from verification_requests where id=$1`, [req1])).rows[0].s === 'pending' && (await prof(K1)).banned_at === null)
+
+    const out = await reject(MOD, req1)
+    const p1 = await prof(K1)
+    const v1 = (await su(`select status::text, rejection_reason, reviewer_id from verification_requests where id=$1`, [req1])).rows[0]
+    ok('underage: moderator rejects the verification', v1.status === 'rejected' && v1.rejection_reason === 'underage' && v1.reviewer_id === MOD && p1.verification_status === 'rejected', JSON.stringify([v1, p1]))
+    const left = (new Date(p1.banned_until) - Date.now()) / 86400000
+    ok('underage: moderator bans 7 days with code underage', out.user_id === K1 && out.ban_days === 7 && p1.banned_at !== null && p1.ban_reason === 'underage' &&
+       left > 6.9 && left <= 7, JSON.stringify(out))
+    ok('underage: profile hidden from discovery', p1.is_active === false && p1.discoverable === false &&
+       (await su(`select count(*)::int c from swipe_candidate_pool($1, '{female,male}', 18, 99, 20000) where id=$2`, [R1, K1])).rows[0].c === 0)
+    const log1 = (await su(`select admin_id, target_type, target_id, reason from moderation_actions where action='verification.reject_underage'`)).rows
+    ok('underage: logged with a distinct action', log1.length === 1 && log1[0].admin_id === MOD && log1[0].target_type === 'verification_request' &&
+       log1[0].target_id === req1 && log1[0].reason.startsWith('underage'), JSON.stringify(log1))
+    ok('underage: ban logged through admin_ban_user', (await su(`select count(*)::int c from moderation_actions where action='user.temp_ban' and target_id=$1 and admin_id=$2`, [K1, MOD])).rows[0].c === 1)
+    ok('underage: second decision refused (P0002)', (await codeOf(() => reject(ADM, req1))) === 'P0002' &&
+       (await codeOf(() => svc(`select admin_review_verification($1,$2,true)`, [MOD, req1]))) === 'P0002')
+
+    // an admin extends the moderator's 7-day ban to permanent with the existing ban RPC
+    await svc(`select admin_ban_user($1,$2,'underage',null)`, [ADM, K1])
+    ok('underage: admin extends to permanent', (await prof(K1)).banned_until === null && (await prof(K1)).banned_at !== null)
+    ok('underage: moderator cannot shorten it again', (await codeOf(() => svc(`select admin_ban_user($1,$2,'underage',7)`, [MOD, K1]))) === '42501')
+
+    // admin decision: permanent by default, explicit duration allowed
+    const o2 = await reject(ADM, req2)
+    ok('underage: admin bans permanently by default', o2.ban_days === null && (await prof(K2)).banned_until === null && (await prof(K2)).ban_reason === 'underage' &&
+       (await su(`select count(*)::int c from moderation_actions where action='user.ban' and target_id=$1`, [K2])).rows[0].c === 1)
+    const o3 = await reject(ADM, req3, 30)
+    ok('underage: admin may choose a duration', o3.ban_days === 30)
+
+    // report queue: an underage case (1 reporter) sorts above a scam case with 3 reporters
+    const rep = (u, t, reason) => as(u, `insert into reports (target_type, target_id, reason) values ('user',$1,$2)`, [t, reason])
+    for (const r of [R1, R3]) await rep(r, R2, 'scam')
+    await rep(R2, R1, 'scam')
+    await rep(R1, K3, 'underage: looks 14')
+    const q = (await svc(`select target_id, reasons, priority from admin_report_queue($1, null, null, null, false, 100, 0)`, [VIEW])).rows
+    const iU = q.findIndex((r) => r.target_id === K3), iS = q.findIndex((r) => r.target_id === R2)
+    ok('underage: queue puts underage cases first', iU >= 0 && iS >= 0 && iU < iS &&
+       q.every((r, i) => !r.reasons.includes('underage') || q.slice(0, i).every((x) => x.reasons.includes('underage'))), JSON.stringify(q.map((r) => [r.reasons, r.priority])))
+    ok('underage: queue filter by reason', (await svc(`select target_id from admin_report_queue($1, null, 'underage')`, [VIEW])).rows.some((r) => r.target_id === K3))
+  })()
+  // ===== end underage review =====
 
   console.log(`${pass} passed, ${fail} failed`)
   return fail

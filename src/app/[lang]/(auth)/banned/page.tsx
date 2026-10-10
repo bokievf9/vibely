@@ -5,7 +5,12 @@ import { PageSpinner } from '@/components/ui/spinner'
 import { SignOutButton } from '@/features/auth/components/sign-out-button'
 import { localeRedirect } from '@/features/auth/redirect'
 import { getViewer } from '@/features/auth/session'
-import { BAN_CODES, localizeReason } from '@/features/safety/reason-codes'
+import {
+  BAN_CODES,
+  UNDERAGE_CODE,
+  localizeReason,
+  parseReason,
+} from '@/features/safety/reason-codes'
 import { AppealForm } from '@/features/sanctions/components/appeal-form'
 import { getMyAppeal } from '@/features/sanctions/queries'
 import { fmt } from '@/i18n/config'
@@ -49,6 +54,11 @@ async function BanDetails() {
           ? fmt(t.bannedUntil, { date: `${formatDay(until, locale)} ${formatTime(until, locale)}` })
           : t.bannedForever}
       </p>
+      {parseReason(reason, BAN_CODES).code === UNDERAGE_CODE && (
+        <p className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-500">
+          {dict.banned.underage}
+        </p>
+      )}
       {appeal?.status === 'open' ? (
         <p className="text-muted text-sm">
           {fmt(t.appealOpen, { date: formatDay(appeal.createdAt, locale) })}

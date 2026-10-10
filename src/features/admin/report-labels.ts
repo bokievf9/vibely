@@ -40,6 +40,11 @@ export const DECISION_LABELS: Record<CaseDecision, string> = {
 export const readableDecision = (d: string | null) =>
   d && d in DECISION_LABELS ? DECISION_LABELS[d as CaseDecision] : 'Закрыто'
 
+// Cases with a report reason 'underage' sort first in the queue (tier 4 in admin_report_queue,
+// 20261009000161) and carry this mark in the panel and in Telegram.
+export const UNDERAGE_CASE_LABEL = 'Возможно младше 18'
+export const isUnderageCase = (reasonCodes: readonly string[]) => reasonCodes.includes('underage')
+
 // Severity tier of a case (most severe reason): 4 underage, 3 scam/sexual, 2 harassment, 1 other.
 export function tierLabel(tier: number): { label: string; className: string } {
   if (tier >= 4) return { label: 'Критично', className: 'bg-red-600 text-white' }

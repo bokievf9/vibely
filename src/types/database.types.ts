@@ -3154,6 +3154,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      admin_reject_underage: {
+        Args: { p_admin: string; p_ban_days?: number; p_request: string }
+        Returns: Json
+      }
       admin_release_report: {
         Args: {
           p_admin: string

@@ -18,6 +18,9 @@ export const reviewVerificationSchema = z.discriminatedUnion('approve', [
   }),
 ])
 
+// "Looks under 18": reject + ban in one RPC (admin_reject_underage). The duration follows the role.
+export const underageSchema = z.object({ requestId: z.uuid() })
+
 export const banSchema = z.discriminatedUnion('banned', [
   z.object({ userId: z.uuid(), banned: z.literal(true), reason: banReason }),
   z.object({ userId: z.uuid(), banned: z.literal(false) }),

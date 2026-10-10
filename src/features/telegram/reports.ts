@@ -1,6 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BAN_LABELS, REPORT_REASON_LABELS, TARGET_LABELS } from '@/features/admin/labels'
+import { UNDERAGE_CASE_LABEL } from '@/features/admin/report-labels'
 import type { BanCode } from '@/features/safety/reason-codes'
 import { admit, editText, getBot, sendText } from './client'
 import { openOnly, reportKeyboard, reportPath } from './keyboards'
@@ -76,6 +77,7 @@ export async function handleOf(userId: string | null, withStatus = true): Promis
 
 async function reportText(t: ReportTargetType, s: Summary) {
   return [
+    ...(s.underage ? [`🔞 ${UNDERAGE_CASE_LABEL.toUpperCase()}`] : []),
     `🚩 Жалоба · приоритет: ${PRIORITY_LABEL[priorityOf(s)]}`,
     `Объект: ${TARGET_LABELS[t]}`,
     `Причина: ${reasonLabel(s.latest_reason)}`,
@@ -146,7 +148,7 @@ async function alertsFor(t: ReportTargetType, id: string, s: Summary) {
   if (s.underage && admit('alert', `underage:${t}:${id}`, 60 * 60_000)) {
     await sendText(
       'alerts',
-      `🚨 СРОЧНО: жалоба «Младше 18 лет»\nОбъект: ${TARGET_LABELS[t]}\nАккаунт: ${who}`,
+      `🚨 СРОЧНО: ${UNDERAGE_CASE_LABEL}\nОбъект: ${TARGET_LABELS[t]}\nАккаунт: ${who}`,
       openOnly(reportPath(t, s.offender_id)),
     )
   }

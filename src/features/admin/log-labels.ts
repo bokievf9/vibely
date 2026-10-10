@@ -3,6 +3,7 @@
 export const ACTION_LABELS: Record<string, string> = {
   'verification.approve': 'Одобрил селфи',
   'verification.reject': 'Отклонил селфи',
+  'verification.reject_underage': 'Отклонил селфи: выглядит младше 18 (бан)',
   'user.ban': 'Заблокировал бессрочно',
   'user.temp_ban': 'Заблокировал временно',
   'user.unban': 'Разблокировал',

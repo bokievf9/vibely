@@ -87,7 +87,12 @@ async function Queue({ searchParams }: Pick<PageProps<'/admin/reports'>, 'search
           label="Причина"
           options={[
             { value: null, label: 'Все' },
-            ...REASON_CODES.map((r) => ({ value: r, label: reasonLabel(r) })),
+            // Underage first, as a quick filter: those cases also sort first in the queue.
+            { value: 'underage', label: '🔞 Младше 18' },
+            ...REASON_CODES.filter((r) => r !== 'underage').map((r) => ({
+              value: r,
+              label: reasonLabel(r),
+            })),
           ]}
           value={filters.reason}
           href={(reason) => href({ reason })}

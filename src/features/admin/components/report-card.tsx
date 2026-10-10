@@ -7,7 +7,13 @@ import { FormError } from '@/components/ui/field'
 import { BAN_CODES } from '@/features/safety/reason-codes'
 import { BAN_LABELS, TARGET_LABELS, presetsOf, readableReportReason } from '../labels'
 import { claimCase, releaseCase, resolveCase } from '../report-actions'
-import { STATUS_LABELS, slaOf, tierLabel } from '../report-labels'
+import {
+  STATUS_LABELS,
+  UNDERAGE_CASE_LABEL,
+  isUnderageCase,
+  slaOf,
+  tierLabel,
+} from '../report-labels'
 import type { ReportCase } from '../queries/reports'
 import { hasRole, type AdminRole } from '../roles'
 import { Badge, formatDate } from './badges'
@@ -66,6 +72,7 @@ export function ReportCard({
   const banForever = hasRole(role, 'admin')
   const heldByOther = group.status === 'in_review' && group.claimedBy && !group.claimedBy.me
   const tier = tierLabel(group.tier)
+  const underage = isUnderageCase(group.reasonCodes)
   const sla = slaOf(group.ageMinutes)
 
   // One entry per reporter (a reporter has at most one open report per target).
@@ -91,7 +98,7 @@ export function ReportCard({
 
   return (
     <article
-      className={`bg-surface flex flex-col gap-4 rounded-3xl p-4 ${selected ? 'ring-accent ring-2' : ''}`}
+      className={`bg-surface flex flex-col gap-4 rounded-3xl p-4 ${selected ? 'ring-accent ring-2' : underage ? 'ring-2 ring-red-600/60' : ''}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         {onSelect && (
@@ -106,6 +113,7 @@ export function ReportCard({
         <h2 className="font-semibold">
           {TARGET_LABELS[targetType]} · {group.reasons.length} жалоб(ы)
         </h2>
+        {underage && <Badge className="bg-red-600 text-white">🔞 {UNDERAGE_CASE_LABEL}</Badge>}
         <Badge className={tier.className}>{tier.label}</Badge>
         <Badge className={sla.className}>
           <time dateTime={group.firstReportedAt} title={formatDate(group.firstReportedAt)}>
