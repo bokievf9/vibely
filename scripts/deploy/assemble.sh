@@ -7,7 +7,11 @@ test -f .next/standalone/server.js || { echo "Run npm run build first (output: '
 rm -rf "$OUT" && mkdir -p "$OUT/.next"
 cp -R .next/standalone/. "$OUT/"
 cp -R .next/static "$OUT/.next/static"
-cp -R public "$OUT/public"
+# The standalone output may already contain public/ (files traced by the build, e.g. the OG
+# image reads public/landing/og-discover.png). `cp -R public "$OUT/public"` would then nest it
+# as public/public and every static file (icons, sw.js, landing media) would 404. Merge instead.
+mkdir -p "$OUT/public" && cp -R public/. "$OUT/public/"
+test -f "$OUT/public/sw.js" && test ! -e "$OUT/public/public" || { echo "public/ was not assembled correctly"; exit 1; }
 cp ecosystem.config.cjs scripts/deploy/activate.sh "$OUT/"
 # Ops helper run on the server (docs/deploy.md, Telegram bot); dependency-free.
 mkdir -p "$OUT/scripts/telegram" && cp scripts/telegram/set-webhook.mjs "$OUT/scripts/telegram/"
