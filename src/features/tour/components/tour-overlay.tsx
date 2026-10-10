@@ -81,7 +81,13 @@ type Props = {
 export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   const { dict } = useI18n()
   const t = dict.tour
+  // useLocaleRouter() is a new object on every render: read it through a ref so the step effect
+  // below runs once per step, not once per render.
   const router = useLocaleRouter()
+  const routerRef = useRef(router)
+  useEffect(() => {
+    routerRef.current = router
+  })
   const reduce = useReducedMotion() ?? false
   const maskId = useId()
   const titleId = useId()
@@ -129,9 +135,9 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   const finish = useCallback(
     (kind: 'complete' | 'skip', at: number) => {
       onEnd(kind, at)
-      if (kind === 'complete') router.push('/swipe')
+      if (kind === 'complete') routerRef.current.push('/swipe')
     },
-    [onEnd, router],
+    [onEnd],
   )
 
   useEffect(() => {
@@ -160,7 +166,7 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
           behavior: reduce ? 'auto' : 'smooth',
         })
       }
-      setShown({ index, key })
+      setShown((prev) => (prev?.index === index && prev.key === key ? prev : { index, key }))
     }
     const giveUp = () => {
       done = true
@@ -176,7 +182,7 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
       if (appPath(window.location.pathname) !== current.route) {
         if (!pushed) {
           pushed = true
-          router.push(current.route)
+          routerRef.current.push(current.route)
         }
         if (now - startedAt > NAV_TIMEOUT_MS) giveUp()
         return
@@ -204,7 +210,7 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
     }
     // `missing` is read when giving up; re-running on its change would restart the wait.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, index, router, reduce, finish])
+  }, [mode, index, reduce, finish])
 
   // When the route last changed (optional targets get a short grace period from then).
   useEffect(() => {
