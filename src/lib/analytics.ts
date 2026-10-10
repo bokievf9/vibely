@@ -2,7 +2,18 @@
 // Every call is a no-op when no script is configured or it was blocked.
 
 export type AnalyticsEvent =
-  'signup_otp_sent' | 'profile_created' | 'selfie_submitted' | 'first_match'
+  | 'signup_otp_sent'
+  | 'profile_created'
+  | 'selfie_submitted'
+  | 'first_match'
+  // Landing page (src/features/landing): CTA clicks carry `location` (header, hero, final...).
+  | 'cta_click'
+  | 'waitlist_open'
+  | 'waitlist_submit'
+  | 'waitlist_success'
+  | 'faq_open'
+  | 'video_play'
+  | 'scroll_depth'
 
 type Props = Record<string, string | number | boolean>
 

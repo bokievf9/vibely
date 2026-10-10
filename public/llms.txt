@@ -1,0 +1,35 @@
+# Vibely
+
+> Vibely (vibelydate.com) is a dating app for adults (18+) in Malaysia. A person on the Vibely moderation team checks every profile selfie before the profile goes live, and sign-up needs a Malaysian mobile number (+60). The app is an installable web app (PWA) in English, Bahasa Melayu and Russian. Sign-up is opening in stages: visitors can join the early access waitlist on the home page.
+
+## Ways to meet
+
+- Discover: browse verified people nearby; a mutual like opens a chat.
+- Blind Dating: chat with a verified person as an alias, with no photos or names. Profiles appear only when both press Connect; either side can press Pass and the chat ends.
+- Blind Dating Night: scheduled evenings when everyone does blind dates at the same time.
+- Anonymous feed: posts under a random nickname, or as yourself. Other users cannot see who wrote an anonymous post.
+- Duo: team up with a friend and meet another pair; a mutual like opens a group chat for four.
+- Live statuses: a short status that people nearby see for 3 hours.
+
+## Safety and privacy
+
+- Every selfie is reviewed by a human moderator and never shown to other users; selfies are deleted after 90 days.
+- Messages, media and audio/video calls are recorded for safety and kept for up to 90 days, then deleted. Calls show "This call is recorded". Moderators open recordings only while handling a report, and every access is logged.
+- Other users see a rounded distance, never an exact location.
+- Block in one tap; reports go to human moderators and the reported person does not learn who reported them.
+
+## Plans
+
+- Free: Discover (100 likes a day), 3 new blind dates a day, text chat, Duo, live statuses, reading and liking the feed.
+- Plus: unlimited likes, 10 blind dates a day, see who liked you, photos/voice/video in chat, posting and commenting in the feed, Incognito, 1 profile boost a month.
+- VIP: everything in Plus, unlimited blind dates, starting audio and video calls, priority at Blind Dating Night, 1 boost a week.
+- No prices yet. Plus and VIP currently come from promo codes and rewards.
+
+## Pages
+
+- [Home (English)](https://vibelydate.com/en): overview, FAQ and early access
+- [Laman utama (Bahasa Melayu)](https://vibelydate.com/ms)
+- [Главная (русский)](https://vibelydate.com/ru)
+- [Privacy Policy](https://vibelydate.com/en/privacy): PDPA 2010, recording and retention, early access waitlist (section 5j)
+- [Terms of Use](https://vibelydate.com/en/terms)
+- [Sign in](https://vibelydate.com/en/login)

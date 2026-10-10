@@ -15,7 +15,8 @@ export default serwist({
     url: `/${lang}/~offline`,
     revision,
   })),
-  globIgnores: ['public/sw.js.map'],
+  // Landing screenshots and the promo video are for visitors, not for every installed app.
+  globIgnores: ['public/sw.js.map', 'public/landing/**'],
   // Keeps the on-demand calls chunk (livekit-client, ~570 KB) out of every user's precache: it is
   // fetched only when a call starts. App chunks stay well below this size.
   maximumFileSizeToCacheInBytes: 400 * 1024,
