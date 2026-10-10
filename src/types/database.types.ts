@@ -8,6 +8,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      plan_interest: {
+        Row: {
+          created_at: string
+          plan: Database['public']['Enums']['plan_level']
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          plan: Database['public']['Enums']['plan_level']
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          plan?: Database['public']['Enums']['plan_level']
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_grants: {
         Row: {
           created_at: string
@@ -2800,6 +2821,7 @@ export type Database = {
     }
     Functions: {
       my_access: { Args: never; Returns: Json }
+      register_plan_interest: { Args: { p_plan: string }; Returns: boolean }
       activate_boost: { Args: never; Returns: string }
       admin_plan_matrix: { Args: { p_admin: string }; Returns: Json }
       admin_plan_stats: { Args: { p_admin: string }; Returns: Json }
