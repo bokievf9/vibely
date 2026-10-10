@@ -1,10 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import type { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getLiveKitEnv } from '@/features/calls/server/env'
+import { closeCallRoom } from '@/features/calls/server/livekit'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
-import { notifyBanChanged, notifyVerificationDecided } from '@/features/telegram/notify'
+import {
+  notifyBanChanged,
+  notifyUnderageDecided,
+  notifyVerificationDecided,
+} from '@/features/telegram/notify'
 import type { ActionResult } from '@/types/action-result'
 import { requireAdmin } from './guard'
 import { resolveCase } from './report-actions'
@@ -14,6 +21,7 @@ import {
   resolveSchema,
   reviewVerificationSchema,
   revokeSchema,
+  underageSchema,
 } from './schemas'
 
 type Rpc = PromiseLike<{ error: { message: string } | null }>
@@ -67,6 +75,42 @@ export async function reviewVerification(input: z.input<typeof reviewVerificatio
     if (userId) notifyNewPeople(userId)
   }
   return result
+}
+
+// "Looks under 18" (admin_reject_underage, 20261010000100): rejects the selfie, bans the account
+// with the code 'underage' (moderators 7 days, admins permanently; an admin can extend it on the
+// user page), hides the profile and logs it, in one transaction. The calls the ban ended get their
+// LiveKit rooms closed; the Telegram copy of the selfie is closed (photos deleted) and the ban is
+// announced like any other.
+export async function rejectUnderage(input: z.input<typeof underageSchema>): Promise<ActionResult> {
+  const parsed = underageSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Неверные данные' }
+  }
+  const adminId = await requireAdmin()
+  const { data, error } = await createAdminClient().rpc('admin_reject_underage', {
+    p_admin: adminId,
+    p_request: parsed.data.requestId,
+  })
+  if (error) {
+    if (error.code === '42501') return { ok: false, error: 'Недостаточно прав для этого действия' }
+    if (error.code === 'P0002') return { ok: false, error: 'Заявка уже рассмотрена' }
+    return { ok: false, error: `Ошибка: ${error.message}` }
+  }
+  revalidatePath('/admin', 'layout')
+
+  const out = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+  const userId = typeof out.user_id === 'string' ? out.user_id : null
+  const banDays = typeof out.ban_days === 'number' ? out.ban_days : null
+  notifyUnderageDecided(parsed.data.requestId, adminId, banDays)
+  if (userId) notifyBanChanged(adminId, userId, true, 'underage')
+  const endedCalls = Array.isArray(out.ended_calls)
+    ? out.ended_calls.filter((id): id is string => typeof id === 'string')
+    : []
+  const env = getLiveKitEnv()
+  if (env && endedCalls.length)
+    after(() => Promise.all(endedCalls.map((id) => closeCallRoom(env, id))))
+  return { ok: true, data: undefined }
 }
 
 async function reviewedUserId(requestId: string): Promise<string | null> {

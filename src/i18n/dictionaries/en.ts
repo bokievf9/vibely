@@ -161,7 +161,12 @@ export const en = {
       chin: 'Rest your chin on your fist',
     },
   },
-  banned: { title: 'Account blocked', reason: 'Reason: {reason}' },
+  banned: {
+    title: 'Account blocked',
+    reason: 'Reason: {reason}',
+    underage:
+      'Vibely is only for adults aged 18 and over. Our moderators believe this account may belong to someone under 18, so it has been blocked. If you are 18 or older, send an appeal below and a moderator will review it.',
+  },
   moderation: {
     rejection: {
       gesture_mismatch: 'The gesture does not match the task',
@@ -169,6 +174,7 @@ export const en = {
       face_mismatch: 'The face does not match your profile photos',
       screen_photo: 'Photo of a screen or a printout',
       no_face_photo: 'Your profile has no photo showing your face',
+      underage: 'You appear to be under 18',
     },
     ban: {
       harassment: 'Harassment or insults',

@@ -158,6 +158,9 @@ export type CallbackAction =
   | { a: 'selfie_reject_menu'; id: string }
   | { a: 'selfie_reject'; id: string; code: string }
   | { a: 'selfie_back'; id: string }
+  // "Looks under 18": confirmation, then reject + ban (admin_reject_underage)
+  | { a: 'selfie_underage_confirm'; id: string }
+  | { a: 'selfie_underage'; id: string }
   // reports
   | { a: 'report_dismiss'; t: ReportTargetType; id: string }
   | { a: 'report_hide'; t: ReportTargetType; id: string }
@@ -175,6 +178,8 @@ const PREFIX = {
   selfie_reject_menu: 'sr',
   selfie_reject: 'sx',
   selfie_back: 'sb',
+  selfie_underage_confirm: 'sy',
+  selfie_underage: 'su',
   report_dismiss: 'rd',
   report_hide: 'rh',
   report_ban_menu: 'rm',
@@ -200,6 +205,8 @@ const PATTERNS: [RegExp, (m: RegExpExecArray) => CallbackAction | null][] = [
   [new RegExp(`^sa:(${UUID})$`), (m) => ({ a: 'selfie_approve', id: m[1]! })],
   [new RegExp(`^sr:(${UUID})$`), (m) => ({ a: 'selfie_reject_menu', id: m[1]! })],
   [new RegExp(`^sb:(${UUID})$`), (m) => ({ a: 'selfie_back', id: m[1]! })],
+  [new RegExp(`^sy:(${UUID})$`), (m) => ({ a: 'selfie_underage_confirm', id: m[1]! })],
+  [new RegExp(`^su:(${UUID})$`), (m) => ({ a: 'selfie_underage', id: m[1]! })],
   [new RegExp(`^sx:(${UUID}):(${CODE})$`), (m) => ({ a: 'selfie_reject', id: m[1]!, code: m[2]! })],
   ...(
     [

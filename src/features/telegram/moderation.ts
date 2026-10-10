@@ -1,6 +1,8 @@
 import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getLiveKitEnv } from '@/features/calls/server/env'
+import { closeCallRoom } from '@/features/calls/server/livekit'
 import type { ResolveInput } from '@/features/admin/schemas'
 import { resolveSchema } from '@/features/admin/schemas'
 import { hasRole, type AdminRole } from '@/features/admin/roles'
@@ -124,6 +126,46 @@ export async function reviewSelfieAs(
   }
   refresh()
   return { ok: true, userId: req?.user_id }
+}
+
+// Selfie decision "Looks under 18": reject + ban 'underage' + hide + log in one RPC
+// (admin_reject_underage, 20261010000100). Moderators ban for 7 days, admins permanently. A second
+// click finds the request decided (P0002) and is reported like reviewSelfieAs does.
+export async function rejectUnderageAs(
+  adminId: string,
+  requestId: string,
+): Promise<Outcome & { userId?: string; banDays?: number | null }> {
+  const db = createAdminClient()
+  const { data, error } = await db.rpc('admin_reject_underage', {
+    p_admin: adminId,
+    p_request: requestId,
+  })
+  if (error) {
+    const { data: req } = await db
+      .from('verification_requests')
+      .select('status, reviewer_id')
+      .eq('id', requestId)
+      .maybeSingle()
+    if (req && req.status !== 'pending') {
+      const by = req.reviewer_id ? await moderatorName(req.reviewer_id) : 'другой модератор'
+      return { ok: false, already: true, message: `Заявка ${STATUS_LABELS[req.status]}: ${by}` }
+    }
+    if (!req) return { ok: false, already: true, message: 'Заявка не найдена (аккаунт удалён?)' }
+    console.error('[telegram] underage decision failed:', error.code)
+    return failure(error.code)
+  }
+  refresh()
+  const out = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+  const ended = Array.isArray(out.ended_calls)
+    ? out.ended_calls.filter((id): id is string => typeof id === 'string')
+    : []
+  const env = getLiveKitEnv()
+  if (env && ended.length) await Promise.all(ended.map((id) => closeCallRoom(env, id)))
+  return {
+    ok: true,
+    userId: typeof out.user_id === 'string' ? out.user_id : undefined,
+    banDays: typeof out.ban_days === 'number' ? out.ban_days : null,
+  }
 }
 
 export async function setBanAs(

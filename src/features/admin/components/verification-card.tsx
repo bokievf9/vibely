@@ -3,23 +3,33 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Check, X } from 'lucide-react'
+import { Check, ShieldAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
-import { reviewVerification } from '../actions'
+import { Modal } from '@/components/ui/modal'
+import { rejectUnderage, reviewVerification } from '../actions'
 import type { PendingVerification } from '../queries/verification'
 import { formatDate } from './badges'
 import { PhotoStrip } from './photo-strip'
 import { REJECTION_CODES } from '@/features/safety/reason-codes'
-import { REJECTION_LABELS, presetsOf } from '../labels'
+import { REJECTION_LABELS, UNDERAGE_REJECTION_LABEL, presetsOf } from '../labels'
+import { MODERATOR_MAX_BAN_DAYS, hasRole, type AdminRole } from '../roles'
 import { ReasonDialog } from './reason-dialog'
 import { useModeration } from './use-moderation'
 
 const REJECT_PRESETS = presetsOf(REJECTION_CODES, REJECTION_LABELS)
 
-export function VerificationCard({ request }: { request: PendingVerification }) {
+export function VerificationCard({
+  request,
+  role,
+}: {
+  request: PendingVerification
+  role: AdminRole
+}) {
   const { pending, error, run } = useModeration()
   const [rejecting, setRejecting] = useState(false)
+  const [underage, setUnderage] = useState(false)
+  const dialogOpen = rejecting || underage
 
   return (
     <article className="bg-surface flex flex-col gap-4 rounded-3xl p-4">
@@ -54,18 +64,57 @@ export function VerificationCard({ request }: { request: PendingVerification }) 
         )}
         <PhotoStrip photos={request.photos} label="Фото профиля" />
       </div>
-      <FormError message={rejecting ? undefined : error} />
+      <FormError message={dialogOpen ? undefined : error} />
       <div className="grid grid-cols-2 gap-3">
         <Button variant="secondary" onClick={() => setRejecting(true)} disabled={pending}>
           <X className="size-5" /> Отклонить
         </Button>
         <Button
           onClick={() => run(() => reviewVerification({ requestId: request.id, approve: true }))}
-          loading={pending && !rejecting}
+          loading={pending && !dialogOpen}
         >
           <Check className="size-5" /> Одобрить
         </Button>
+        <Button
+          variant="danger"
+          className="col-span-2"
+          onClick={() => setUnderage(true)}
+          disabled={pending}
+        >
+          <ShieldAlert className="size-5" /> {UNDERAGE_REJECTION_LABEL}
+        </Button>
       </div>
+      <Modal open={underage} onClose={() => setUnderage(false)} title={UNDERAGE_REJECTION_LABEL}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm">Одним действием:</p>
+          <ul className="text-muted flex list-disc flex-col gap-1 pl-5 text-sm">
+            <li>селфи отклоняется с причиной «{UNDERAGE_REJECTION_LABEL}»;</li>
+            <li>
+              аккаунт блокируется с причиной «Младше 18 лет»{' '}
+              {hasRole(role, 'admin')
+                ? 'бессрочно'
+                : `на ${MODERATOR_MAX_BAN_DAYS} дней (продлить до бессрочного может админ на странице пользователя)`}
+              ;
+            </li>
+            <li>профиль скрывается из поиска, звонки и блайнд-дейты завершаются;</li>
+            <li>решение записывается в журнал.</li>
+          </ul>
+          <p className="text-muted text-sm">
+            Пользователь увидит, что Vibely только для 18+, и сможет подать апелляцию.
+          </p>
+          <FormError message={underage ? error : undefined} />
+          <Button
+            variant="danger"
+            fullWidth
+            loading={pending}
+            onClick={async () => {
+              if (await run(() => rejectUnderage({ requestId: request.id }))) setUnderage(false)
+            }}
+          >
+            Отклонить и заблокировать
+          </Button>
+        </div>
+      </Modal>
       <ReasonDialog
         open={rejecting}
         onClose={() => setRejecting(false)}

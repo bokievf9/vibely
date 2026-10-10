@@ -1,6 +1,10 @@
 import 'server-only'
 import type { Enums } from '@/types/database.types'
-import { readableRejection } from '@/features/admin/labels'
+import {
+  UNDERAGE_REJECTION_LABEL,
+  readableRejection,
+  underageBanText,
+} from '@/features/admin/labels'
 import type { REPORT_REASONS } from '@/features/safety/schemas'
 import { runAfter } from './client'
 import { moderatorName } from './moderation'
@@ -41,6 +45,16 @@ export function notifyVerificationDecided(
       approve
         ? `📸 Селфи\n✅ Одобрено в админке: ${who}`
         : `📸 Селфи\n❌ Отклонено в админке (${readableRejection(reason ?? '')}): ${who}`,
+    )
+  })
+}
+
+// "Looks under 18" decided in the panel: the selfie photos leave the chat like any decision.
+export function notifyUnderageDecided(requestId: string, adminId: string, banDays: number | null) {
+  runAfter('selfie underage', async () => {
+    await closeSelfie(
+      requestId,
+      `📸 Селфи\n🔞 ${UNDERAGE_REJECTION_LABEL} — отклонено и ${underageBanText(banDays)} в админке: ${await moderatorName(adminId)}`,
     )
   })
 }

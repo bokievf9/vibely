@@ -3,10 +3,11 @@
 import type { Enums } from '@/types/database.types'
 import {
   BAN_CODES,
-  REJECTION_CODES,
+  SHOWN_REJECTION_CODES,
   localizeReason,
   type BanCode,
   type RejectionCode,
+  type ShownRejectionCode,
 } from '@/features/safety/reason-codes'
 import type { REPORT_REASONS } from '@/features/safety/schemas'
 
@@ -42,6 +43,17 @@ export const REJECTION_LABELS: Record<RejectionCode, string> = {
   no_face_photo: 'В профиле нет фото с лицом',
 }
 
+// The selfie decision "Looks under 18" (reject + ban, admin_reject_underage).
+export const UNDERAGE_REJECTION_LABEL = 'Выглядит младше 18'
+
+export const underageBanText = (banDays: number | null) =>
+  banDays ? `заблокирован на ${banDays} дн.` : 'заблокирован бессрочно'
+
+const SHOWN_REJECTION_LABELS: Record<ShownRejectionCode, string> = {
+  ...REJECTION_LABELS,
+  underage: UNDERAGE_REJECTION_LABEL,
+}
+
 export const BAN_LABELS: Record<BanCode, string> = {
   harassment: 'Оскорбления',
   spam: 'Спам или реклама',
@@ -56,7 +68,7 @@ const REPORT_CODES = Object.keys(REPORT_REASON_LABELS) as (keyof typeof REPORT_R
 export const readableReportReason = (text: string) =>
   localizeReason(text, REPORT_CODES, REPORT_REASON_LABELS)
 export const readableRejection = (text: string) =>
-  localizeReason(text, REJECTION_CODES, REJECTION_LABELS)
+  localizeReason(text, SHOWN_REJECTION_CODES, SHOWN_REJECTION_LABELS)
 export const readableBan = (text: string) => localizeReason(text, BAN_CODES, BAN_LABELS)
 
 export const presetsOf = <C extends string>(codes: readonly C[], labels: Record<C, string>) =>
