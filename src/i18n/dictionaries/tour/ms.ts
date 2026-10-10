@@ -50,7 +50,9 @@ export const tourMs: TourDictionary = {
     },
     feed: {
       title: 'Suapan tanpa nama',
-      text: 'Hantaran di sini boleh tanpa nama. Suka, atau balas secara peribadi untuk mula bersembang.',
+      text: 'Siarkan di sini, tanpa nama jika mahu. Suka hantaran, atau balas secara peribadi untuk mula bersembang.',
+      textLocked:
+        'Baca apa yang orang kongsi, selalunya tanpa nama. Suka hantaran, atau balas secara peribadi untuk mula bersembang. Menyiarkan hantaran ada dalam Plus.',
     },
     chats: {
       title: 'Sembang',

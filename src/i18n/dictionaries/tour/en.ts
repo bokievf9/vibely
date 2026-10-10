@@ -50,7 +50,9 @@ export const tourEn = {
     },
     feed: {
       title: 'Anonymous feed',
-      text: 'Posts here can be anonymous. Like one, or reply in private to start a chat.',
+      text: 'Post here, anonymously if you like. Like a post, or reply in private to start a chat.',
+      textLocked:
+        'Read what people share, often anonymously. Like a post, or reply in private to start a chat. Posting comes with Plus.',
     },
     chats: {
       title: 'Chats',

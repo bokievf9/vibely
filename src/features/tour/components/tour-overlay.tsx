@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { fmt } from '@/i18n/config'
 import { useI18n, useLocaleRouter } from '@/i18n/client'
+import { useAccess } from '@/features/plans/components/access-provider'
 import { track } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { cardWidth, place, unionRect, type Rect } from '../placement'
@@ -81,6 +82,8 @@ type Props = {
 export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   const { dict } = useI18n()
   const t = dict.tour
+  // Free users can read, like and reply privately in the feed, but posting needs Plus.
+  const canPost = useAccess().has('feed_post')
   // useLocaleRouter() is a new object on every render: read it through a ref so the step effect
   // below runs once per step, not once per render.
   const router = useLocaleRouter()
@@ -393,7 +396,9 @@ export function TourOverlay({ welcome, name, onEnd, onTip }: Props) {
   const cardY =
     placement?.card.y ?? Math.max(insets.top, viewport.height - insets.bottom - cardHeight - 64)
   const move = reduce ? INSTANT : SPRING
-  const text = t.steps[step.id]
+  const base = t.steps[step.id]
+  const text =
+    step.id === 'feed' && !canPost ? { ...base, text: t.steps.feed.textLocked } : base
   const Icon = ICONS[step.id]
   const live =
     mode === 'welcome'
