@@ -1,5 +1,10 @@
 import 'server-only'
-import { BAN_LABELS, REJECTION_LABELS } from '@/features/admin/labels'
+import {
+  BAN_LABELS,
+  REJECTION_LABELS,
+  UNDERAGE_REJECTION_LABEL,
+  underageBanText,
+} from '@/features/admin/labels'
 import { notifyNewPeople } from '@/features/push/notify-new-people'
 import {
   BAN_CODES,
@@ -8,9 +13,16 @@ import {
   type RejectionCode,
 } from '@/features/safety/reason-codes'
 import { answerCallback, editKeyboard, editText } from './client'
-import { banConfirmKeyboard, banReasonKeyboard, rejectKeyboard, selfieKeyboard } from './keyboards'
+import {
+  banConfirmKeyboard,
+  banReasonKeyboard,
+  rejectKeyboard,
+  selfieKeyboard,
+  underageConfirmKeyboard,
+} from './keyboards'
 import {
   deciderLabel,
+  rejectUnderageAs,
   resolveReportGroupAs,
   reviewSelfieAs,
   setBanAs,
@@ -77,6 +89,32 @@ export async function runCallback(action: CallbackAction, ctx: Ctx) {
           action.id,
           `📸 Селфи\n❌ Отклонено (${REJECTION_LABELS[action.code]}): ${who}, ${time()}`,
         )
+      } else if (!r.ok && r.already) {
+        await closeSelfie(action.id, `📸 Селфи\n${r.message}`)
+      }
+      return
+    }
+    case 'selfie_underage_confirm':
+      await editKeyboard(ctx.chat.id, ctx.messageId, underageConfirmKeyboard(action.id))
+      return answerCallback(
+        ctx.callbackId,
+        'Селфи будет отклонено, аккаунт заблокирован (модератор: 7 дн., админ: бессрочно) и скрыт',
+      )
+    case 'selfie_underage': {
+      const r = await rejectUnderageAs(ctx.admin.adminId, action.id)
+      if (await settle(ctx, r, 'Отклонено и заблокировано')) {
+        await closeSelfie(
+          action.id,
+          `📸 Селфи\n🔞 ${UNDERAGE_REJECTION_LABEL} — отклонено и ${underageBanText(r.ok ? (r.banDays ?? null) : null)}: ${who}, ${time()}`,
+        )
+        if (r.ok && r.userId) {
+          await postBanChange({
+            moderator: who,
+            userId: r.userId,
+            banned: true,
+            reason: 'underage',
+          })
+        }
       } else if (!r.ok && r.already) {
         await closeSelfie(action.id, `📸 Селфи\n${r.message}`)
       }

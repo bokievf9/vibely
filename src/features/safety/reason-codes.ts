@@ -10,6 +10,14 @@ export const REJECTION_CODES = [
 ] as const
 export type RejectionCode = (typeof REJECTION_CODES)[number]
 
+// "Looks under 18": not a plain rejection preset. It rejects the selfie and bans the account in
+// one step (admin_reject_underage, 20261010000100), so it has its own button everywhere a
+// verification is decided. Stored as the rejection reason and the ban reason.
+export const UNDERAGE_CODE = 'underage' as const
+// Every rejection reason a user may be shown.
+export const SHOWN_REJECTION_CODES = [...REJECTION_CODES, UNDERAGE_CODE] as const
+export type ShownRejectionCode = (typeof SHOWN_REJECTION_CODES)[number]
+
 export const BAN_CODES = ['harassment', 'spam', 'scam', 'fake', 'underage', 'other'] as const
 export type BanCode = (typeof BAN_CODES)[number]
 

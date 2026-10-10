@@ -1,5 +1,5 @@
 import 'server-only'
-import { BAN_LABELS, REJECTION_LABELS } from '@/features/admin/labels'
+import { BAN_LABELS, REJECTION_LABELS, UNDERAGE_REJECTION_LABEL } from '@/features/admin/labels'
 import { BAN_CODES, REJECTION_CODES } from '@/features/safety/reason-codes'
 import { adminUrl, type InlineButton, type Keyboard } from './client'
 import { encodeCallback, type ReportTargetType } from './protocol'
@@ -31,7 +31,17 @@ export const rejectKeyboard = (id: string): Keyboard => ({
     ...pairs(
       REJECTION_CODES.map((code) => btn(REJECTION_LABELS[code], { a: 'selfie_reject', id, code })),
     ),
+    [btn(`🔞 ${UNDERAGE_REJECTION_LABEL} (бан)`, { a: 'selfie_underage_confirm', id })],
     [btn('← Назад', { a: 'selfie_back', id })],
+  ],
+})
+
+export const underageConfirmKeyboard = (id: string): Keyboard => ({
+  inline_keyboard: [
+    [
+      btn('Да, отклонить и заблокировать', { a: 'selfie_underage', id }),
+      btn('Отмена', { a: 'selfie_reject_menu', id }),
+    ],
   ],
 })
 

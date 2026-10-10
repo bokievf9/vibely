@@ -165,7 +165,12 @@ export const ms: Dictionary = {
       chin: 'Letakkan dagu di atas penumbuk',
     },
   },
-  banned: { title: 'Akaun disekat', reason: 'Sebab: {reason}' },
+  banned: {
+    title: 'Akaun disekat',
+    reason: 'Sebab: {reason}',
+    underage:
+      'Vibely hanya untuk orang dewasa berumur 18 tahun ke atas. Moderator kami percaya akaun ini mungkin milik seseorang di bawah 18 tahun, jadi ia telah disekat. Jika anda berumur 18 tahun atau lebih, hantar rayuan di bawah dan moderator akan menyemaknya.',
+  },
   moderation: {
     rejection: {
       gesture_mismatch: 'Isyarat tidak sepadan dengan tugasan',
@@ -173,6 +178,7 @@ export const ms: Dictionary = {
       face_mismatch: 'Wajah tidak sepadan dengan foto profil anda',
       screen_photo: 'Foto skrin atau cetakan',
       no_face_photo: 'Profil anda tiada foto yang menunjukkan wajah',
+      underage: 'Anda kelihatan di bawah 18 tahun',
     },
     ban: {
       harassment: 'Gangguan atau penghinaan',

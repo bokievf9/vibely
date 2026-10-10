@@ -155,6 +155,22 @@ test('callback data: round trip and 64-byte limit', () => {
   assert.throws(() => encodeCallback({ a: 'selfie_reject', id: ID, code: 'x'.repeat(40) }))
 })
 
+test('callback data: "Looks under 18" buttons round trip', () => {
+  const confirm = { a: 'selfie_underage_confirm', id: ID }
+  const decide = { a: 'selfie_underage', id: ID }
+  assert.equal(encodeCallback(confirm), `sy:${ID}`)
+  assert.equal(encodeCallback(decide), `su:${ID}`)
+  for (const a of [confirm, decide]) {
+    const data = encodeCallback(a)
+    assert.ok(Buffer.byteLength(data) <= 64, data)
+    assert.deepEqual(decodeCallback(data), a)
+  }
+  // the decision never carries a code and is not confused with a plain rejection
+  for (const bad of [`su:${ID}:underage`, `sy:${ID}:x`, 'su:', `su:${ID.toUpperCase()}`, `sx:${ID}:under age`])
+    assert.equal(decodeCallback(bad), null, bad)
+  assert.deepEqual(decodeCallback(`sx:${ID}:underage`), { a: 'selfie_reject', id: ID, code: 'underage' })
+})
+
 test('callback data: tampered input rejected', () => {
   for (const bad of [
     '',
