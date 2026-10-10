@@ -91,6 +91,8 @@ export const plansRu: PlansDictionary = {
     limitTotal: '{count}',
   },
   callsNote: 'Нужно только тому, кто звонит.',
+  moreIn: 'В {plan} больше.',
+  likesLeft: 'Лайков на сегодня осталось: {count}',
   screen: {
     title: 'Планы',
     intro: 'Vibely можно пользоваться бесплатно. Plus и VIP дают больше способов познакомиться.',
@@ -136,9 +138,8 @@ export const plansRu: PlansDictionary = {
     profileRow: 'План',
     seePlans: 'Планы',
     upgrade: 'Улучшить',
-    callsLocked: 'Начинать звонки можно в VIP',
-    visitorsLocked: 'VIP показывает, кто смотрел ваш профиль',
-    readReceiptsMore: 'Отчёты о прочтении входят в VIP',
+    eventPriorityOn: 'VIP: сегодня вас подбирают первыми',
+    eventPriorityLocked: 'На вечерах участников VIP подбирают первыми',
   },
 }
 

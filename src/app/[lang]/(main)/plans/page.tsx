@@ -16,7 +16,10 @@ export default async function PlansPage() {
   const dict = await getDictionary()
   return (
     <>
-      <PageHeader title={dict.plans.screen.title} back={{ href: '/profile', label: dict.common.back }} />
+      <PageHeader
+        title={dict.plans.screen.title}
+        back={{ href: '/profile', label: dict.common.back }}
+      />
       <Suspense fallback={<PlansSkeleton />}>
         <Plans />
       </Suspense>

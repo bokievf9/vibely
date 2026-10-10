@@ -96,6 +96,8 @@ export const plansEn = {
     limitTotal: '{count}',
   },
   callsNote: 'Only the person who starts the call needs it.',
+  moreIn: '{plan} gives you more.',
+  likesLeft: '{count} likes left today',
   screen: {
     title: 'Plans',
     intro: 'Vibely is free to use. Plus and VIP give you more ways to meet people.',
@@ -141,9 +143,8 @@ export const plansEn = {
     profileRow: 'Plan',
     seePlans: 'See plans',
     upgrade: 'Upgrade',
-    callsLocked: 'Starting calls is part of VIP',
-    visitorsLocked: 'VIP shows who viewed you',
-    readReceiptsMore: 'Read receipts are part of VIP',
+    eventPriorityOn: 'VIP: you are matched first tonight',
+    eventPriorityLocked: 'VIP members are matched first on event nights',
   },
 }
 

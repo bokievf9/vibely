@@ -47,9 +47,7 @@ export function PlansScreen({ plan, planUntil, isStaff, catalog, interest }: Pro
   return (
     <div className="flex flex-col gap-6 px-4 pb-10">
       <p className="text-muted text-callout -mt-1 px-1 text-pretty">{t.intro}</p>
-      {isStaff && (
-        <p className="card text-callout px-4 py-3 text-pretty">{t.staff}</p>
-      )}
+      {isStaff && <p className="card text-callout px-4 py-3 text-pretty">{t.staff}</p>}
 
       <BillingToggle value={period} onChange={setPeriod} />
 
@@ -130,7 +128,9 @@ function CurrentPill({ planUntil }: { planUntil: string | null }) {
   return (
     <span className="bg-success/15 text-success inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold">
       <Check className="size-3.5" strokeWidth={3} aria-hidden />
-      {planUntil ? `${t.current}. ${fmt(t.currentUntil, { date: formatDay(planUntil, locale) })}` : t.current}
+      {planUntil
+        ? `${t.current}. ${fmt(t.currentUntil, { date: formatDay(planUntil, locale) })}`
+        : t.current}
     </span>
   )
 }
@@ -178,7 +178,9 @@ function BenefitList({
             strokeWidth={2.5}
             aria-hidden
           />
-          <span className="text-callout min-w-0 text-pretty">{benefitText(b.key, b.cell, dict)}</span>
+          <span className="text-callout min-w-0 text-pretty">
+            {benefitText(b.key, b.cell, dict)}
+          </span>
         </li>
       ))}
     </ul>
@@ -212,7 +214,7 @@ function PaidCard({
         'relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius-card)] border p-5',
         'shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_16px_32px_-24px_rgb(0_0_0/0.9)]',
         vip
-          ? 'border-vip/35 bg-[linear-gradient(160deg,rgb(217_180_90/0.12),rgb(217_180_90/0.02)_45%,transparent)] bg-surface'
+          ? 'border-vip/35 bg-surface bg-[linear-gradient(160deg,rgb(217_180_90/0.12),rgb(217_180_90/0.02)_45%,transparent)]'
           : 'border-accent/35 bg-surface',
         current && 'ring-success/60 ring-2',
       )}
@@ -347,10 +349,15 @@ function Comparison({ catalog, current }: { catalog: Catalog; current: PlanLevel
               </tr>
               {g.rows.map((r) => (
                 <tr key={r.key}>
-                  <th scope="row" className="text-callout py-2.5 pr-2 pl-4 align-middle font-normal">
+                  <th
+                    scope="row"
+                    className="text-callout py-2.5 pr-2 pl-4 align-middle font-normal"
+                  >
                     <span className="block text-pretty">{t.featureNames[r.key]}</span>
                     {r.key === 'calls' && (
-                      <span className="text-muted text-footnote block text-pretty">{t.callsNote}</span>
+                      <span className="text-muted text-footnote block text-pretty">
+                        {t.callsNote}
+                      </span>
                     )}
                   </th>
                   {levels.map((p) => (

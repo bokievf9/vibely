@@ -95,9 +95,12 @@ export const plansMs: PlansDictionary = {
     limitTotal: '{count}',
   },
   callsNote: 'Hanya orang yang memulakan panggilan memerlukannya.',
+  moreIn: '{plan} memberi anda lebih.',
+  likesLeft: '{count} suka lagi hari ini',
   screen: {
     title: 'Pelan',
-    intro: 'Vibely percuma untuk digunakan. Plus dan VIP memberi anda lebih banyak cara berkenalan.',
+    intro:
+      'Vibely percuma untuk digunakan. Plus dan VIP memberi anda lebih banyak cara berkenalan.',
     taglines: {
       free: 'Kenali orang yang disahkan dan bersembang selepas padanan.',
       plus: 'Lebih banyak suka, foto dan suara dalam sembang.',
@@ -140,9 +143,8 @@ export const plansMs: PlansDictionary = {
     profileRow: 'Pelan',
     seePlans: 'Lihat pelan',
     upgrade: 'Naik taraf',
-    callsLocked: 'Memulakan panggilan ialah sebahagian daripada VIP',
-    visitorsLocked: 'VIP menunjukkan siapa melihat anda',
-    readReceiptsMore: 'Resit baca ialah sebahagian daripada VIP',
+    eventPriorityOn: 'VIP: anda dipadankan dahulu malam ini',
+    eventPriorityLocked: 'Ahli VIP dipadankan dahulu pada malam acara',
   },
 }
 

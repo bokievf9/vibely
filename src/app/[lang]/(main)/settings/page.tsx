@@ -33,6 +33,7 @@ import { getUsernameSettings } from '@/features/username/queries'
 import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { ReadReceiptsToggle } from '@/features/vip-perks/components/read-receipts-toggle'
+import { PlansSettingsRow } from '@/features/plans/components/plan-entries'
 import { getReadReceiptsSetting } from '@/features/vip-perks/queries'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -76,6 +77,7 @@ async function Settings() {
 
   return (
     <div className="flex flex-col gap-7 px-4 pt-1 pb-8">
+      <PlansSettingsRow />
       {username && (
         <SettingsSection title={dict.username.section}>
           <UsernameSettingsRows initial={username} />

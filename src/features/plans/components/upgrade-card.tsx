@@ -83,7 +83,7 @@ function UpgradeDetails({
 }) {
   const { dict } = useI18n()
   const t = dict.plans
-  const { access, upgradePlan } = useAccess()
+  const { access, upgradePlan, has } = useAccess()
   const { paywall } = usePaywall()
   const plan = upgradePlan(feature)
   const planName = t.names[plan]
@@ -95,13 +95,18 @@ function UpgradeDetails({
       ? f?.limit !== null && f?.limit !== undefined && f.period
         ? fmt(t.limitBody, { limit: f.limit, period: t.periods[f.period], plan: planName })
         : fmt(t.limitBodyShort, { plan: planName })
-      : feature === 'calls'
-        ? `${fmt(t.availableIn, { plan: planName })}. ${t.callsNote}`
-        : fmt(t.availableIn, { plan: planName })
+      : has(feature)
+        ? fmt(t.moreIn, { plan: planName })
+        : feature === 'calls'
+          ? `${fmt(t.availableIn, { plan: planName })}. ${t.callsNote}`
+          : fmt(t.availableIn, { plan: planName })
 
   const catalog = paywall?.catalog
   const benefits = catalog
-    ? planBenefits(catalog, plan).map((b) => ({ key: b.key, text: benefitText(b.key, b.cell, dict) }))
+    ? planBenefits(catalog, plan).map((b) => ({
+        key: b.key,
+        text: benefitText(b.key, b.cell, dict),
+      }))
     : paywall
       ? featuresOf(access, plan)
           .slice(0, 4)
@@ -135,7 +140,10 @@ function UpgradeDetails({
             {benefits.map((b) => (
               <li key={b.key} className="flex items-center gap-3 py-1.5">
                 <Check
-                  className={cn('size-[1.125rem] shrink-0', plan === 'vip' ? 'text-vip' : 'text-success')}
+                  className={cn(
+                    'size-[1.125rem] shrink-0',
+                    plan === 'vip' ? 'text-vip' : 'text-success',
+                  )}
                   strokeWidth={2.5}
                   aria-hidden
                 />

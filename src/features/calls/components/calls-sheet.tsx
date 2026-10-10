@@ -1,6 +1,6 @@
 'use client'
 
-import { Phone, ShieldAlert, Video } from 'lucide-react'
+import { Crown, Phone, ShieldAlert, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { fmt } from '@/i18n/config'
@@ -21,6 +21,8 @@ type Props = {
   onToggle: () => void
   onAcceptNotice: () => void
   onCall: (kind: CallKind) => void
+  // Tap on a locked call button (no calls feature): the upgrade sheet.
+  onLocked: () => void
 }
 
 // "Calls in this chat": the mutual permission switch, the recording reminder and the call
@@ -101,7 +103,27 @@ export function CallsSheet(props: Props) {
             </Button>
           </div>
         ) : (
-          <p className="text-muted text-sm">{t.acceptOnly}</p>
+          <div className="flex flex-col gap-2">
+            {/* Visible but locked: a tap opens the upgrade sheet (calls are VIP, caller only). */}
+            <div className="flex gap-3">
+              {(['audio', 'video'] as const).map((kind) => (
+                <Button
+                  key={kind}
+                  variant="secondary"
+                  fullWidth
+                  onClick={props.onLocked}
+                  aria-describedby="calls-locked-hint"
+                >
+                  {kind === 'audio' ? <Phone className="size-5" /> : <Video className="size-5" />}
+                  {kind === 'audio' ? t.audio : t.video}
+                  <Crown className="text-vip fill-vip/25 size-4" aria-hidden />
+                </Button>
+              ))}
+            </div>
+            <p id="calls-locked-hint" className="text-muted text-sm">
+              {t.acceptOnly}
+            </p>
+          </div>
         )}
       </div>
     </Modal>

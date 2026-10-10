@@ -72,6 +72,22 @@ function Stats({ stats }: { stats: PlanStats }) {
           <span className="text-2xl font-bold">{stats.staff}</span>
         </div>
       </div>
+      {stats.interest && (
+        <div className="bg-surface flex flex-col gap-2 rounded-2xl px-4 py-3">
+          <span className="text-sm font-medium">Ждут запуска подписки (кнопка «Сообщить»)</span>
+          <div className="grid grid-cols-2 gap-2">
+            {(['plus', 'vip'] as const).map((p) => (
+              <div key={p} className="flex flex-col">
+                <span className="text-muted text-xs">{PLAN_LABELS[p]}</span>
+                <span className="text-2xl font-bold">{stats.interest?.[p].total ?? 0}</span>
+                <span className="text-muted text-xs">
+                  за 7 дней: {stats.interest?.[p].last7d ?? 0}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {stats.bySource.length > 0 && (
         <ul className="bg-surface flex flex-col rounded-2xl px-4 py-2 text-sm">
           {stats.bySource.map((s) => (

@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, useMotionValue } from 'framer-motion'
-import { Heart, MessageSquareHeart, SlidersHorizontal, X } from 'lucide-react'
+import { Crown, Heart, MessageSquareHeart, SlidersHorizontal, X } from 'lucide-react'
 import { headerActionClassName } from '@/components/layout/header-styles'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/ui/field'
+import { fmt } from '@/i18n/config'
 import { useErrorText, useI18n } from '@/i18n/client'
 import type { ErrorKey } from '@/i18n/dictionaries/en'
 import { trackOnce } from '@/lib/analytics'
@@ -59,7 +60,10 @@ export function SwipeDeck({
   const errorText = useErrorText()
   const upgradeOr = useUpgradeHandler()
   // "Like with a note" (message_before_match, VIP): without it the button opens the upgrade sheet.
-  const { has, showUpgrade } = useAccess()
+  const { has, showUpgrade, remaining, recordUse } = useAccess()
+  // Daily likes (likes_per_day, free 100): a quiet line under the buttons once 10 or fewer are
+  // left, so the limit never comes as a surprise. Tapping it opens the upgrade sheet.
+  const likesLeft = remaining('likes_per_day')
   const { filters, setFilters } = useSwipeFilters(defaultFilters)
   const [cards, setCards] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -149,6 +153,8 @@ export function SwipeDeck({
       }
       return setError(result.error)
     }
+    // Keeps the "likes left today" line honest until the next request reads the real count.
+    if (dir === 'like' && !viaNote) recordUse('likes_per_day')
     if (!result.data.matchId) return
     trackOnce('first_match')
     setMatch({ id: result.data.matchId, name: top.name, photo: top.photos[0]?.url ?? null })
@@ -250,8 +256,32 @@ export function SwipeDeck({
                 }}
               >
                 <MessageSquareHeart className="text-accent size-6" strokeWidth={2.25} />
+                {!has('message_before_match') && (
+                  <span
+                    aria-hidden
+                    className="bg-surface-raised border-border absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border"
+                  >
+                    <Crown className="text-vip fill-vip/25 size-3" strokeWidth={2.5} />
+                  </span>
+                )}
               </Button>
             </div>
+            {likesLeft !== null && likesLeft <= 10 && (
+              <button
+                type="button"
+                onClick={() =>
+                  showUpgrade({
+                    feature: 'likes_per_day',
+                    reason: likesLeft === 0 ? 'limit' : 'feature',
+                  })
+                }
+                className="text-muted text-footnote relative mx-auto -mt-1 font-medium tabular-nums before:absolute before:-inset-x-3 before:-inset-y-3 before:content-[''] active:opacity-60"
+              >
+                {likesLeft === 0
+                  ? dict.plans.limitTitle
+                  : fmt(dict.plans.likesLeft, { count: likesLeft })}
+              </button>
+            )}
           </>
         )}
       </section>

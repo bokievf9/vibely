@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Check, Crown, Heart, Minus, Sparkles, type LucideIcon } from 'lucide-react'
+import { Bell, Check, Minus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { fmt } from '@/i18n/config'
 import { useI18n } from '@/i18n/client'
@@ -10,10 +10,9 @@ import type { FeatureKey, PlanLevel } from '../access'
 import { cellText, type Cell } from '../comparison'
 import type { PaidPlan } from '../pricing'
 import { usePaywall, usePlanInterest } from './access-provider'
+import { PLAN_ICONS } from './plan-ui-icons'
 
 // Small pieces shared by the Plans screen and the upgrade sheet.
-
-export const PLAN_ICONS: Record<PlanLevel, LucideIcon> = { free: Heart, plus: Sparkles, vip: Crown }
 
 // Plus speaks in the accent, VIP in the gold --vip token (the crown everywhere else in the app).
 export function PlanMark({ plan, className }: { plan: PlanLevel; className?: string }) {
