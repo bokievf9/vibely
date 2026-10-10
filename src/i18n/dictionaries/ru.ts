@@ -25,6 +25,7 @@ import { promoRu, promoErrorsRu } from './promo/ru'
 import { vipPerksRu, vipPerksErrorsRu } from './vip-perks/ru'
 import { duoRu, duoErrorsRu } from './duo/ru'
 import { conversationErrorsRu, conversationsRu } from './conversations/ru'
+import { tourRu } from './tour/ru'
 
 export const ru: Dictionary = {
   meta: {
@@ -423,4 +424,5 @@ export const ru: Dictionary = {
   vipPerks: vipPerksRu,
   duo: duoRu,
   conversations: conversationsRu,
+  tour: tourRu,
 }

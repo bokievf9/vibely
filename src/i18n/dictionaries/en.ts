@@ -24,6 +24,7 @@ import { promoEn, promoErrorsEn } from './promo/en'
 import { vipPerksEn, vipPerksErrorsEn } from './vip-perks/en'
 import { duoEn, duoErrorsEn } from './duo/en'
 import { conversationErrorsEn, conversationsEn } from './conversations/en'
+import { tourEn } from './tour/en'
 
 export const en = {
   meta: { description: 'Verified people only: swipes, an anonymous feed and blind dates.' },
@@ -418,6 +419,7 @@ export const en = {
   vipPerks: vipPerksEn,
   duo: duoEn,
   conversations: conversationsEn,
+  tour: tourEn,
 }
 
 export type Dictionary = typeof en

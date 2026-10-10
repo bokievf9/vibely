@@ -25,6 +25,7 @@ import { promoMs, promoErrorsMs } from './promo/ms'
 import { vipPerksMs, vipPerksErrorsMs } from './vip-perks/ms'
 import { duoMs, duoErrorsMs } from './duo/ms'
 import { conversationErrorsMs, conversationsMs } from './conversations/ms'
+import { tourMs } from './tour/ms'
 
 export const ms: Dictionary = {
   meta: { description: 'Hanya orang yang disahkan: swipe, suapan tanpa nama dan temu janji buta.' },
@@ -425,4 +426,5 @@ export const ms: Dictionary = {
   vipPerks: vipPerksMs,
   duo: duoMs,
   conversations: conversationsMs,
+  tour: tourMs,
 }
