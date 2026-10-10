@@ -181,6 +181,7 @@ export function SwipeDeck({
           type="button"
           className={headerActionClassName}
           aria-label={dict.swipe.filters}
+          data-tour="swipe-filters"
           onClick={() => setFiltersOpen(true)}
         >
           <SlidersHorizontal className="size-[1.375rem]" />
@@ -221,7 +222,10 @@ export function SwipeDeck({
               </AnimatePresence>
             </div>
             {/* Like stays in the centre: equal columns on both sides of it. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-7 pt-1">
+            <div
+              data-tour="swipe-deck"
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-7 pt-1"
+            >
               <Button
                 variant="secondary"
                 size="icon"

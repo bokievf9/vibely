@@ -46,7 +46,9 @@ export function PlansScreen({ plan, planUntil, isStaff, catalog, interest }: Pro
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-10">
-      <p className="text-muted text-callout -mt-1 px-1 text-pretty">{t.intro}</p>
+      <p data-tour="plans-billing" className="text-muted text-callout -mt-1 px-1 text-pretty">
+        {t.intro}
+      </p>
       {isStaff && <p className="card text-callout px-4 py-3 text-pretty">{t.staff}</p>}
 
       <BillingToggle value={period} onChange={setPeriod} />
@@ -90,6 +92,7 @@ function BillingToggle({
     <div
       role="radiogroup"
       aria-label={t.billing}
+      data-tour="plans-billing"
       className="bg-surface border-border grid grid-cols-3 gap-1 rounded-full border p-1"
     >
       {BILLING_PERIODS.map((p) => {

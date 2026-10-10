@@ -8,6 +8,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      onboarding_tour: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          seen_tips: string[]
+          skipped_at: string | null
+          skipped_step: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          seen_tips?: string[]
+          skipped_at?: string | null
+          skipped_step?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          seen_tips?: string[]
+          skipped_at?: string | null
+          skipped_step?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_interest: {
         Row: {
           created_at: string
@@ -2820,6 +2850,9 @@ export type Database = {
       }
     }
     Functions: {
+      my_tour_state: { Args: never; Returns: Json }
+      tour_mark: { Args: { p_event: string; p_step?: number }; Returns: undefined }
+      tour_tip_seen: { Args: { p_key: string }; Returns: undefined }
       my_access: { Args: never; Returns: Json }
       register_plan_interest: { Args: { p_plan: string }; Returns: boolean }
       activate_boost: { Args: never; Returns: string }

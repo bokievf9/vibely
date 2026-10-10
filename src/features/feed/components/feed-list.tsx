@@ -112,22 +112,25 @@ export function FeedList({ initial, prompt = null, promptMatches = [], top }: Pr
     <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
       {top}
       {prompt && <DailyPromptCard prompt={prompt} matches={promptMatches} />}
-      {canPost ? (
-        <Composer
-          id={COMPOSER_ID}
-          placeholder={dict.feed.placeholder}
-          submitLabel={dict.feed.publish}
-          maxLength={1000}
-          onSubmit={createPost}
-          onDone={() => void show('new')}
-        />
-      ) : (
-        <UpgradeCard feature="feed_post" compact text={dict.plans.feedPostLocked} />
-      )}
-      <p className="text-muted text-footnote -mt-0.5 mb-1 flex items-start gap-1.5 px-1">
-        <EyeOff className="mt-px size-3.5 shrink-0" aria-hidden />
-        <span>{dict.feed.anonymousNote}</span>
-      </p>
+      {/* The guided tour lights up the composer and the anonymity note together. */}
+      <div data-tour="feed-compose" className="flex flex-col gap-3">
+        {canPost ? (
+          <Composer
+            id={COMPOSER_ID}
+            placeholder={dict.feed.placeholder}
+            submitLabel={dict.feed.publish}
+            maxLength={1000}
+            onSubmit={createPost}
+            onDone={() => void show('new')}
+          />
+        ) : (
+          <UpgradeCard feature="feed_post" compact text={dict.plans.feedPostLocked} />
+        )}
+        <p className="text-muted text-footnote -mt-0.5 mb-1 flex items-start gap-1.5 px-1">
+          <EyeOff className="mt-px size-3.5 shrink-0" aria-hidden />
+          <span>{dict.feed.anonymousNote}</span>
+        </p>
+      </div>
       <FeedTabs tab={tab} onChange={(t) => void show(t)} />
       <AnimatePresence>
         {fresh.count > 0 && (

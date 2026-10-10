@@ -78,7 +78,11 @@ async function OwnProfile() {
         />
         {/* Grouped list, iOS Settings style. */}
         <div className="card divide-border flex flex-col divide-y overflow-hidden">
-          <Link href={localePath(locale, '/profile/edit')} className={groupedRowClassName}>
+          <Link
+            href={localePath(locale, '/profile/edit')}
+            className={groupedRowClassName}
+            data-tour="profile-card"
+          >
             <span className="icon-tile">
               <Pencil className="size-[1.125rem]" aria-hidden />
             </span>

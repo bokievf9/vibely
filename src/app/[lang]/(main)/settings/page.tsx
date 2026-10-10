@@ -34,6 +34,7 @@ import { localePath } from '@/i18n/config'
 import { getDictionary, getLocale } from '@/i18n/server'
 import { ReadReceiptsToggle } from '@/features/vip-perks/components/read-receipts-toggle'
 import { PlansSettingsRow } from '@/features/plans/components/plan-entries'
+import { ReplayTourRow } from '@/features/tour/components/replay-tour-row'
 import { getReadReceiptsSetting } from '@/features/vip-perks/queries'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -93,13 +94,18 @@ async function Settings() {
         <PushToggle />
         <NotificationPrefsRows initial={prefs} hidden={duo ? [] : ['duo']} />
       </SettingsSection>
-      <SettingsSection title={dict.settings.privacy}>
-        <LastSeenToggle initial={privacy.showLastSeen} />
-        {receipts && <ReadReceiptsToggle initial={receipts.send} available={receipts.available} />}
-        <PauseToggle discoverable={privacy.discoverable} />
-        {incognito !== null && <IncognitoToggle initial={incognito} />}
-        {crossed !== null && <CrossedPathsToggle initial={crossed} />}
-      </SettingsSection>
+      {/* The guided tour's "Privacy and safety" step lights up this whole group. */}
+      <div data-tour="settings-privacy">
+        <SettingsSection title={dict.settings.privacy}>
+          <LastSeenToggle initial={privacy.showLastSeen} />
+          {receipts && (
+            <ReadReceiptsToggle initial={receipts.send} available={receipts.available} />
+          )}
+          <PauseToggle discoverable={privacy.discoverable} />
+          {incognito !== null && <IncognitoToggle initial={incognito} />}
+          {crossed !== null && <CrossedPathsToggle initial={crossed} />}
+        </SettingsSection>
+      </div>
       {vip && (
         <SettingsSection title={dict.promo.section}>
           <PromoSettingsRow initial={vip} />
@@ -107,6 +113,9 @@ async function Settings() {
       )}
       <SettingsSection title={dict.settings.blocked}>
         <BlockedUsers initial={blocked} />
+      </SettingsSection>
+      <SettingsSection title={dict.tour.settings.section}>
+        <ReplayTourRow />
       </SettingsSection>
       <SettingsSection title={dict.profile.language} card={false}>
         <LanguageSwitcher />

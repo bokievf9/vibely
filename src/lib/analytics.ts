@@ -14,6 +14,13 @@ export type AnalyticsEvent =
   | 'faq_open'
   | 'video_play'
   | 'scroll_depth'
+  // Guided tour (src/features/tour): tour_step carries `n` (1-based, as shown) and `step` (id),
+  // tour_skip the step it was skipped at, tip_seen the tip `key`.
+  | 'tour_start'
+  | 'tour_step'
+  | 'tour_complete'
+  | 'tour_skip'
+  | 'tip_seen'
 
 type Props = Record<string, string | number | boolean>
 

@@ -30,7 +30,7 @@ export function OwnProfileHeader({
   t,
 }: Props) {
   return (
-    <div className="flex flex-col items-center gap-4 pt-2 text-center">
+    <div data-tour="profile-card" className="flex flex-col items-center gap-4 pt-2 text-center">
       <span className="relative">
         {/* Soft bloom behind the photo, then the accent ring with a background-colored gap. */}
         <span aria-hidden className="bg-accent/30 absolute inset-2 rounded-full blur-2xl" />

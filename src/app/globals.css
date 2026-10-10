@@ -411,6 +411,13 @@ body:has([data-install-prompt]) [data-main] {
   padding-bottom: calc(var(--tabbar-h) + var(--install-prompt-h, 0px) + 0.75rem);
 }
 
+/* The guided tour comes first: the install banner waits while it runs or while a tip is up
+   (src/features/tour). */
+body[data-tour] [data-install-prompt],
+body[data-tip-open] [data-install-prompt] {
+  display: none;
+}
+
 /* Immersive screens (chat room, call, full-screen viewers) render an element with [data-immersive]:
    the tab bar, its bottom padding and the install banner go away while it is mounted. */
 body[data-immersive] [data-tabbar],

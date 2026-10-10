@@ -78,6 +78,7 @@ export function EventCard({
   return (
     <section
       aria-label={t.kicker}
+      data-tip="event"
       className={cn('card animate-rise relative overflow-hidden px-4 pt-4 pb-3', className)}
     >
       <div
@@ -163,6 +164,8 @@ function EventStrip({ event, live, msLeft, setReminded, onEnter, onHide, classNa
   return (
     <section
       aria-label={t.kicker}
+      data-tip="event"
+      data-tour="swipe-event"
       className={cn(
         'card animate-rise flex items-center gap-2.5 rounded-2xl py-2 pr-1 pl-2.5',
         className,

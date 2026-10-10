@@ -18,6 +18,7 @@ export async function LikesButton() {
       href={localePath(locale, '/likes')}
       aria-label={fmt(dict.likes.open, { count })}
       className={headerActionClassName}
+      data-tour="swipe-people"
     >
       <Heart className="size-[1.375rem]" />
       {count > 0 && (
